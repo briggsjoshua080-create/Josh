@@ -41,6 +41,8 @@ export const strings = {
   },
   allCategories: { en: "All", de: "Alle" },
   surpriseMe: { en: "Surprise me", de: "Überrasch mich" },
+  viewDeck: { en: "Cards", de: "Karten" },
+  viewList: { en: "List", de: "Liste" },
   scenarios: { en: "{n} scenarios", de: "{n} Szenarien" },
 
   // Session / recording
