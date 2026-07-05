@@ -114,6 +114,7 @@ export const strings = {
   sessionsCount: { en: "Sessions", de: "Sessions" },
   avgScore: { en: "Avg. score", de: "Ø-Score" },
   bestScore: { en: "Best", de: "Bestwert" },
+  statStreak: { en: "Day streak", de: "Tage-Serie" },
   trendTitle: { en: "Score trend", de: "Score-Verlauf" },
   historyTitle: { en: "History", de: "Verlauf" },
   emptyProgress: {

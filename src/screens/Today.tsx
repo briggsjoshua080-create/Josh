@@ -58,7 +58,7 @@ export function Today() {
           <div className="flex items-baseline gap-3">
             <span className="lectern text-2xl text-ink">{word.word}</span>
             <span className="text-sm text-muted italic">{word.pos}</span>
-            <span className="tnum ml-auto text-sm text-faint">{word.pronunciation}</span>
+            <span className="tnum ml-auto text-sm text-muted">{word.pronunciation}</span>
           </div>
           <p className="mt-2 text-base text-ink/90">{word.definition}</p>
           <p className="lectern mt-3 text-base italic text-muted">“{word.example}”</p>

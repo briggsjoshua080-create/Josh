@@ -5,6 +5,7 @@ import { allSessions, currentStreak } from "@/lib/db";
 import type { Session } from "@/lib/types";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { TrendChart } from "@/components/TrendChart";
 
 export function Progress() {
   const { t } = useI18n();
@@ -45,8 +46,25 @@ export function Progress() {
         <Stat label={t("sessionsCount")} value={sessions.length} />
         <Stat label={t("avgScore")} value={avg} />
         <Stat label={t("bestScore")} value={best} />
-        <Stat label={t("streakDays", { n: streak }).replace(/\d+ ?/, "")} value={streak} accent />
+        <Stat label={t("statStreak")} value={streak} accent />
       </div>
+
+      {/* Trend */}
+      {sessions.length >= 2 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-medium text-muted">{t("trendTitle")}</h2>
+          <div className="mt-3">
+            <TrendChart
+              points={sessions.map((s) => ({
+                id: s.id!,
+                score: s.scores.overall,
+                dateISO: s.dateISO,
+                title: s.promptTitle,
+              }))}
+            />
+          </div>
+        </section>
+      )}
 
       {/* History */}
       <section className="mt-8">
