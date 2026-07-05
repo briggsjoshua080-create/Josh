@@ -16,7 +16,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "paths": { "@/*": ["./src/*"] }
+    "types": ["node"],
+  "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
 }
