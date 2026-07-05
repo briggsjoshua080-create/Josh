@@ -1,4 +1,4 @@
-import { handleFeedback } from "../server/coach";
+import { handleFeedback } from "../server/coach.js";
 
 export const config = { runtime: "edge" };
 
