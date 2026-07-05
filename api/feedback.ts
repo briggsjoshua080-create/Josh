@@ -9,7 +9,13 @@ export default async function handler(request: Request): Promise<Response> {
       headers: { "content-type": "application/json" },
     });
   }
-  const bodyText = await request.text();
+  const bodyText = await new Promise((resolve, reject) => {
+  let data = '';
+  request.on('data', chunk => data += chunk);
+  request.on('error', reject);
+  request.on('end', () => resolve(data));
+});
+
   const out = await handleFeedback(bodyText, {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
