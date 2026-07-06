@@ -1,4 +1,4 @@
-import type { Lang, PauseEvent, SpeechSegment } from "./types";
+import type { Lang, PauseEvent, SpeechSegment, VolumeStats } from "./types";
 
 /**
  * Web Speech API wrapper: continuous recognition with auto-restart (Chrome
@@ -46,6 +46,8 @@ export interface RecorderResult {
   segments: SpeechSegment[];
   pauses: PauseEvent[];
   durationSec: number;
+  /** Offline volume analysis; undefined if the level meter never started. */
+  volume?: VolumeStats;
 }
 
 export class SpeechSession {
@@ -61,6 +63,12 @@ export class SpeechSession {
   private audioCtx: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
   private levelRaf: number | null = null;
+  // Offline volume accumulators — periodic voiced-level samples, summed so we
+  // never keep the full sample array in memory.
+  private volSum = 0;
+  private volSumSq = 0;
+  private volCount = 0;
+  private lastVolSampleAt = 0;
 
   constructor(
     private lang: Lang,
@@ -196,7 +204,20 @@ export class SpeechSession {
           sum += v * v;
         }
         const rms = Math.sqrt(sum / data.length);
-        this.cb.onLevel(Math.min(1, rms * 4));
+        const level = Math.min(1, rms * 4);
+        this.cb.onLevel(level);
+        // Sample the level ~10x/sec (not every frame) for the offline volume
+        // analysis. Only count "voiced" frames so silent pauses don't drag the
+        // average down and falsely flag a quiet speaker.
+        const now = performance.now();
+        if (now - this.lastVolSampleAt >= 100) {
+          this.lastVolSampleAt = now;
+          if (level > 0.03) {
+            this.volSum += level;
+            this.volSumSq += level * level;
+            this.volCount += 1;
+          }
+        }
         this.levelRaf = requestAnimationFrame(loop);
       };
       loop();
@@ -225,14 +246,26 @@ export class SpeechSession {
     } catch {
       /* noop */
     }
+    // Release the microphone immediately at stop — before any API call — so it
+    // never conflicts with the browser holding the mic (notably Chrome on iOS).
     this.mediaStream?.getTracks().forEach((t) => t.stop());
+    this.mediaStream = null;
     this.audioCtx?.close().catch(() => {});
+    this.audioCtx = null;
     delete (window as unknown as Record<string, unknown>).__oratoInjectSpeech;
 
     return {
       segments: this.segments,
       pauses: this.pauses,
       durationSec: (performance.now() - this.startedAt) / 1000,
+      volume: this.computeVolume(),
     };
+  }
+
+  private computeVolume(): VolumeStats | undefined {
+    if (this.volCount === 0) return undefined;
+    const avg = this.volSum / this.volCount;
+    const variance = Math.max(0, this.volSumSq / this.volCount - avg * avg);
+    return { avg, dynamicRange: Math.sqrt(variance), samples: this.volCount };
   }
 }

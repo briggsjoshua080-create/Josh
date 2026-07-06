@@ -112,6 +112,7 @@ export function Session() {
       pauses: result.pauses,
       durationSec: result.durationSec,
       lang,
+      volume: result.volume,
     });
 
     const id = await saveSession({

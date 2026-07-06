@@ -1,32 +1,70 @@
-import type { AiFeedback, Lang, Metrics } from "./types";
+import type { AiFeedback, ContentFeedback, Lang } from "./types";
 
+/** The API judges content from the transcript text only — no audio, no metrics. */
 export interface CoachRequest {
   lang: Lang;
   promptTitle: string;
   promptText: string;
   transcript: string;
-  durationSec: number;
   wordOfDay?: string;
-  metrics: Metrics;
 }
 
 export class CoachUnavailableError extends Error {}
 
-/** Call the serverless Claude proxy. Throws CoachUnavailableError when offline/unconfigured. */
+/** Strip an accidental ```json … ``` fence if the model wrapped its JSON. */
+function stripFences(raw: string): string {
+  let t = raw.trim();
+  if (t.startsWith("```")) {
+    t = t
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+  }
+  return t;
+}
+
+/** Parse the API response defensively: strip fences, fall back to the outer {…}. */
+function parseContent(raw: string): ContentFeedback {
+  const cleaned = stripFences(raw);
+  try {
+    return JSON.parse(cleaned) as ContentFeedback;
+  } catch {
+    // Last resort: grab the first {...last } span in case of stray prose.
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1)) as ContentFeedback;
+    }
+    throw new SyntaxError("unparseable coach response");
+  }
+}
+
+/**
+ * Call the serverless Claude proxy for the five text-only content categories.
+ * Throws CoachUnavailableError on network failure, a non-OK status, or JSON
+ * that can't be parsed — the caller renders an error state for these
+ * categories while the offline pace/volume results still show.
+ */
 export async function requestCoaching(req: CoachRequest): Promise<AiFeedback> {
   let res: Response;
   try {
     res = await fetch("/api/feedback", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...req, metrics: { ...req.metrics, durationSec: undefined } }),
+      body: JSON.stringify(req),
     });
   } catch {
     throw new CoachUnavailableError("network");
   }
   if (!res.ok) throw new CoachUnavailableError(String(res.status));
-  const data = (await res.json()) as Omit<AiFeedback, "source">;
-  return { ...data, source: "claude" };
+
+  let content: ContentFeedback;
+  try {
+    content = parseContent(await res.text());
+  } catch {
+    throw new CoachUnavailableError("bad_json");
+  }
+  return { ...content, source: "claude" };
 }
 
 /** Simple stem-tolerant check for the word of the day (handles German inflection endings). */
@@ -36,97 +74,29 @@ export function wordOfDayUsed(transcript: string, word: string): boolean {
 }
 
 /**
- * Deterministic metrics-only coaching for offline use. Honest about its
- * limits — the UI labels it and offers a retry when back online.
+ * The offline stand-in for the content half of the report. Content judgment
+ * needs the API, so every category is a placeholder in an error state; the
+ * results screen surfaces this and offers a retry. Pace and volume are
+ * computed separately (src/lib/analysis.ts) and always render.
  */
-export function offlineFeedback(input: {
-  metrics: Metrics;
-  lang: Lang;
-  transcript: string;
-  wordOfDay?: string;
-}): AiFeedback {
-  const { metrics: m, lang, transcript, wordOfDay } = input;
+export function offlineFeedback(lang: Lang): AiFeedback {
   const de = lang === "de";
-
-  const paceNote =
-    m.paceScore >= 90
-      ? de
-        ? `${m.wpm} Wörter pro Minute — ein Tempo, dem man mühelos folgt.`
-        : `${m.wpm} words per minute — a pace an audience follows without effort.`
-      : m.wpm < 110
-        ? de
-          ? `${m.wpm} WpM ist gemächlich. Etwas mehr Zug nach vorn hält die Aufmerksamkeit.`
-          : `${m.wpm} wpm runs slow. A touch more forward drive will hold attention.`
-        : de
-          ? `${m.wpm} WpM ist flott. Setze bewusste Pausen, damit Pointen landen können.`
-          : `${m.wpm} wpm is quick. Plant deliberate pauses so your points can land.`;
-
-  const topFiller = Object.entries(m.fillers.counts).sort((a, b) => b[1] - a[1])[0];
-  const fillerNote =
-    m.fillers.total === 0
-      ? de
-        ? "Keine Füllwörter erkannt — bemerkenswert sauber."
-        : "No filler words detected — remarkably clean."
-      : de
-        ? `${m.fillers.total} Füllwörter (${m.fillers.perMin}/Min.), am häufigsten „${topFiller?.[0]}“. Ersetze sie durch stille Pausen.`
-        : `${m.fillers.total} fillers (${m.fillers.perMin}/min), most often “${topFiller?.[0]}”. Replace them with silent pauses.`;
-
-  const fluencyNote =
-    m.repetitions.count === 0
-      ? de
-        ? "Keine Stotterer oder Wortwiederholungen — der Redefluss stand."
-        : "No stutters or repeated words — your flow held."
-      : de
-        ? `${m.repetitions.count} ${m.repetitions.count === 1 ? "Wiederholung" : "Wiederholungen"} (z. B. „${m.repetitions.examples[0] ?? ""}“). Kurz stoppen, atmen, neu ansetzen.`
-        : `${m.repetitions.count} ${m.repetitions.count === 1 ? "repetition" : "repetitions"} (e.g. “${m.repetitions.examples[0] ?? ""}”). Stop, breathe, restart the sentence cleanly.`;
-
-  const tips: AiFeedback["tips"] = [];
-  if (m.fillerScore < 85)
-    tips.push(
-      de
-        ? { title: "Pausen statt Füllwörter", detail: "Nimm morgen denselben Prompt auf und ersetze jedes „äh“ bewusst durch eine stille Sekunde. Stille wirkt souverän — Füllwörter nicht." }
-        : { title: "Trade fillers for silence", detail: "Re-record tomorrow's prompt and consciously replace every “um” with one silent beat. Silence reads as command; fillers don't." },
-    );
-  if (m.paceScore < 85)
-    tips.push(
-      de
-        ? { title: "Tempo kalibrieren", detail: "Sprich 60 Sekunden auf einen Metronom-Schlag von 2 Wörtern pro Sekunde. So eichst du dein Gefühl für 120–140 WpM." }
-        : { title: "Calibrate your pace", detail: "Speak for 60 seconds at roughly two words per beat with a metronome. That trains your feel for the 120–150 wpm sweet spot." },
-    );
-  if (m.fluencyScore < 85)
-    tips.push(
-      de
-        ? { title: "Sauber neu ansetzen", detail: "Wenn du dich verhaspelst: Satz abbrechen, eine Sekunde Pause, ganzen Satz neu. Halbe Reparaturen hört jeder." }
-        : { title: "Restart cleanly", detail: "When you trip: kill the sentence, take one beat, restart the whole sentence. Everyone hears half-repairs." },
-    );
-  if (tips.length < 2)
-    tips.push(
-      de
-        ? { title: "Länge ausreizen", detail: "Deine Werte sind stabil — geh morgen eine Stufe höher: gleiche Aufgabe, 30 Sekunden länger, ohne Qualitätsverlust." }
-        : { title: "Stretch the length", detail: "Your delivery held up — push a level tomorrow: same task, 30 seconds longer, no drop in control." },
-    );
-
-  const strengths: string[] = [];
-  const best = Math.max(m.paceScore, m.fillerScore, m.fluencyScore);
-  if (best === m.paceScore) strengths.push(de ? "Dein Tempo war die stabilste Größe dieser Session." : "Your pacing was the steadiest part of this session.");
-  else if (best === m.fillerScore) strengths.push(de ? "Füllwort-Disziplin war die Stärke dieser Session." : "Filler discipline was the strength of this session.");
-  else strengths.push(de ? "Dein Redefluss war die Stärke dieser Session." : "Your fluency was the strength of this session.");
-
+  const note = de
+    ? "Inhaltliche Bewertung nicht verfügbar — der Coach war nicht erreichbar."
+    : "Content feedback unavailable — the coach couldn't be reached.";
+  const improve = de
+    ? "Geh online und tippe auf „KI-Coaching holen“, um Wortwahl, Struktur, Stil, Vollständigkeit und Logik bewerten zu lassen."
+    : "Go online and tap “Get AI coaching” to score word choice, structure, style, comprehensiveness, and logic.";
+  const cat = { score: 0, note, improve };
   return {
-    eloquence: { score: 0, note: "" },
-    phrasing: { score: 0, note: "", rewrites: [] },
-    professionalism: { score: 0, note: "", flags: [] },
-    paceNote,
-    fillerNote,
-    fluencyNote,
+    eloquence: cat,
+    structure: cat,
+    style: cat,
+    comprehensiveness: cat,
+    logic: cat,
     summary: de
-      ? "Offline-Analyse: Die Messwerte oben sind exakt; für das volle Coaching zu Wortwahl und Ausdruck geh online und hol dir das KI-Feedback nach."
-      : "Offline analysis: the numbers above are exact; go online and fetch AI coaching for the full read on wording and expression.",
-    strengths,
-    tips: tips.slice(0, 3),
-    wordOfDay: wordOfDay
-      ? { used: wordOfDayUsed(transcript, wordOfDay), comment: "" }
-      : undefined,
+      ? "Offline-Analyse: Tempo und Lautstärke oben sind exakt. Für das inhaltliche Coaching geh online und hol dir das KI-Feedback nach."
+      : "Offline analysis: pace and volume above are exact. Go online and fetch AI coaching for the read on your content.",
     source: "offline",
   };
 }

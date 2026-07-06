@@ -80,6 +80,17 @@ export const strings = {
   scoreEloquence: { en: "Eloquence", de: "Eloquenz" },
   scorePhrasing: { en: "Phrasing", de: "Ausdruck" },
   scoreProfessionalism: { en: "Professionalism", de: "Professionalität" },
+  // Seven-category report
+  scoreVolume: { en: "Volume", de: "Lautstärke" },
+  scoreStructure: { en: "Structure", de: "Struktur" },
+  scoreStyle: { en: "Style", de: "Stil" },
+  scoreComprehensiveness: { en: "Comprehensiveness", de: "Vollständigkeit" },
+  scoreLogic: { en: "Logic", de: "Logik" },
+  improveLabel: { en: "Try this", de: "Versuch das" },
+  contentUnavailable: {
+    en: "AI content feedback unavailable",
+    de: "KI-Inhalts-Feedback nicht verfügbar",
+  },
   coachSummary: { en: "Coach's verdict", de: "Urteil des Coaches" },
   whatWorked: { en: "What worked", de: "Was gut war" },
   sayItBetter: { en: "Say it better", de: "Sag es besser" },

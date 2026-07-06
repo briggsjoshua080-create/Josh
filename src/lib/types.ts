@@ -1,3 +1,5 @@
+import { paceScore, volumeScore } from "./analysis";
+
 export type Lang = "en" | "de";
 
 export interface Bilingual {
@@ -14,6 +16,20 @@ export interface SpeechSegment {
 export interface PauseEvent {
   atMs: number;
   durationMs: number;
+}
+
+/**
+ * Offline volume analysis, sampled from the Web Audio AnalyserNode during
+ * recording. `avg` and `dynamicRange` are 0–1 (fractions of the meter's
+ * full scale); the API never sees any of this — it's computed on-device.
+ */
+export interface VolumeStats {
+  /** Mean voiced level, 0–1. */
+  avg: number;
+  /** Std-dev of voiced level, 0–1 — low = monotone, healthy = dynamic. */
+  dynamicRange: number;
+  /** Number of voiced samples the stats were computed from. */
+  samples: number;
 }
 
 export interface Metrics {
@@ -42,40 +58,62 @@ export interface Metrics {
   paceScore: number;
   fillerScore: number;
   fluencyScore: number;
+  /** Offline volume analysis; absent when the mic level meter never started. */
+  volume?: VolumeStats;
 }
 
-export interface AiRewrite {
-  original: string;
-  better: string;
-  why: string;
+/** The uniform score card every category (offline or API) is rendered from. */
+export interface CategoryFeedback {
+  /** 0–100. */
+  score: number;
+  /** One or two sentences reading what happened. */
+  note: string;
+  /** One concrete thing to change next time. */
+  improve: string;
 }
 
-export interface AiTip {
-  title: string;
-  detail: string;
-}
-
-export interface AiFeedback {
-  eloquence: { score: number; note: string };
-  phrasing: { score: number; note: string; rewrites: AiRewrite[] };
-  professionalism: { score: number; note: string; flags: string[] };
-  paceNote: string;
-  fillerNote: string;
-  fluencyNote: string;
+/** The five text-only categories the Anthropic API judges from the transcript. */
+export interface ContentFeedback {
+  eloquence: CategoryFeedback;
+  structure: CategoryFeedback;
+  style: CategoryFeedback;
+  comprehensiveness: CategoryFeedback;
+  logic: CategoryFeedback;
   summary: string;
-  strengths: string[];
-  tips: AiTip[];
-  wordOfDay?: { used: boolean; comment: string };
+}
+
+/**
+ * The API-derived half of the report. `source` is "claude" when the API
+ * returned usable JSON, and "offline" when it failed or was unreachable — in
+ * which case the five category scores are placeholders and the results screen
+ * shows an error state for them (pace/volume still render, they're offline).
+ */
+export interface AiFeedback extends ContentFeedback {
   source: "claude" | "offline";
 }
 
+/** The five API category ids, in display order. */
+export const CONTENT_CATEGORIES = [
+  "eloquence",
+  "structure",
+  "style",
+  "comprehensiveness",
+  "logic",
+] as const;
+export type ContentCategoryId = (typeof CONTENT_CATEGORIES)[number];
+
+/** All seven category ids, in display order (offline pace/volume first). */
+export const ALL_CATEGORIES = ["pace", "volume", ...CONTENT_CATEGORIES] as const;
+export type CategoryId7 = (typeof ALL_CATEGORIES)[number];
+
 export interface Scores {
   pace: number;
-  fillers: number;
-  fluency: number;
+  volume: number | null;
   eloquence: number | null;
-  phrasing: number | null;
-  professionalism: number | null;
+  structure: number | null;
+  style: number | null;
+  comprehensiveness: number | null;
+  logic: number | null;
   overall: number;
 }
 
@@ -138,26 +176,33 @@ export interface WordEntry {
   example: string;
 }
 
-/** Weighted blend; AI categories drop out gracefully when offline. */
+/**
+ * Combine the offline pace/volume scores with the API content scores into the
+ * seven-category set. `overall` is the plain average of every category that
+ * actually has a score — so pace/volume alone still produce a number when the
+ * API is offline or volume was never measured. Deliberately unweighted: the
+ * results screen presents all seven as peers.
+ */
 export function blendScores(m: Metrics, ai: AiFeedback | null): Scores {
-  const det = { pace: m.paceScore, fillers: m.fillerScore, fluency: m.fluencyScore };
-  if (!ai || ai.source === "offline") {
-    const overall = Math.round(det.pace * 0.35 + det.fillers * 0.4 + det.fluency * 0.25);
-    return { ...det, eloquence: null, phrasing: null, professionalism: null, overall };
-  }
-  const overall = Math.round(
-    det.pace * 0.15 +
-      det.fillers * 0.2 +
-      det.fluency * 0.15 +
-      ai.eloquence.score * 0.2 +
-      ai.phrasing.score * 0.2 +
-      ai.professionalism.score * 0.1,
+  const pace = paceScore(m.wpm);
+  const volume = volumeScore(m.volume);
+  const content =
+    ai && ai.source === "claude"
+      ? {
+          eloquence: ai.eloquence.score,
+          structure: ai.structure.score,
+          style: ai.style.score,
+          comprehensiveness: ai.comprehensiveness.score,
+          logic: ai.logic.score,
+        }
+      : { eloquence: null, structure: null, style: null, comprehensiveness: null, logic: null };
+
+  const present = [pace, volume, ...Object.values(content)].filter(
+    (v): v is number => v !== null,
   );
-  return {
-    ...det,
-    eloquence: ai.eloquence.score,
-    phrasing: ai.phrasing.score,
-    professionalism: ai.professionalism.score,
-    overall,
-  };
+  const overall = present.length
+    ? Math.round(present.reduce((a, b) => a + b, 0) / present.length)
+    : 0;
+
+  return { pace, volume, ...content, overall };
 }

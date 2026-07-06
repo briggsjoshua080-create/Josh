@@ -1,4 +1,4 @@
-import type { Lang, Metrics, PauseEvent, SpeechSegment } from "./types";
+import type { Lang, Metrics, PauseEvent, SpeechSegment, VolumeStats } from "./types";
 
 /**
  * Deterministic speech metrics. Everything here is computed client-side from
@@ -118,8 +118,9 @@ export function computeMetrics(input: {
   pauses: PauseEvent[];
   durationSec: number;
   lang: Lang;
+  volume?: VolumeStats;
 }): Metrics {
-  const { segments, pauses, durationSec, lang } = input;
+  const { segments, pauses, durationSec, lang, volume } = input;
   const transcript = segments.map((s) => s.text).join(" ");
   const words = tokenize(transcript);
   const wordCount = words.length;
@@ -152,5 +153,6 @@ export function computeMetrics(input: {
     paceScore: wordCount > 0 ? paceScore(wpm, lang) : 0,
     fillerScore: wordCount > 0 ? fillerScore(perMin) : 0,
     fluencyScore: wordCount > 0 ? fluencyScore(repsPer100) : 0,
+    volume,
   };
 }
