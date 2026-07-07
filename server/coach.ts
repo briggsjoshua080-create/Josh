@@ -32,8 +32,8 @@ const CATEGORY = {
   required: ["score", "note", "improve"],
   properties: {
     score: { type: "integer" },
-    note: { type: "string" },
-    improve: { type: "string" },
+    note: { type: "string", minLength: 20 },
+    improve: { type: "string", minLength: 15 },
   },
 } as const;
 
@@ -68,8 +68,8 @@ const FEEDBACK_SCHEMA = {
       required: ["score", "note", "improve", "rewrites"],
       properties: {
         score: { type: "integer" },
-        note: { type: "string" },
-        improve: { type: "string" },
+        note: { type: "string", minLength: 20 },
+        improve: { type: "string", minLength: 15 },
         rewrites: {
           type: "array",
           items: {
@@ -91,8 +91,8 @@ const FEEDBACK_SCHEMA = {
       required: ["score", "note", "improve", "flags"],
       properties: {
         score: { type: "integer" },
-        note: { type: "string" },
-        improve: { type: "string" },
+        note: { type: "string", minLength: 20 },
+        improve: { type: "string", minLength: 15 },
         flags: { type: "array", items: { type: "string" } },
       },
     },
@@ -134,6 +134,7 @@ Rules:
   • "comprehensiveness": did they cover what the prompt asks, anticipate the obvious objection or counterpoint, and leave no glaring gap?
   • "logic": does the reasoning hold — claims supported by evidence, no unbridged causal jumps or contradictions?
 - "improve" lines are the heart of the coaching: each must be a single, doable action for their next recording. Phrase as an imperative move ("Slow down before your key line so it lands"), not praise or restatement.
+- EVERY one of the five categories above needs its own real "note" and "improve" — never leave either blank, generic, or a one-word fragment. If a category is already strong, "note" names specifically what worked (quoting it) and "improve" is a stretch goal, not a restatement of the score. If it's weak, "note" names the specific gap and "improve" is the fix. There is no category where "nothing to say" is an acceptable answer.
 - "phrasing.rewrites": pick 1–3 of their weakest or most awkward actual sentences and rewrite each as a stronger speaker would say it, with a one-line "why". If the speech is genuinely clean, return fewer rewrites rather than inventing flaws.
 - "professionalism.flags": list any inappropriate, unprofessional, or sloppy expressions verbatim, tactfully. Empty array if none.
 - The delivery metrics (pace, fillers, repetitions) are ground truth — do not recount them. Write paceNote/fillerNote/fluencyNote as one or two coach sentences interpreting each: what the number means for THIS speech and what to do about it.
@@ -157,6 +158,7 @@ Regeln:
   • „comprehensiveness": Hat sie abgedeckt, was die Aufgabe verlangt, den naheliegenden Einwand oder Gegenpunkt vorweggenommen und keine offensichtliche Lücke gelassen?
   • „logic": Trägt die Argumentation — Behauptungen mit Belegen gestützt, keine unüberbrückten Kausalsprünge oder Widersprüche?
 - Die „improve"-Zeilen sind das Herz des Coachings: jede muss eine einzelne, machbare Handlung für die nächste Aufnahme sein. Formuliere sie als imperativen Kniff („Mach vor deinem Kernsatz eine Pause, damit er sitzt"), nicht als Lob oder Wiederholung.
+- JEDE der fünf Dimensionen oben braucht eine eigene, echte „note" und „improve" — nie leer, generisch oder nur ein Wortfragment. Ist eine Dimension bereits stark, benennt „note" konkret, was funktioniert hat (mit Zitat), und „improve" ist ein Stretch-Ziel, keine Wiederholung des Scores. Ist sie schwach, benennt „note" die konkrete Lücke und „improve" die Lösung. „Nichts zu sagen" ist bei keiner Dimension eine akzeptable Antwort.
 - „phrasing.rewrites": Wähle 1–3 der schwächsten oder holprigsten tatsächlichen Sätze und formuliere jeden so um, wie ein starker Redner ihn sagen würde, mit einem einzeiligen „why". Ist die Rede wirklich sauber, gib lieber weniger Rewrites zurück, statt Fehler zu erfinden.
 - „professionalism.flags": Liste unangemessene, unprofessionelle oder schludrige Ausdrücke wörtlich und taktvoll auf. Leeres Array, wenn nichts auffällt.
 - Die Vortragsmetriken (Tempo, Füllwörter, Wiederholungen) sind Fakten — zähle sie nicht nach. Schreibe paceNote/fillerNote/fluencyNote als ein bis zwei Coach-Sätze, die die Zahl für DIESE Rede interpretieren: was sie bedeutet und was zu tun ist.

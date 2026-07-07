@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
 import { db, getSession } from "@/lib/db";
-import { requestCoaching, offlineFeedback, deliveryCoaching, CoachUnavailableError } from "@/lib/feedback";
+import { requestCoaching, offlineFeedback, deliveryCoaching, categoryFallback, CoachUnavailableError } from "@/lib/feedback";
 import { blendScores, type Session } from "@/lib/types";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Button } from "@/components/Button";
@@ -106,14 +106,21 @@ export function Feedback() {
           ["stylistic", "sparkle", t("scoreStyle"), ai.stylistic],
           ["comprehensiveness", "target", t("scoreComprehensiveness"), ai.comprehensiveness],
           ["logic", "branch", t("scoreLogic"), ai.logic],
-        ] as const).map(([key, icon, label, cat]) => ({
-          key,
-          icon,
-          label,
-          score: cat.score,
-          note: cat.note,
-          improve: cat.improve,
-        }))
+        ] as const).map(([key, icon, label, cat]) => {
+          // Backstop: if the coach's response ever comes back with a missing
+          // or too-short note/improve, fall back rather than showing a blank card.
+          const fallback = cat.note.trim().length < 20 || cat.improve.trim().length < 15
+            ? categoryFallback(key, cat.score, session.lang)
+            : null;
+          return {
+            key,
+            icon,
+            label,
+            score: cat.score,
+            note: fallback ? fallback.note : cat.note,
+            improve: fallback ? fallback.improve : cat.improve,
+          };
+        })
       : []),
   ];
 

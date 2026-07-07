@@ -12,6 +12,71 @@ export interface CoachRequest {
 
 export class CoachUnavailableError extends Error {}
 
+type JudgedCategory = "eloquence" | "structure" | "stylistic" | "comprehensiveness" | "logic";
+
+const CATEGORY_FALLBACK: Record<JudgedCategory, Record<Lang, { low: { note: string; improve: string }; high: { note: string; improve: string } }>> = {
+  eloquence: {
+    en: {
+      low: { note: "Word choice stayed serviceable rather than vivid — few images or precise verbs.", improve: "Replace one generic verb per minute with a sharper, more specific one." },
+      high: { note: "Vocabulary was varied and specific in places.", improve: "Push one more concrete image into your opening line." },
+    },
+    de: {
+      low: { note: "Die Wortwahl blieb brauchbar statt bildhaft — wenige Bilder oder präzise Verben.", improve: "Ersetze pro Minute ein generisches Verb durch ein schärferes, präziseres." },
+      high: { note: "Der Wortschatz war stellenweise abwechslungsreich und präzise.", improve: "Bring ein weiteres konkretes Bild in deinen Einstiegssatz." },
+    },
+  },
+  structure: {
+    en: {
+      low: { note: "The talk doesn't yet signal its parts — a listener can't easily tell where the opening ends and the body begins.", improve: "Add one clear signpost sentence between each section, like “Now let's turn to…”." },
+      high: { note: "The arc holds — opening, body, and close are distinguishable.", improve: "Sharpen the transition into your close so it feels inevitable, not just next." },
+    },
+    de: {
+      low: { note: "Die Rede markiert ihre Teile noch nicht — Zuhörer merken kaum, wo der Einstieg endet und der Hauptteil beginnt.", improve: "Füge zwischen den Abschnitten je einen klaren Übergangssatz ein, z. B. „Kommen wir nun zu…“." },
+      high: { note: "Der Bogen trägt — Einstieg, Hauptteil und Schluss sind erkennbar.", improve: "Schärfe den Übergang zum Schluss, damit er zwingend wirkt, nicht nur als nächster Punkt." },
+    },
+  },
+  stylistic: {
+    en: {
+      low: { note: "No rhetorical devices stood out — the delivery was direct but plain.", improve: "Build one rule-of-three list around your main claim." },
+      high: { note: "At least one device landed and gave the delivery some shape.", improve: "Add a rhetorical question right before your strongest point to pull listeners in." },
+    },
+    de: {
+      low: { note: "Kein Stilmittel ist aufgefallen — der Vortrag war direkt, aber schmucklos.", improve: "Baue eine Dreierfigur um deine Kernaussage." },
+      high: { note: "Mindestens ein Stilmittel hat funktioniert und dem Vortrag Kontur gegeben.", improve: "Stelle direkt vor deiner stärksten Aussage eine rhetorische Frage, um die Zuhörer zu ziehen." },
+    },
+  },
+  comprehensiveness: {
+    en: {
+      low: { note: "Real gaps remain — an obvious counterpoint or missing piece was left unaddressed.", improve: "Name the strongest objection yourself before someone else raises it." },
+      high: { note: "The core ground was covered with no glaring omission.", improve: "Go one layer deeper on your strongest point instead of adding breadth." },
+    },
+    de: {
+      low: { note: "Es bleiben echte Lücken — ein naheliegender Einwand oder fehlender Punkt wurde nicht angesprochen.", improve: "Nenne den stärksten Einwand selbst, bevor ihn jemand anders stellt." },
+      high: { note: "Das Wesentliche wurde abgedeckt, keine auffällige Lücke.", improve: "Vertiefe deinen stärksten Punkt, statt in die Breite zu gehen." },
+    },
+  },
+  logic: {
+    en: {
+      low: { note: "At least one claim needs a bridge — the reasoning jumps from evidence to conclusion.", improve: "Add one sentence that explicitly connects your evidence to your conclusion." },
+      high: { note: "The reasoning held together without unbridged jumps.", improve: "Pressure-test it: state the strongest counter-argument and knock it down in one line." },
+    },
+    de: {
+      low: { note: "Mindestens eine Behauptung braucht eine Brücke — die Argumentation springt von Beleg zu Schluss.", improve: "Füge einen Satz ein, der deinen Beleg explizit mit deinem Schluss verbindet." },
+      high: { note: "Die Argumentation hielt zusammen, ohne unüberbrückte Sprünge.", improve: "Stress-teste sie: Nenne den stärksten Gegeneinwand und entkräfte ihn in einem Satz." },
+    },
+  },
+};
+
+/**
+ * Backstop for when the coach's response comes back with a missing or
+ * too-short note/improve for one of the five judged categories (should be
+ * rare now that the schema enforces a minimum length, but the UI must never
+ * show a blank card). Not used when the AI text is already substantive.
+ */
+export function categoryFallback(key: JudgedCategory, score: number, lang: Lang): { note: string; improve: string } {
+  return CATEGORY_FALLBACK[key][lang][score >= 70 ? "high" : "low"];
+}
+
 /** Call the serverless Claude proxy. Throws CoachUnavailableError when offline/unconfigured. */
 export async function requestCoaching(req: CoachRequest): Promise<AiFeedback> {
   let res: Response;
