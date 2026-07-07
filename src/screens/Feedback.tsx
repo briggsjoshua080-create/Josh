@@ -230,49 +230,82 @@ export function Feedback() {
       {/* ——— Scroll-down detail ——— */}
       {report && phase === "ready" && (
         <>
-          {(report.powerWords.length > 0 || report.weakWords.length > 0) && (
+          {/* What worked — the speaker's confirmed strengths */}
+          {(report.whatWorked?.length ?? 0) > 0 && (
             <section className="mt-10 border-t hairline pt-6">
-              {report.powerWords.length > 0 && (
-                <>
-                  <h2 className="label-caps">{t("powerWordsTitle")}</h2>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {report.powerWords.map((w) => (
-                      <WordChip key={w.word} word={w.word} count={w.count} strong />
-                    ))}
-                  </div>
-                </>
-              )}
-              {report.weakWords.length > 0 && (
-                <>
-                  <h2 className={`label-caps ${report.powerWords.length > 0 ? "mt-6" : ""}`}>{t("weakWordsTitle")}</h2>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {report.weakWords.map((w) => (
-                      <WordChip key={w.word} word={w.word} count={w.count} />
-                    ))}
-                  </div>
-                </>
-              )}
+              <h2 className="label-caps">{t("whatWorked")}</h2>
+              <ul className="mt-3 flex flex-col gap-3">
+                {report.whatWorked!.map((w) => (
+                  <li key={w.point} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
+                      <Icon name="check" size={13} />
+                    </span>
+                    <span>
+                      <span className="text-base font-medium text-ink">{w.point}</span>
+                      <span className="mt-0.5 block text-sm leading-relaxed text-muted">{w.detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 
-          {report.strongestLine.quote && (
+          {/* Strong words the speaker actually used */}
+          {(report.strongWords?.length ?? 0) > 0 && (
             <section className="mt-10 border-t hairline pt-6">
-              <h2 className="label-caps">{t("strongestLineTitle")}</h2>
-              <blockquote className="quoted-phrase mt-3 text-lg leading-relaxed text-ink">
-                “{report.strongestLine.quote}”
-              </blockquote>
-              <p className="mt-2 text-sm text-muted">{report.strongestLine.why}</p>
+              <h2 className="label-caps">{t("strongWordsTitle")}</h2>
+              <ul className="mt-3 flex flex-col gap-2.5">
+                {report.strongWords!.slice(0, 6).map((w) => (
+                  <li key={w.word} className="flex items-baseline gap-3">
+                    <span className="quoted-phrase shrink-0 text-accent">“{w.word}”</span>
+                    <span className="text-sm leading-relaxed text-muted">{w.note}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* 3 things to improve — plain ranked list, no scores, no animation */}
+          {(report.improvements?.length ?? 0) > 0 && (
+            <section className="mt-10 border-t hairline pt-6">
+              <h2 className="label-caps">{t("improveTitle")}</h2>
+              <ol className="mt-3 flex flex-col gap-3">
+                {report.improvements!.slice(0, 3).map((item, i) => (
+                  <li key={item.issue} className="flex items-start gap-3">
+                    <span className="tnum shrink-0 text-base font-semibold text-accent-dim">{i + 1}.</span>
+                    <span className="text-sm leading-relaxed">
+                      <span className="text-ink">{item.issue}</span>{" "}
+                      <span className="text-muted">{item.action}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {/* Stylistic devices found in the transcript */}
+          {(report.stylisticDevices?.length ?? 0) > 0 && (
+            <section className="mt-10 border-t hairline pt-6">
+              <h2 className="label-caps">{t("stylisticTitle")}</h2>
+              <ul className="mt-3 flex flex-col gap-2.5">
+                {report.stylisticDevices!.map((d) => (
+                  <li key={d.device} className="flex items-baseline gap-3">
+                    <span className="shrink-0 text-base font-medium text-ink">{d.device}</span>
+                    <span className="text-sm leading-relaxed text-muted">{d.note}</span>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 
           {report.tighten.quote && (
             <section className="mt-10 border-t hairline pt-6">
-              <h2 className="label-caps">{t("tightenTitle")}</h2>
+              <h2 className="label-caps">{t("sayItBetter")}</h2>
               <p className="mt-3 text-sm text-muted">
                 {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
               </p>
               <p className="mt-2 text-sm text-muted">
-                {t("tightenRewrite")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
+                {t("betterVersion")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
               </p>
             </section>
           )}

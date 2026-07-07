@@ -84,10 +84,21 @@ export interface AiReport {
   scores: Record<MetricKey, number>;
   /** Exactly one coach sentence per metric. */
   oneLiners: Record<MetricKey, string>;
-  strongestLine: { quote: string; why: string };
+  /** 2–4 things the speaker did well, each with a brief supporting detail. */
+  whatWorked?: { point: string; detail: string }[];
+  /** 4–6 impactful words/phrases actually used, each with a note on where it worked. */
+  strongWords?: { word: string; note: string }[];
+  /** Exactly 3 improvements, ranked by impact: one-sentence issue + concrete step. */
+  improvements?: { issue: string; action: string }[];
+  /** Rhetorical/stylistic techniques found in the transcript, with effect notes. */
+  stylisticDevices?: { device: string; note: string }[];
+  /** @deprecated pre-redesign field; present only on old stored reports. */
+  strongestLine?: { quote: string; why: string };
   tighten: { quote: string; rewrite: string };
-  powerWords: { word: string; count: number }[];
-  weakWords: { word: string; count: number }[];
+  /** @deprecated pre-redesign field; present only on old stored reports. */
+  powerWords?: { word: string; count: number }[];
+  /** @deprecated pre-redesign field; present only on old stored reports. */
+  weakWords?: { word: string; count: number }[];
   /** Words the transcription likely garbled — proxy for articulation trouble. */
   hardToCatch: string[];
   cleanSpeechSeconds: number;

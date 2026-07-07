@@ -32,6 +32,7 @@ export const strings = {
   difficulty: { en: "Difficulty", de: "Schwierigkeit" },
   targetLength: { en: "Aim for {a}–{b}", de: "Ziel: {a}–{b}" },
   coachFocus: { en: "Coach's focus", de: "Fokus des Coaches" },
+  dailyTipsTitle: { en: "Today's communication insights", de: "Kommunikations-Impulse des Tages" },
 
   // Library
   libraryTitle: { en: "Scenario library", de: "Szenario-Bibliothek" },
@@ -99,6 +100,10 @@ export const strings = {
     de: "Das war zu kurz für Feedback. Gib mir mindestens zehn Wörter.",
   },
   useWord: { en: "Bonus: use “{w}”", de: "Bonus: Verwende „{w}“" },
+  idealRange: { en: "Ideal: {a}–{b}", de: "Ideal: {a}–{b}" },
+  maxTime: { en: "Max: {t}", de: "Max.: {t}" },
+  overMaxHint: { en: "Over the max — bring it home", de: "Über dem Maximum — komm zum Schluss" },
+  waitingForSpeech: { en: "Listening — waiting for speech…", de: "Ich höre zu — warte auf deine Stimme…" },
 
   // Feedback
   overall: { en: "Overall", de: "Gesamt" },
@@ -200,11 +205,9 @@ export const strings = {
   },
   levelUpTitle: { en: "Level up", de: "Aufgestiegen" },
   viewStats: { en: "View Your Stats", de: "Deine Statistik ansehen" },
-  powerWordsTitle: { en: "Power Words", de: "Starke Wörter" },
-  weakWordsTitle: { en: "Weak Words", de: "Schwache Wörter" },
-  strongestLineTitle: { en: "Your Strongest Line", de: "Deine stärkste Zeile" },
-  tightenTitle: { en: "Tighten This", de: "Straffe das" },
-  tightenRewrite: { en: "Tighter", de: "Straffer" },
+  strongWordsTitle: { en: "Strong Words Used", de: "Starke Wörter im Einsatz" },
+  improveTitle: { en: "3 Things to Improve", de: "3 Dinge zum Verbessern" },
+  stylisticTitle: { en: "Stylistic Devices", de: "Stilmittel" },
   vocalDeliveryTitle: { en: "Vocal Delivery", de: "Stimmlicher Vortrag" },
   articulationLabel: { en: "Articulation", de: "Artikulation" },
   hardToCatchLabel: { en: "Hard to catch", de: "Schwer zu verstehen" },
@@ -244,6 +247,43 @@ export const strings = {
   statStreak: { en: "Day streak", de: "Tage-Serie" },
   trendTitle: { en: "Score trend", de: "Score-Verlauf" },
   historyTitle: { en: "History", de: "Verlauf" },
+  focusTitle: { en: "Focus Point", de: "Fokus-Punkt" },
+  focusBody: {
+    en: "Your lowest metric over the last {n} sessions — train this first.",
+    de: "Deine schwächste Metrik der letzten {n} Sessions — trainiere zuerst das.",
+  },
+  focusClarity: {
+    en: "Before you speak, name your point in one sentence — then say that sentence first.",
+    de: "Bevor du sprichst: Fasse deinen Punkt in einem Satz — und sag diesen Satz zuerst.",
+  },
+  focusConfidence: {
+    en: "Cut the hedges: drop “I think” and “maybe” and end sentences firmly, not upward.",
+    de: "Streich die Relativierungen: Kein „ich glaube“, kein „vielleicht“ — und beende Sätze fest.",
+  },
+  focusStructure: {
+    en: "Use a visible arc: one-line opening, three points, one-line close — signpost each turn.",
+    de: "Nutze einen klaren Bogen: Ein-Satz-Einstieg, drei Punkte, Ein-Satz-Schluss — kündige jeden Übergang an.",
+  },
+  focusPace: {
+    en: "Practice with a timer: aim for the easy-to-follow band and pause at every full stop.",
+    de: "Übe mit Timer: Ziel ist das gut folgbare Tempo — und eine Pause an jedem Satzende.",
+  },
+  focusFluency: {
+    en: "Replace every filler with one silent beat; when you trip, restart the whole sentence.",
+    de: "Ersetze jedes Füllwort durch eine stille Sekunde; nach einem Stolperer den ganzen Satz neu.",
+  },
+  focusWordPower: {
+    en: "Swap one vague word per sentence for a concrete, vivid one before you record again.",
+    de: "Tausche pro Satz ein vages Wort gegen ein konkretes, bildhaftes — dann nimm neu auf.",
+  },
+  focusConciseness: {
+    en: "Say each point once, then stop — if a sentence restates the last one, cut it.",
+    de: "Sag jeden Punkt einmal, dann stopp — wiederholt ein Satz den letzten, streich ihn.",
+  },
+  focusEngagement: {
+    en: "Plant one deliberate device per speech: a rule of three, a contrast, or a question.",
+    de: "Setz pro Rede ein bewusstes Stilmittel: eine Dreierfigur, einen Kontrast oder eine Frage.",
+  },
   emptyProgress: {
     en: "No sessions yet. Your first recording starts the record.",
     de: "Noch keine Sessions. Deine erste Aufnahme eröffnet die Chronik.",

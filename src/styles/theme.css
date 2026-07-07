@@ -113,6 +113,35 @@ p {
   transition: box-shadow 120ms linear;
 }
 
+/* Recording ring: soft amber glow inside the ideal window, urgent pulse past max */
+@keyframes ringGlowIdeal {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px oklch(0.82 0.13 80 / 0.15));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px oklch(0.82 0.13 80 / 0.45));
+  }
+}
+
+.ring-glow-ideal {
+  animation: ringGlowIdeal 2.6s ease-in-out infinite;
+}
+
+@keyframes ringGlowOver {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px oklch(0.62 0.19 25 / 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px oklch(0.62 0.19 25 / 0.5));
+  }
+}
+
+.ring-glow-over {
+  animation: ringGlowOver 1.3s ease-in-out infinite;
+}
+
 /* Hairline dividers */
 .hairline {
   border-color: var(--color-line);

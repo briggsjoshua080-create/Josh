@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { challengeForDay, wordForDay, isBeyondCore } from "@/lib/daily";
+import { tipsForToday } from "@/data/tips";
 import { dailyPathState, currentStreak, db } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -124,6 +125,24 @@ export function Today() {
             </Button>
           </>
         )}
+      </section>
+
+      {/* Daily communication tips — three rotate with the calendar */}
+      <section className="mt-10">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-accent">
+          <Icon name="sparkle" size={16} />
+          {t("dailyTipsTitle")}
+        </h2>
+        <div className="mt-3 rounded-(--radius-card) bg-surface p-5" data-testid="daily-tips">
+          <ul className="flex flex-col gap-4">
+            {tipsForToday().map((tip) => (
+              <li key={tip.title.en}>
+                <p className="text-sm font-medium text-accent-dim">{tip.title[lang]}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink/85">{tip.body[lang]}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     </div>
   );

@@ -6,9 +6,49 @@ import { allSessions, currentStreak, recomputeProgress } from "@/lib/db";
 import { METRIC_KEYS, type MetricKey, type Session } from "@/lib/types";
 import { levelForXp, type ProgressState } from "@/lib/progression";
 import { METRIC_META } from "@/lib/metricMeta";
+import type { StringKey } from "@/lib/strings";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { TrendChart } from "@/components/TrendChart";
+
+/** One concrete training suggestion per metric, shown on the Focus Point card. */
+const FOCUS_SUGGESTION: Record<MetricKey, StringKey> = {
+  clarity: "focusClarity",
+  confidence: "focusConfidence",
+  structure: "focusStructure",
+  pace: "focusPace",
+  fluency: "focusFluency",
+  wordPower: "focusWordPower",
+  conciseness: "focusConciseness",
+  engagement: "focusEngagement",
+};
+
+/** Window for the Focus Point: the metric averages look at the last N sessions. */
+const FOCUS_WINDOW = 5;
+
+/**
+ * The weakest metric averaged over the last `FOCUS_WINDOW` scored sessions.
+ * Metrics that were never scored in the window drop out rather than counting
+ * as zero; returns null until at least one session carries per-metric scores.
+ */
+function focusPoint(sessions: Session[]): { metric: MetricKey; avg: number; count: number } | null {
+  const recent = sessions
+    .filter((s) => s.progress?.scores)
+    .sort((a, b) => a.startedAt - b.startedAt)
+    .slice(-FOCUS_WINDOW);
+  if (recent.length === 0) return null;
+
+  let worst: { metric: MetricKey; avg: number } | null = null;
+  for (const key of METRIC_KEYS) {
+    const values = recent
+      .map((s) => s.progress!.scores[key])
+      .filter((v): v is number => v !== null);
+    if (values.length === 0) continue;
+    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    if (!worst || avg < worst.avg) worst = { metric: key, avg };
+  }
+  return worst ? { ...worst, count: recent.length } : null;
+}
 
 export function Progress() {
   const { t, lang } = useI18n();
@@ -42,6 +82,12 @@ export function Progress() {
 
   const level = levelForXp(progress.cumulativeXp);
 
+  // Headline aggregates run over ALL sessions ever recorded, not a window.
+  const allScores = sessions.map((s) => s.progress?.overallScore ?? s.scores.overall);
+  const avgScore = Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length);
+  const bestScore = Math.max(...allScores);
+  const focus = focusPoint(sessions);
+
   return (
     <div className="pt-2 lg:pt-0">
       {/* ——— Level hero ——— */}
@@ -67,6 +113,36 @@ export function Progress() {
             : t("maxRank")}
         </p>
       </div>
+
+      {/* ——— Headline aggregates across all sessions ——— */}
+      <section className="mt-8 grid grid-cols-4 gap-2" data-testid="progress-stats">
+        <StatTile label={t("sessionsCount")} value={sessions.length} />
+        <StatTile label={t("avgScore")} value={avgScore} />
+        <StatTile label={t("bestScore")} value={bestScore} />
+        <StatTile label={t("statStreak")} value={streak} />
+      </section>
+
+      {/* ——— Focus point: the weakest metric of the recent sessions ——— */}
+      {focus && (
+        <section
+          className="mt-6 rounded-(--radius-card) border border-accent/40 bg-accent/5 p-5"
+          data-testid="focus-point"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="label-caps">{t("focusTitle")}</h2>
+            <span className="tnum text-sm text-muted">
+              {t("avgScore")}{" "}
+              <b className="lectern text-lg font-semibold text-accent">{focus.avg}</b>
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-2.5">
+            <Icon name={METRIC_META[focus.metric].icon} size={18} className="text-accent" />
+            <span className="lectern text-xl text-ink">{t(METRIC_META[focus.metric].nameKey)}</span>
+          </div>
+          <p className="mt-1.5 text-sm text-muted">{t("focusBody", { n: focus.count })}</p>
+          <p className="mt-3 text-sm leading-relaxed text-ink/90">{t(FOCUS_SUGGESTION[focus.metric])}</p>
+        </section>
+      )}
 
       {/* ——— The eight stats ——— */}
       <section className="mt-10">
@@ -131,6 +207,15 @@ export function Progress() {
           ))}
         </ul>
       </section>
+    </div>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-(--radius-card) bg-surface px-2 py-3 text-center">
+      <p className="lectern tnum text-xl font-semibold text-ink">{value}</p>
+      <p className="mt-0.5 text-xs text-muted">{label}</p>
     </div>
   );
 }

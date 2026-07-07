@@ -11,8 +11,14 @@ import { wordOfDayUsed } from "@/lib/feedback";
 import { saveSession, todayISO } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { RecordRing, ringZone } from "@/components/RecordRing";
+import { Waveform } from "@/components/Waveform";
 
 type Phase = "idle" | "recording" | "analyzing";
+
+function fmtTime(sec: number): string {
+  return `${Math.floor(sec / 60)}:${String(Math.round(sec) % 60).padStart(2, "0")}`;
+}
 
 export function Session() {
   const { t, lang } = useI18n();
@@ -40,8 +46,12 @@ export function Session() {
 
   const speechRef = useRef<SpeechSession | null>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const levelRef = useRef(0);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const supported = speechSupported();
+
+  /** Ring is full at 1.5× the target ceiling (at least +60s) — the hard "wrap it up" line. */
+  const maxSec = Math.max(targetSec[1] + 60, Math.round(targetSec[1] * 1.5));
 
   useEffect(() => {
     if (phase !== "recording") return;
@@ -71,6 +81,7 @@ export function Session() {
         setInterim(inter);
       },
       onLevel: (level) => {
+        levelRef.current = level;
         glowRef.current?.style.setProperty("--level", String(level));
       },
       onError: (code) => {
@@ -157,8 +168,7 @@ export function Session() {
     setTyped("");
   }
 
-  const timeStr = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`;
-  const overTarget = elapsed > targetSec[1];
+  const zone = ringZone(elapsed, targetSec, maxSec);
 
   return (
     <div className="flex min-h-[calc(100dvh-160px)] flex-col pt-2 lg:min-h-[calc(100dvh-120px)] lg:pt-0">
@@ -197,20 +207,41 @@ export function Session() {
 
       {phase === "recording" && (
         <div className="flex flex-1 flex-col py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             <span className="flex items-center gap-2 text-sm text-muted">
-              <span className="h-2 w-2 rounded-full bg-primary-bright" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-primary-bright" />
               {t("listening")}
             </span>
-            <span className={`tnum text-lg font-medium ${overTarget ? "text-warn" : "text-ink"}`}>{timeStr}</span>
           </div>
 
-          <div className="mt-4 max-h-[40vh] flex-1 overflow-y-auto rounded-(--radius-card) bg-surface p-5">
-            <p className="lectern text-lg leading-relaxed text-ink" data-testid="live-transcript">
+          {/* Circular timer with time-zone track */}
+          <div className="mt-5 flex flex-col items-center">
+            <RecordRing elapsed={elapsed} ideal={targetSec} maxSec={maxSec} />
+            <div className="tnum mt-3 flex items-center gap-4 text-xs text-muted">
+              <span>{t("idealRange", { a: fmtTime(targetSec[0]), b: fmtTime(targetSec[1]) })}</span>
+              <span aria-hidden="true">·</span>
+              <span>{t("maxTime", { t: fmtTime(maxSec) })}</span>
+            </div>
+            {zone === "max" && (
+              <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-bad" data-testid="over-max">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-bad" />
+                {t("overMaxHint")}
+              </p>
+            )}
+          </div>
+
+          {/* Live transcript */}
+          <div className="mt-5 max-h-[32vh] min-h-24 flex-1 overflow-y-auto rounded-(--radius-card) border border-accent/25 bg-surface p-5">
+            <p className="lectern text-base leading-relaxed text-ink" data-testid="live-transcript">
               {finalText} <span className="text-muted">{interim}</span>
-              {!finalText && !interim && <span className="text-faint">…</span>}
+              {!finalText && !interim && <span className="text-faint">{t("waitingForSpeech")}</span>}
             </p>
             <div ref={transcriptEndRef} />
+          </div>
+
+          {/* Live level waveform — visual confirmation the mic is capturing */}
+          <div className="mt-3">
+            <Waveform levelRef={levelRef} />
           </div>
 
           {(error === "unsupported" || showType) && (

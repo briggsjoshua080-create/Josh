@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "motion/react";
 import type { ReactNode } from "react";
 
@@ -15,30 +15,33 @@ const SWIPE_VELOCITY = 500;
 const SPRING = { type: "spring" as const, stiffness: 300, damping: 30 };
 
 /**
- * Swipeable card deck: drag horizontally to browse (velocity-aware, either
- * direction advances), stacked cards peek behind. Arrows + counter give a
- * non-gesture path, which doubles as the reduced-motion/keyboard fallback.
+ * Swipeable card deck: swipe LEFT for the next card, swipe RIGHT for the
+ * previous one (velocity-aware), stacked cards peek behind. Arrows + counter
+ * give a non-gesture path, which doubles as the reduced-motion/keyboard
+ * fallback. The exiting card is made click-through immediately so rapid
+ * consecutive swipes always land on the fresh top card.
  */
 export function CardDeck<T>({ items, keyOf, renderCard, renderAction }: CardDeckProps<T>) {
   const [index, setIndex] = useState(0);
   const [exitX, setExitX] = useState(0);
   const reduced = useReducedMotion();
-  const draggingRef = useRef(false);
 
   if (items.length === 0) return null;
   const n = items.length;
-  const at = (offset: number) => items[(index + offset) % n];
+  const wrap = (i: number) => ((i % n) + n) % n;
+  const at = (offset: number) => items[wrap(index + offset)];
 
-  function advance(direction: 1 | -1) {
-    setExitX(direction * -320);
-    setIndex((i) => (i + 1) % n);
+  /** dir 1 = next (card flies out left), dir -1 = previous (flies out right). */
+  function go(dir: 1 | -1) {
+    setExitX(dir === 1 ? -320 : 320);
+    setIndex((i) => wrap(i + dir));
   }
 
   function onDragEnd(_: unknown, info: PanInfo) {
-    draggingRef.current = false;
     const { offset, velocity } = info;
     if (Math.abs(offset.x) > SWIPE_OFFSET || Math.abs(velocity.x) > SWIPE_VELOCITY) {
-      advance(offset.x + velocity.x * 0.2 > 0 ? -1 : 1);
+      // Finger moved left → next card; finger moved right → previous card.
+      go(offset.x + velocity.x * 0.2 < 0 ? 1 : -1);
     }
   }
 
@@ -58,14 +61,15 @@ export function CardDeck<T>({ items, keyOf, renderCard, renderAction }: CardDeck
             drag="x"
             dragSnapToOrigin
             dragElastic={0.7}
-            onDragStart={() => (draggingRef.current = true)}
             onDragEnd={onDragEnd}
             initial={reduced ? { opacity: 0 } : { scale: 0.94, y: 14, opacity: 0.6 }}
             animate={reduced ? { opacity: 1 } : { scale: 1, y: 0, x: 0, opacity: 1, rotate: 0 }}
+            // pointerEvents applies instantly on exit: the dying card must never
+            // swallow the touches meant for the card revealed underneath it.
             exit={
               reduced
-                ? { opacity: 0, transition: { duration: 0.1 } }
-                : { x: exitX, rotate: exitX > 0 ? 8 : -8, opacity: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
+                ? { opacity: 0, pointerEvents: "none", transition: { duration: 0.1 } }
+                : { x: exitX, rotate: exitX > 0 ? 8 : -8, opacity: 0, pointerEvents: "none", transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
             }
             transition={SPRING}
             whileDrag={reduced ? undefined : { rotate: 0.5, scale: 1.01 }}
@@ -78,11 +82,11 @@ export function CardDeck<T>({ items, keyOf, renderCard, renderAction }: CardDeck
 
       {/* Non-gesture navigation + position */}
       <div className="mt-4 flex items-center justify-center gap-6">
-        <DeckArrow dir="left" onClick={() => advance(-1)} />
+        <DeckArrow dir="left" onClick={() => go(-1)} />
         <span className="tnum text-sm text-muted">
-          {(index % n) + 1} / {n}
+          {index + 1} / {n}
         </span>
-        <DeckArrow dir="right" onClick={() => advance(1)} />
+        <DeckArrow dir="right" onClick={() => go(1)} />
       </div>
     </div>
   );
@@ -92,7 +96,7 @@ function StackCard({ depth, reduced }: { depth: 1 | 2; reduced: boolean }) {
   return (
     <motion.div
       aria-hidden="true"
-      className="absolute inset-0 rounded-(--radius-card) border border-line bg-surface"
+      className="pointer-events-none absolute inset-0 rounded-(--radius-card) border border-line bg-surface"
       initial={false}
       animate={{ scale: 1 - depth * 0.05, y: depth * 13, opacity: 1 - depth * 0.35 }}
       transition={reduced ? { duration: 0 } : SPRING}

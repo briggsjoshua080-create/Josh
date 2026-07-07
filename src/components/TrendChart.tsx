@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 
 export interface TrendPoint {
   id: number;
@@ -19,6 +20,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
+  const reduced = useReducedMotion();
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
@@ -78,9 +80,28 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
 
         {geom && (
           <>
-            <path d={geom.path} fill="none" stroke="var(--color-chart)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+            {/* Line draws itself in on load; the end dot lands as it finishes */}
+            <motion.path
+              d={geom.path}
+              fill="none"
+              stroke="var(--color-chart)"
+              strokeWidth="2"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              initial={reduced ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            />
             {/* Last point: always marked — the current state of the journey */}
-            <circle cx={geom.x(points.length - 1)} cy={geom.y(points[points.length - 1].score)} r="3.5" fill="var(--color-accent)" />
+            <motion.circle
+              cx={geom.x(points.length - 1)}
+              cy={geom.y(points[points.length - 1].score)}
+              r="3.5"
+              fill="var(--color-accent)"
+              initial={reduced ? false : { opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.8, duration: 0.25 }}
+            />
             {/* Crosshair + hover marker */}
             {hover !== null && (
               <>
