@@ -44,6 +44,33 @@ export const strings = {
   viewDeck: { en: "Cards", de: "Karten" },
   viewList: { en: "List", de: "Liste" },
   scenarios: { en: "{n} scenarios", de: "{n} Szenarien" },
+  searchScenarios: { en: "Search scenarios…", de: "Szenarien durchsuchen…" },
+  noResults: {
+    en: "Nothing matches — try another word or filter.",
+    de: "Kein Treffer — versuch ein anderes Wort oder einen anderen Filter.",
+  },
+  recommendedNext: { en: "Recommended next", de: "Empfohlen als Nächstes" },
+  recommendedBadge: { en: "Recommended", de: "Empfohlen" },
+  recommendedReason: {
+    en: "Your lowest score last session was {dim} — this scenario trains exactly that.",
+    de: "Dein niedrigster Wert zuletzt war {dim} — dieses Szenario trainiert genau das.",
+  },
+  difficultyBeginner: { en: "Beginner", de: "Einsteiger" },
+  difficultyIntermediate: { en: "Intermediate", de: "Fortgeschritten" },
+  difficultyAdvanced: { en: "Advanced", de: "Profi" },
+  trainsLabel: { en: "Trains", de: "Trainiert" },
+  timeApprox: { en: "~{n} min", de: "~{n} Min." },
+  masteryPct: { en: "{n}% mastered", de: "{n}% gemeistert" },
+  notPracticed: { en: "Not practiced yet", de: "Noch nicht geübt" },
+  startExercise: { en: "Start exercise", de: "Übung starten" },
+  emptyLibraryTitle: {
+    en: "No exercises completed yet",
+    de: "Noch keine Übung abgeschlossen",
+  },
+  emptyLibraryBody: {
+    en: "Try this beginner-friendly scenario to get your first score on the board:",
+    de: "Starte mit diesem einsteigerfreundlichen Szenario und hol dir deinen ersten Score:",
+  },
 
   // Session / recording
   ready: { en: "Ready when you are.", de: "Bereit, wenn du es bist." },
@@ -147,3 +174,131 @@ export const strings = {
 } as const;
 
 export type StringKey = keyof typeof strings;
+
+/** A per-language list of interchangeable phrasings for one coaching line. */
+export interface CoachingVariants {
+  en: readonly string[];
+  de: readonly string[];
+}
+
+/**
+ * Deterministic delivery-coaching copy used by deliveryCoaching() in
+ * lib/feedback.ts. Kept apart from `strings` (which t() indexes as single
+ * values): each "improve" line carries 2–3 rotating variants per language so
+ * repeat users don't read identical advice every session. All variants of a
+ * key must stay true to the same measurement — same advice, fresh wording.
+ */
+export const coachingCopy = {
+  feedbackPaceSlowImprove: {
+    en: [
+      "Add forward drive and stop letting the last words of each sentence trail off.",
+      "Pick up the tempo a notch — finish every sentence with the same energy you started it with.",
+      "Tighten your delivery: shorter sentences, firmer endings, no fading out.",
+    ],
+    de: [
+      "Nimm mehr Zug nach vorn und lass die letzten Wörter jedes Satzes nicht ausklingen.",
+      "Zieh das Tempo eine Stufe an — beende jeden Satz mit derselben Energie, mit der du ihn begonnen hast.",
+      "Straffe deinen Vortrag: kürzere Sätze, feste Endungen, kein Verklingen.",
+    ],
+  },
+  feedbackPaceFastImprove: {
+    en: [
+      "Plant a deliberate pause before your key points so they land.",
+      "Slow down for the sentences that matter — give your audience a beat to catch up.",
+      "Breathe at the full stops: a short pause after each point makes fast speech feel controlled.",
+    ],
+    de: [
+      "Setze bewusste Pausen vor deinen Kernaussagen, damit sie landen können.",
+      "Werde bei den wichtigen Sätzen langsamer — gib deinem Publikum einen Moment zum Mitkommen.",
+      "Atme an den Satzenden: Eine kurze Pause nach jedem Punkt macht schnelles Sprechen kontrolliert.",
+    ],
+  },
+  feedbackPaceGoodImprove: {
+    en: [
+      "Hold this tempo, but slow down just before your most important line.",
+      "Keep this pace — and take it down half a step right before your core message.",
+      "Your tempo carries; use it deliberately by easing off just ahead of the line that matters most.",
+    ],
+    de: [
+      "Halte das Tempo, aber verlangsame kurz vor deiner wichtigsten Zeile.",
+      "Bleib bei diesem Tempo — und nimm es kurz vor deiner Kernbotschaft eine halbe Stufe zurück.",
+      "Dein Tempo trägt; setz es gezielt ein, indem du vor deiner wichtigsten Aussage leicht abbremst.",
+    ],
+  },
+  feedbackFillersGoodImprove: {
+    en: [
+      "Keep this — your fillers are already rare. Own the silent pauses.",
+      "Stay the course: fillers are rare, so practice holding the silence a beat longer.",
+      "Your filler discipline holds — now let the pauses stretch a touch for extra weight.",
+    ],
+    de: [
+      "Bleib so — deine Füllwörter sind bereits selten. Halte die Pausen bewusst.",
+      "Bleib auf Kurs: Füllwörter sind selten — übe jetzt, die Stille einen Schlag länger zu halten.",
+      "Deine Füllwort-Disziplin sitzt — lass die Pausen nun etwas länger stehen, das gibt Gewicht.",
+    ],
+  },
+  feedbackFillersHighImprove: {
+    en: [
+      "Consciously replace each “um” with one silent beat instead of a sound.",
+      "When you feel an “um” coming, close your mouth and let the pause do the work.",
+      "Trade every filler for a breath: pause, inhale, then continue with the next word.",
+    ],
+    de: [
+      "Ersetze bewusst jedes „äh“ durch eine stille Sekunde statt eines Lauts.",
+      "Wenn du ein „äh“ kommen spürst: Mund zu und die Pause arbeiten lassen.",
+      "Tausche jedes Füllwort gegen einen Atemzug: Pause, einatmen, dann mit dem nächsten Wort weiter.",
+    ],
+  },
+  feedbackFluencyGoodImprove: {
+    en: [
+      "Your flow holds — keep it as you stretch the length tomorrow.",
+      "Fluency is solid; raise the bar by speaking 30 seconds longer at the same quality.",
+      "The flow is there — now protect it while you tackle a harder prompt.",
+    ],
+    de: [
+      "Dein Redefluss steht — halte ihn, wenn du morgen die Länge steigerst.",
+      "Der Redefluss sitzt; leg die Latte höher und sprich 30 Sekunden länger in derselben Qualität.",
+      "Der Fluss ist da — schütze ihn jetzt, während du dir eine schwerere Aufgabe vornimmst.",
+    ],
+  },
+  feedbackFluencyLowImprove: {
+    en: [
+      "When you trip: kill the sentence, take a breath, restart the whole sentence.",
+      "After a stumble, don't patch mid-sentence — pause briefly and start the sentence again cleanly.",
+      "Recover deliberately: stop, one calm breath, then deliver the full sentence from the top.",
+    ],
+    de: [
+      "Wenn du dich verhaspelst: Satz abbrechen, kurz atmen, den ganzen Satz neu.",
+      "Nach einem Stolperer nicht mitten im Satz flicken — kurz innehalten und den Satz sauber neu beginnen.",
+      "Fang dich bewusst: stoppen, ein ruhiger Atemzug, dann den ganzen Satz von vorn.",
+    ],
+  },
+} as const satisfies Record<string, CoachingVariants>;
+
+/** Single-variant volume coaching lines (measured client-side only). */
+export const volumeCopy = {
+  feedbackVolumeLowNote: {
+    en: "Your projection stayed low — the back row would strain to hear you.",
+    de: "Deine Projektion blieb leise — die letzte Reihe müsste sich anstrengen.",
+  },
+  feedbackVolumeLowImprove: {
+    en: "Speak from your diaphragm and aim your voice at the far wall, not the mic.",
+    de: "Sprich aus dem Zwerchfell und richte die Stimme auf die hintere Wand, nicht aufs Mikro.",
+  },
+  feedbackVolumeGoodNote: {
+    en: "Strong, steady projection — you filled the room.",
+    de: "Kräftige, gleichmäßige Projektion — du hast den Raum gefüllt.",
+  },
+  feedbackVolumeGoodImprove: {
+    en: "Push volume up a notch right before your strongest line for emphasis.",
+    de: "Heb die Lautstärke kurz vor deiner stärksten Zeile noch eine Stufe an.",
+  },
+  feedbackVolumeUnevenNote: {
+    en: "Audible but uneven — your volume sagged in places.",
+    de: "Hörbar, aber ungleichmäßig — die Lautstärke sackte stellenweise ab.",
+  },
+  feedbackVolumeUnevenImprove: {
+    en: "Keep the energy up through the middle — don't let volume dip between points.",
+    de: "Halte die Energie durch die Mitte, statt zwischen den Punkten leiser zu werden.",
+  },
+} as const satisfies Record<string, { en: string; de: string }>;
