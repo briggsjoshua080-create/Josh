@@ -26,11 +26,26 @@ interface FeedbackRequest {
   };
 }
 
+const CATEGORY = {
+  type: "object",
+  additionalProperties: false,
+  required: ["score", "note", "improve"],
+  properties: {
+    score: { type: "integer" },
+    note: { type: "string" },
+    improve: { type: "string" },
+  },
+} as const;
+
 const FEEDBACK_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
     "eloquence",
+    "structure",
+    "stylistic",
+    "comprehensiveness",
+    "logic",
     "phrasing",
     "professionalism",
     "paceNote",
@@ -42,19 +57,19 @@ const FEEDBACK_SCHEMA = {
     "wordOfDay",
   ],
   properties: {
-    eloquence: {
-      type: "object",
-      additionalProperties: false,
-      required: ["score", "note"],
-      properties: { score: { type: "integer" }, note: { type: "string" } },
-    },
+    eloquence: CATEGORY,
+    structure: CATEGORY,
+    stylistic: CATEGORY,
+    comprehensiveness: CATEGORY,
+    logic: CATEGORY,
     phrasing: {
       type: "object",
       additionalProperties: false,
-      required: ["score", "note", "rewrites"],
+      required: ["score", "note", "improve", "rewrites"],
       properties: {
         score: { type: "integer" },
         note: { type: "string" },
+        improve: { type: "string" },
         rewrites: {
           type: "array",
           items: {
@@ -73,10 +88,11 @@ const FEEDBACK_SCHEMA = {
     professionalism: {
       type: "object",
       additionalProperties: false,
-      required: ["score", "note", "flags"],
+      required: ["score", "note", "improve", "flags"],
       properties: {
         score: { type: "integer" },
         note: { type: "string" },
+        improve: { type: "string" },
         flags: { type: "array", items: { type: "string" } },
       },
     },
@@ -111,6 +127,13 @@ You will receive: the speaking prompt the user was given, the raw transcript of 
 Rules:
 - Respond entirely in English (the language the user spoke).
 - Quote the user's OWN phrases back verbatim when praising or correcting — specificity is the product.
+- Score these seven rhetorical dimensions, each with a "score", a "note" (1–2 sentences of specific observation, quoting their words), and an "improve" (ONE concrete thing to do differently next time — a technique or move, never vague):
+  • "eloquence": word choice, vividness, vocabulary range, precision; call out both strong phrasings and filler/weak words.
+  • "structure": is there a clear arc — opening, body, close? Are transitions signposted? Note where a listener would lose the thread.
+  • "stylistic": rhetorical devices actually used or missing — rule of three, contrast/antithesis, rhetorical questions, repetition/anaphora, metaphor. Reward real devices; suggest one they could add.
+  • "comprehensiveness": did they cover what the prompt asks, anticipate the obvious objection or counterpoint, and leave no glaring gap?
+  • "logic": does the reasoning hold — claims supported by evidence, no unbridged causal jumps or contradictions?
+- "improve" lines are the heart of the coaching: each must be a single, doable action for their next recording. Phrase as an imperative move ("Slow down before your key line so it lands"), not praise or restatement.
 - "phrasing.rewrites": pick 1–3 of their weakest or most awkward actual sentences and rewrite each as a stronger speaker would say it, with a one-line "why". If the speech is genuinely clean, return fewer rewrites rather than inventing flaws.
 - "professionalism.flags": list any inappropriate, unprofessional, or sloppy expressions verbatim, tactfully. Empty array if none.
 - The delivery metrics (pace, fillers, repetitions) are ground truth — do not recount them. Write paceNote/fillerNote/fluencyNote as one or two coach sentences interpreting each: what the number means for THIS speech and what to do about it.
@@ -127,6 +150,13 @@ Du erhältst: die Sprechaufgabe, das rohe Transkript (aus Spracherkennung — ig
 Regeln:
 - Antworte vollständig auf Deutsch (die Sprache, in der gesprochen wurde). Duze die Person.
 - Zitiere ihre EIGENEN Formulierungen wörtlich, wenn du lobst oder korrigierst — Präzision ist das Produkt.
+- Bewerte diese sieben rhetorischen Dimensionen, jede mit „score", „note" (1–2 Sätze konkrete Beobachtung, mit wörtlichem Zitat) und „improve" (EINE konkrete Sache, die beim nächsten Mal anders zu machen ist — eine Technik oder ein Kniff, nie vage):
+  • „eloquence": Wortwahl, Bildhaftigkeit, Wortschatz, Präzision; benenne starke Formulierungen ebenso wie Füll- oder Schwachwörter.
+  • „structure": Gibt es einen klaren Bogen — Einstieg, Hauptteil, Schluss? Sind Übergänge markiert? Zeig, wo ein Zuhörer den Faden verliert.
+  • „stylistic": tatsächlich genutzte oder fehlende Stilmittel — Dreierfigur, Kontrast/Antithese, rhetorische Fragen, Wiederholung/Anapher, Metapher. Belohne echte Mittel; schlag eines vor, das noch fehlt.
+  • „comprehensiveness": Hat sie abgedeckt, was die Aufgabe verlangt, den naheliegenden Einwand oder Gegenpunkt vorweggenommen und keine offensichtliche Lücke gelassen?
+  • „logic": Trägt die Argumentation — Behauptungen mit Belegen gestützt, keine unüberbrückten Kausalsprünge oder Widersprüche?
+- Die „improve"-Zeilen sind das Herz des Coachings: jede muss eine einzelne, machbare Handlung für die nächste Aufnahme sein. Formuliere sie als imperativen Kniff („Mach vor deinem Kernsatz eine Pause, damit er sitzt"), nicht als Lob oder Wiederholung.
 - „phrasing.rewrites": Wähle 1–3 der schwächsten oder holprigsten tatsächlichen Sätze und formuliere jeden so um, wie ein starker Redner ihn sagen würde, mit einem einzeiligen „why". Ist die Rede wirklich sauber, gib lieber weniger Rewrites zurück, statt Fehler zu erfinden.
 - „professionalism.flags": Liste unangemessene, unprofessionelle oder schludrige Ausdrücke wörtlich und taktvoll auf. Leeres Array, wenn nichts auffällt.
 - Die Vortragsmetriken (Tempo, Füllwörter, Wiederholungen) sind Fakten — zähle sie nicht nach. Schreibe paceNote/fillerNote/fluencyNote als ein bis zwei Coach-Sätze, die die Zahl für DIESE Rede interpretieren: was sie bedeutet und was zu tun ist.

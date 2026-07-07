@@ -79,6 +79,22 @@ const PATHS: Record<string, React.ReactNode> = {
       <path d="M7 11h.01M11 11h.01M15 11h.01M7 14.5h.01M17 11h.01M10 14.5h5" />
     </>
   ),
+  gauge: (
+    <>
+      <path d="M4 15a8 8 0 1 1 16 0" />
+      <path d="M12 15l4-3.5" />
+    </>
+  ),
+  volume: <path d="M4 9v6h3l5 4V5L7 9zM16 9a3 3 0 0 1 0 6M18.5 6.5a7 7 0 0 1 0 11" />,
+  layers: <path d="M12 3l9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5" />,
+  branch: (
+    <>
+      <circle cx="6" cy="5" r="2" />
+      <circle cx="6" cy="19" r="2" />
+      <circle cx="18" cy="7" r="2" />
+      <path d="M6 7v10M6 12h6a4 4 0 0 0 4-4V9" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 20, className }: IconProps) {

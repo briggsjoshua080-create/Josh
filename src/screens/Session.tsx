@@ -34,6 +34,7 @@ export function Session() {
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<"mic" | "unsupported" | "tooShort" | null>(null);
   const [typed, setTyped] = useState("");
+  const [showType, setShowType] = useState(false);
 
   const speechRef = useRef<SpeechSession | null>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -112,6 +113,7 @@ export function Session() {
       pauses: result.pauses,
       durationSec: result.durationSec,
       lang,
+      volume: result.volume,
     });
 
     const id = await saveSession({
@@ -199,7 +201,7 @@ export function Session() {
             <div ref={transcriptEndRef} />
           </div>
 
-          {error === "unsupported" && (
+          {(error === "unsupported" || showType) && (
             <div className="mt-4 flex gap-2">
               <input
                 value={typed}
@@ -213,6 +215,16 @@ export function Session() {
                 {t("typeFallbackSubmit")}
               </Button>
             </div>
+          )}
+
+          {error !== "unsupported" && (
+            <button
+              onClick={() => setShowType((v) => !v)}
+              className="mt-3 flex items-center gap-1.5 self-center text-xs text-muted transition-colors hover:text-ink"
+            >
+              <Icon name="keyboard" size={14} />
+              {t("typeInstead")}
+            </button>
           )}
 
           <div className="mt-6 flex items-center justify-center gap-8">

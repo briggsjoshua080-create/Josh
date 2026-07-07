@@ -1,4 +1,4 @@
-import type { AiFeedback, Lang, Metrics } from "./types";
+import type { AiCategory, AiFeedback, Lang, Metrics } from "./types";
 
 export interface CoachRequest {
   lang: Lang;
@@ -27,6 +27,102 @@ export async function requestCoaching(req: CoachRequest): Promise<AiFeedback> {
   if (!res.ok) throw new CoachUnavailableError(String(res.status));
   const data = (await res.json()) as Omit<AiFeedback, "source">;
   return { ...data, source: "claude" };
+}
+
+export interface CategoryCoaching {
+  note?: string;
+  improve: string;
+}
+
+/**
+ * Deterministic per-category coaching for the delivery signals the client
+ * measures directly (pace, loudness, fillers, fluency). The AI writes the
+ * pace/filler/fluency *notes* when online; these "improve" lines are computed
+ * from the numbers so every category carries one actionable next step even
+ * offline. Volume is fully client-side (the coach never hears the audio).
+ */
+export function deliveryCoaching(
+  m: Metrics,
+  lang: Lang,
+): {
+  pace: CategoryCoaching;
+  volume: (CategoryCoaching & { note: string }) | null;
+  fillers: CategoryCoaching;
+  fluency: CategoryCoaching;
+} {
+  const de = lang === "de";
+  const band = { lo: lang === "de" ? 105 : 115, hi: lang === "de" ? 155 : 165 };
+
+  const paceImprove =
+    m.wpm < band.lo
+      ? de
+        ? "Nimm mehr Zug nach vorn und lass die letzten Wörter jedes Satzes nicht ausklingen."
+        : "Add forward drive and stop letting the last words of each sentence trail off."
+      : m.wpm > band.hi
+        ? de
+          ? "Setze bewusste Pausen vor deinen Kernaussagen, damit sie landen können."
+          : "Plant a deliberate pause before your key points so they land."
+        : de
+          ? "Halte das Tempo, aber verlangsame kurz vor deiner wichtigsten Zeile."
+          : "Hold this tempo, but slow down just before your most important line.";
+
+  const fillersImprove =
+    m.fillerScore >= 85
+      ? de
+        ? "Bleib so — deine Füllwörter sind bereits selten. Halte die Pausen bewusst."
+        : "Keep this — your fillers are already rare. Own the silent pauses."
+      : de
+        ? "Ersetze bewusst jedes „äh“ durch eine stille Sekunde statt eines Lauts."
+        : "Consciously replace each “um” with one silent beat instead of a sound.";
+
+  const fluencyImprove =
+    m.fluencyScore >= 85
+      ? de
+        ? "Dein Redefluss steht — halte ihn, wenn du morgen die Länge steigerst."
+        : "Your flow holds — keep it as you stretch the length tomorrow."
+      : de
+        ? "Wenn du dich verhaspelst: Satz abbrechen, kurz atmen, den ganzen Satz neu."
+        : "When you trip: kill the sentence, take a breath, restart the whole sentence.";
+
+  let volume: (CategoryCoaching & { note: string }) | null = null;
+  if (m.volume) {
+    const { mean, score } = m.volume;
+    if (mean < 0.13) {
+      volume = {
+        note: de
+          ? "Deine Projektion blieb leise — die letzte Reihe müsste sich anstrengen."
+          : "Your projection stayed low — the back row would strain to hear you.",
+        improve: de
+          ? "Sprich aus dem Zwerchfell und richte die Stimme auf die hintere Wand, nicht aufs Mikro."
+          : "Speak from your diaphragm and aim your voice at the far wall, not the mic.",
+      };
+    } else if (score >= 85) {
+      volume = {
+        note: de
+          ? "Kräftige, gleichmäßige Projektion — du hast den Raum gefüllt."
+          : "Strong, steady projection — you filled the room.",
+        improve: de
+          ? "Heb die Lautstärke kurz vor deiner stärksten Zeile noch eine Stufe an."
+          : "Push volume up a notch right before your strongest line for emphasis.",
+      };
+    } else {
+      volume = {
+        note: de
+          ? "Hörbar, aber ungleichmäßig — die Lautstärke sackte stellenweise ab."
+          : "Audible but uneven — your volume sagged in places.",
+        improve: de
+          ? "Halte die Energie durch die Mitte, statt zwischen den Punkten leiser zu werden."
+          : "Keep the energy up through the middle — don't let volume dip between points.",
+      };
+    }
+  }
+
+  return {
+    pace: { improve: paceImprove },
+    volume,
+    fillers: { improve: fillersImprove },
+    fluency: { improve: fluencyImprove },
+  };
 }
 
 /** Simple stem-tolerant check for the word of the day (handles German inflection endings). */
@@ -112,10 +208,15 @@ export function offlineFeedback(input: {
   else if (best === m.fillerScore) strengths.push(de ? "Füllwort-Disziplin war die Stärke dieser Session." : "Filler discipline was the strength of this session.");
   else strengths.push(de ? "Dein Redefluss war die Stärke dieser Session." : "Your fluency was the strength of this session.");
 
+  const empty: AiCategory = { score: 0, note: "", improve: "" };
   return {
-    eloquence: { score: 0, note: "" },
-    phrasing: { score: 0, note: "", rewrites: [] },
-    professionalism: { score: 0, note: "", flags: [] },
+    eloquence: empty,
+    structure: empty,
+    stylistic: empty,
+    comprehensiveness: empty,
+    logic: empty,
+    phrasing: { ...empty, rewrites: [] },
+    professionalism: { ...empty, flags: [] },
     paceNote,
     fillerNote,
     fluencyNote,
