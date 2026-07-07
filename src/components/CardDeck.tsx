@@ -46,7 +46,7 @@ export function CardDeck<T>({ items, keyOf, renderCard, renderAction }: CardDeck
 
   return (
     <div>
-      <div className="relative h-[340px] select-none" style={{ touchAction: "pan-y" }}>
+      <div className="relative h-[420px] select-none" style={{ touchAction: "pan-y" }}>
         {/* Stack shadows: two cards peeking behind */}
         {n > 2 && <StackCard depth={2} key={`b2-${keyOf(at(2))}`} reduced={reduced ?? false} />}
         {n > 1 && <StackCard depth={1} key={`b1-${keyOf(at(1))}`} reduced={reduced ?? false} />}

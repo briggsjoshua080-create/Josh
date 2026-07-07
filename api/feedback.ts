@@ -36,8 +36,10 @@ export default async function handler(req: IncomingMessage & { body?: string }, 
     res.setHeader?.("content-type", "application/json");
     res.end?.(out.body);
   } catch (error) {
+    // Log the full error server-side only; the client never sees internals.
+    console.error(error);
     res.statusCode = 500;
     res.setHeader?.("content-type", "application/json");
-    res.end?.(JSON.stringify({ error: "server_error", detail: error instanceof Error ? error.message : String(error) }));
+    res.end?.(JSON.stringify({ error: "server_error" }));
   }
 }
