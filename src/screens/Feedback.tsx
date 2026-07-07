@@ -1,13 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
 import { db, getSession } from "@/lib/db";
-import { requestCoaching, offlineFeedback, CoachUnavailableError } from "@/lib/feedback";
+import { requestCoaching, offlineFeedback, deliveryCoaching, CoachUnavailableError } from "@/lib/feedback";
 import { blendScores, type Session } from "@/lib/types";
 import { ProgressRing } from "@/components/ProgressRing";
-import { ScoreBar } from "@/components/ScoreBar";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+
+function gradeFor(score: number): string {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
+interface HeadlineRow {
+  key: string;
+  icon: string;
+  label: string;
+  score: number | null;
+  note?: string;
+  improve?: string;
+  unmeasured?: boolean;
+}
 
 export function Feedback() {
   const { t } = useI18n();
@@ -59,6 +77,45 @@ export function Feedback() {
 
   const { metrics: m, ai, scores } = session;
   const offline = ai?.source === "offline";
+  const delivery = deliveryCoaching(m, session.lang);
+  const aiOnline = ai && ai.source !== "offline";
+
+  const headlineRows: HeadlineRow[] = [
+    {
+      key: "pace",
+      icon: "gauge",
+      label: t("scorePace"),
+      score: scores.pace,
+      note: ai?.paceNote || undefined,
+      improve: delivery.pace.improve,
+    },
+    scores.volume !== null
+      ? {
+          key: "volume",
+          icon: "volume",
+          label: t("scoreVolume"),
+          score: scores.volume,
+          note: delivery.volume?.note,
+          improve: delivery.volume?.improve,
+        }
+      : { key: "volume", icon: "volume", label: t("scoreVolume"), score: null, unmeasured: true },
+    ...(aiOnline
+      ? ([
+          ["eloquence", "word", t("scoreEloquence"), ai.eloquence],
+          ["structure", "layers", t("scoreStructure"), ai.structure],
+          ["stylistic", "sparkle", t("scoreStyle"), ai.stylistic],
+          ["comprehensiveness", "target", t("scoreComprehensiveness"), ai.comprehensiveness],
+          ["logic", "branch", t("scoreLogic"), ai.logic],
+        ] as const).map(([key, icon, label, cat]) => ({
+          key,
+          icon,
+          label,
+          score: cat.score,
+          note: cat.note,
+          improve: cat.improve,
+        }))
+      : []),
+  ];
 
   return (
     <div className="pt-2 lg:pt-0">
@@ -89,15 +146,25 @@ export function Feedback() {
         </div>
       </div>
 
-      {/* Category scores */}
-      <div className="mt-8 flex flex-col gap-3">
-        <ScoreBar label={t("scorePace")} value={scores.pace} delay={0.05} />
-        <ScoreBar label={t("scoreFillers")} value={scores.fillers} delay={0.1} />
-        <ScoreBar label={t("scoreFluency")} value={scores.fluency} delay={0.15} />
-        <ScoreBar label={t("scoreEloquence")} value={scores.eloquence} delay={0.2} />
-        <ScoreBar label={t("scorePhrasing")} value={scores.phrasing} delay={0.25} />
-        <ScoreBar label={t("scoreProfessionalism")} value={scores.professionalism} delay={0.3} />
-      </div>
+      {/* The seven dimensions */}
+      <section className="mt-8">
+        <h2 className="text-sm font-medium text-accent">{t("categoryScores")}</h2>
+        <div className="mt-3 flex flex-col gap-3">
+          {headlineRows.map((r, i) => (
+            <CategoryCard
+              key={r.key}
+              icon={r.icon}
+              label={r.label}
+              score={r.score}
+              note={r.note}
+              improve={r.improve}
+              unmeasured={r.unmeasured}
+              unmeasuredText={t("volumeUnmeasured")}
+              delay={0.05 * i}
+            />
+          ))}
+        </div>
+      </section>
 
       {coaching && (
         <div className="mt-8 flex items-center gap-3 rounded-(--radius-card) bg-surface p-5 text-muted">
@@ -161,22 +228,27 @@ export function Feedback() {
             </section>
           )}
 
-          {/* Category notes */}
+          {/* Delivery detail */}
           <section className="mt-8 border-t hairline pt-6">
-            <dl className="flex flex-col gap-4">
+            <h2 className="text-sm font-medium text-muted">{t("deliveryDetail")}</h2>
+            <dl className="mt-3 flex flex-col gap-4">
               {[
-                [t("scorePace"), ai.paceNote],
-                [t("scoreFillers"), ai.fillerNote],
-                [t("scoreFluency"), ai.fluencyNote],
-                [t("scoreEloquence"), ai.eloquence.note],
-                [t("scorePhrasing"), ai.phrasing.note],
-                [t("scoreProfessionalism"), ai.professionalism.note],
+                [t("scoreFillers"), ai.fillerNote, delivery.fillers.improve],
+                [t("scoreFluency"), ai.fluencyNote, delivery.fluency.improve],
+                [t("scorePhrasing"), ai.phrasing.note, ai.phrasing.improve],
+                [t("scoreProfessionalism"), ai.professionalism.note, ai.professionalism.improve],
               ]
                 .filter(([, note]) => note)
-                .map(([label, note]) => (
+                .map(([label, note, improve]) => (
                   <div key={label}>
-                    <dt className="text-sm font-medium text-muted">{label}</dt>
-                    <dd className="mt-1 text-base text-ink/90">{note}</dd>
+                    <dt className="text-sm font-medium text-ink">{label}</dt>
+                    <dd className="mt-1 text-sm leading-relaxed text-ink/85">{note}</dd>
+                    {improve && (
+                      <dd className="mt-1 flex gap-1.5 text-sm text-accent">
+                        <Icon name="arrowRight" size={15} className="mt-0.5 shrink-0" />
+                        <span>{improve}</span>
+                      </dd>
+                    )}
                   </div>
                 ))}
             </dl>
@@ -241,6 +313,75 @@ export function Feedback() {
           </Link>
         )}
       </div>
+    </div>
+  );
+}
+
+function CategoryCard({
+  icon,
+  label,
+  score,
+  note,
+  improve,
+  unmeasured,
+  unmeasuredText,
+  delay,
+}: {
+  icon: string;
+  label: string;
+  score: number | null;
+  note?: string;
+  improve?: string;
+  unmeasured?: boolean;
+  unmeasuredText: string;
+  delay: number;
+}) {
+  const reduced = useReducedMotion();
+  const barColor =
+    score === null
+      ? "var(--color-surface-2)"
+      : score >= 85
+        ? "var(--color-accent)"
+        : score >= 60
+          ? "var(--color-accent-dim)"
+          : "var(--color-bad)";
+
+  return (
+    <div className="rounded-(--radius-card) bg-surface p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <Icon name={icon} size={18} className="shrink-0 text-accent" />
+          <span className="lectern text-base text-ink">{label}</span>
+        </div>
+        {score !== null && (
+          <span className="tnum flex items-baseline gap-1.5 whitespace-nowrap text-sm text-muted">
+            <b className="font-semibold text-ink">{score}</b>
+            /100
+            <span className="font-medium text-accent">{gradeFor(score)}</span>
+          </span>
+        )}
+      </div>
+
+      {score !== null && (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: barColor }}
+            initial={reduced ? { width: `${score}%` } : { width: 0 }}
+            animate={{ width: `${score}%` }}
+            transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
+      )}
+
+      {unmeasured && <p className="mt-2 text-sm leading-relaxed text-muted">{unmeasuredText}</p>}
+      {note && <p className="mt-2.5 text-sm leading-relaxed text-ink/85">{note}</p>}
+      {improve && (
+        <p className="mt-1.5 flex gap-1.5 text-sm text-accent">
+          <Icon name="arrowRight" size={15} className="mt-0.5 shrink-0" />
+          <span>{improve}</span>
+        </p>
+      )}
     </div>
   );
 }

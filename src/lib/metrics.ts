@@ -113,11 +113,25 @@ export function fluencyScore(repsPer100Words: number): number {
   return Math.max(20, Math.min(100, Math.round(100 - repsPer100Words * 12)));
 }
 
+/**
+ * Projection score from the mic level meter. `mean`/`std` are 0–1 RMS over the
+ * speaking frames. Rewards audible, steady projection; penalizes speaking too
+ * quietly and large swings in loudness.
+ */
+export function volumeScore(mean: number, std: number): number {
+  let s = 100;
+  if (mean < 0.18) s -= (0.18 - mean) * 350;
+  const cov = mean > 0 ? std / mean : 0;
+  if (cov > 0.85) s -= (cov - 0.85) * 45;
+  return Math.max(20, Math.min(100, Math.round(s)));
+}
+
 export function computeMetrics(input: {
   segments: SpeechSegment[];
   pauses: PauseEvent[];
   durationSec: number;
   lang: Lang;
+  volume?: { mean: number; std: number } | null;
 }): Metrics {
   const { segments, pauses, durationSec, lang } = input;
   const transcript = segments.map((s) => s.text).join(" ");
@@ -134,6 +148,11 @@ export function computeMetrics(input: {
   const unique = new Set(words).size;
   const avgWordLen = wordCount > 0 ? +(words.join("").length / wordCount).toFixed(1) : 0;
 
+  const volume =
+    input.volume && wordCount > 0
+      ? { mean: input.volume.mean, std: input.volume.std, score: volumeScore(input.volume.mean, input.volume.std) }
+      : null;
+
   return {
     durationSec: Math.round(durationSec),
     wordCount,
@@ -149,6 +168,7 @@ export function computeMetrics(input: {
       ttr: wordCount > 0 ? +(unique / wordCount).toFixed(2) : 0,
       avgWordLen,
     },
+    volume,
     paceScore: wordCount > 0 ? paceScore(wpm, lang) : 0,
     fillerScore: wordCount > 0 ? fillerScore(perMin) : 0,
     fluencyScore: wordCount > 0 ? fluencyScore(repsPer100) : 0,

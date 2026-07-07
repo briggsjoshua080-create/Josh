@@ -38,6 +38,12 @@ export interface Metrics {
     ttr: number;
     avgWordLen: number;
   };
+  /**
+   * Loudness/projection, captured from the mic level meter. Optional: absent
+   * when the level meter never ran (typed fallback, denied mic). `mean`/`std`
+   * are 0–1 RMS; `score` is the deterministic 0–100 projection score.
+   */
+  volume?: { mean: number; std: number; score: number } | null;
   /** Deterministic 0–100 scores computed client-side. */
   paceScore: number;
   fillerScore: number;
@@ -55,10 +61,22 @@ export interface AiTip {
   detail: string;
 }
 
+/** One AI-judged rhetorical dimension: a score, an observation, and a fix. */
+export interface AiCategory {
+  score: number;
+  note: string;
+  /** One concrete, actionable improvement for next time. */
+  improve: string;
+}
+
 export interface AiFeedback {
-  eloquence: { score: number; note: string };
-  phrasing: { score: number; note: string; rewrites: AiRewrite[] };
-  professionalism: { score: number; note: string; flags: string[] };
+  eloquence: AiCategory;
+  structure: AiCategory;
+  stylistic: AiCategory;
+  comprehensiveness: AiCategory;
+  logic: AiCategory;
+  phrasing: AiCategory & { rewrites: AiRewrite[] };
+  professionalism: AiCategory & { flags: string[] };
   paceNote: string;
   fillerNote: string;
   fluencyNote: string;
@@ -71,9 +89,14 @@ export interface AiFeedback {
 
 export interface Scores {
   pace: number;
+  volume: number | null;
   fillers: number;
   fluency: number;
   eloquence: number | null;
+  structure: number | null;
+  stylistic: number | null;
+  comprehensiveness: number | null;
+  logic: number | null;
   phrasing: number | null;
   professionalism: number | null;
   overall: number;
@@ -138,26 +161,61 @@ export interface WordEntry {
   example: string;
 }
 
-/** Weighted blend; AI categories drop out gracefully when offline. */
+function mean(xs: number[]): number {
+  return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
+}
+
+/**
+ * The overall grade is the plain average of the seven headline dimensions the
+ * user sees (pace, volume, eloquence, structure, stylistic devices,
+ * comprehensiveness, logic). Deterministic delivery details (fillers, fluency)
+ * and the AI's phrasing/professionalism notes stay as supporting sections and
+ * don't sway the headline. Categories that couldn't be scored drop out of the
+ * average rather than counting as zero.
+ */
 export function blendScores(m: Metrics, ai: AiFeedback | null): Scores {
-  const det = { pace: m.paceScore, fillers: m.fillerScore, fluency: m.fluencyScore };
+  const volume = m.volume?.score ?? null;
+  const base = {
+    pace: m.paceScore,
+    volume,
+    fillers: m.fillerScore,
+    fluency: m.fluencyScore,
+  };
+
   if (!ai || ai.source === "offline") {
-    const overall = Math.round(det.pace * 0.35 + det.fillers * 0.4 + det.fluency * 0.25);
-    return { ...det, eloquence: null, phrasing: null, professionalism: null, overall };
+    // Without AI coaching, grade on the deterministic delivery signals only.
+    const overall = mean([m.paceScore, m.fillerScore, m.fluencyScore, ...(volume !== null ? [volume] : [])]);
+    return {
+      ...base,
+      eloquence: null,
+      structure: null,
+      stylistic: null,
+      comprehensiveness: null,
+      logic: null,
+      phrasing: null,
+      professionalism: null,
+      overall,
+    };
   }
-  const overall = Math.round(
-    det.pace * 0.15 +
-      det.fillers * 0.2 +
-      det.fluency * 0.15 +
-      ai.eloquence.score * 0.2 +
-      ai.phrasing.score * 0.2 +
-      ai.professionalism.score * 0.1,
-  );
+
+  const headline = [
+    m.paceScore,
+    ...(volume !== null ? [volume] : []),
+    ai.eloquence.score,
+    ai.structure.score,
+    ai.stylistic.score,
+    ai.comprehensiveness.score,
+    ai.logic.score,
+  ];
   return {
-    ...det,
+    ...base,
     eloquence: ai.eloquence.score,
+    structure: ai.structure.score,
+    stylistic: ai.stylistic.score,
+    comprehensiveness: ai.comprehensiveness.score,
+    logic: ai.logic.score,
     phrasing: ai.phrasing.score,
     professionalism: ai.professionalism.score,
-    overall,
+    overall: mean(headline),
   };
 }

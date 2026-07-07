@@ -46,7 +46,12 @@ export interface RecorderResult {
   segments: SpeechSegment[];
   pauses: PauseEvent[];
   durationSec: number;
+  /** Loudness stats over the speaking portions, or null if the meter never ran. */
+  volume: { mean: number; std: number } | null;
 }
+
+/** Frames quieter than this are treated as silence and excluded from loudness. */
+const SPEECH_FLOOR = 0.03;
 
 export class SpeechSession {
   private recognition: SpeechRecognitionLike | null = null;
@@ -61,6 +66,9 @@ export class SpeechSession {
   private audioCtx: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
   private levelRaf: number | null = null;
+  private levelSum = 0;
+  private levelSqSum = 0;
+  private levelCount = 0;
 
   constructor(
     private lang: Lang,
@@ -125,15 +133,19 @@ export class SpeechSession {
     };
 
     rec.onend = () => {
-      // Chrome stops after ~8s of silence; keep the session alive until the
-      // user explicitly stops.
-      if (this.running) {
+      // Chrome stops after ~8s of silence and iOS Safari ends each utterance
+      // outright (it ignores `continuous`); keep the session alive until the
+      // user explicitly stops. A short delay avoids the InvalidStateError iOS
+      // throws when start() is called in the same tick as onend.
+      if (!this.running) return;
+      window.setTimeout(() => {
+        if (!this.running) return;
         try {
           rec.start();
         } catch {
           /* already started */
         }
-      }
+      }, 250);
     };
 
     try {
@@ -182,6 +194,8 @@ export class SpeechSession {
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.audioCtx = new AudioContext();
+      // iOS/Safari starts the context suspended until a user gesture resumes it.
+      if (this.audioCtx.state === "suspended") await this.audioCtx.resume().catch(() => {});
       const source = this.audioCtx.createMediaStreamSource(this.mediaStream);
       const analyser = this.audioCtx.createAnalyser();
       analyser.fftSize = 512;
@@ -196,7 +210,15 @@ export class SpeechSession {
           sum += v * v;
         }
         const rms = Math.sqrt(sum / data.length);
-        this.cb.onLevel(Math.min(1, rms * 4));
+        const level = Math.min(1, rms * 4);
+        // Accumulate loudness only while the user is actually speaking, so
+        // silences and pauses don't drag the projection score down.
+        if (level > SPEECH_FLOOR) {
+          this.levelSum += level;
+          this.levelSqSum += level * level;
+          this.levelCount++;
+        }
+        this.cb.onLevel(level);
         this.levelRaf = requestAnimationFrame(loop);
       };
       loop();
@@ -229,10 +251,19 @@ export class SpeechSession {
     this.audioCtx?.close().catch(() => {});
     delete (window as unknown as Record<string, unknown>).__oratoInjectSpeech;
 
+    // Need a few hundred speaking frames for a meaningful loudness read.
+    let volume: RecorderResult["volume"] = null;
+    if (this.levelCount >= 60) {
+      const mean = this.levelSum / this.levelCount;
+      const variance = Math.max(0, this.levelSqSum / this.levelCount - mean * mean);
+      volume = { mean: +mean.toFixed(3), std: +Math.sqrt(variance).toFixed(3) };
+    }
+
     return {
       segments: this.segments,
       pauses: this.pauses,
       durationSec: (performance.now() - this.startedAt) / 1000,
+      volume,
     };
   }
 }
