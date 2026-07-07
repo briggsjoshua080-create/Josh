@@ -118,6 +118,32 @@ p {
   border-color: var(--color-line);
 }
 
+/* Wide-tracked uppercase section labels (STATS, VOCAL DELIVERY) */
+.label-caps {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-muted);
+}
+
+/* Charcoal loading skeletons — never a white flash, never a bare spinner */
+.skeleton {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

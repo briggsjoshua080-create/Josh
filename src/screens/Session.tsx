@@ -6,6 +6,8 @@ import { SCENARIOS } from "@/data/scenarios";
 import { SpeechSession, speechSupported } from "@/lib/speech";
 import { computeMetrics } from "@/lib/metrics";
 import { blendScores } from "@/lib/types";
+import { computeEight } from "@/lib/progression";
+import { wordOfDayUsed } from "@/lib/feedback";
 import { saveSession, todayISO } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -129,6 +131,16 @@ export function Session() {
       metrics,
       ai: null,
       scores: blendScores(metrics, null),
+      report: null,
+      // XP stays pending until the full AI analysis lands (no partial awards).
+      progress: {
+        scores: computeEight(metrics, null),
+        overallScore: null,
+        xpEarned: 0,
+        wordOfDayUsed: word ? wordOfDayUsed(transcript, word.word) : false,
+        wpm: metrics.wpm,
+        xpPending: true,
+      },
       promptTitle,
       promptText,
       wordOfDay: word?.word,

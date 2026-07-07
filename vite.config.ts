@@ -44,22 +44,22 @@ export default defineConfig({
     devApi(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icons/*.png"],
+      includeAssets: ["favicon.svg", "icons/*.png", "orato-icon*.png", "orato-icon.svg"],
       manifest: {
         name: "Orato — Speech Training Studio",
         short_name: "Orato",
         description:
           "Daily speaking challenges and AI speech coaching. Train like a future politician, storyteller, and communication expert.",
-        theme_color: "#191212",
-        background_color: "#191212",
+        theme_color: "#17110F",
+        background_color: "#17110F",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
         icons: [
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/orato-icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/orato-icon-512.png", sizes: "512x512", type: "image/png" },
           {
-            src: "/icons/icon-512-maskable.png",
+            src: "/orato-icon-512-maskable.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

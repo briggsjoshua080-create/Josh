@@ -1,4 +1,5 @@
-import type { AiCategory, AiFeedback, Lang, Metrics } from "./types";
+import type { AiCategory, AiFeedback, AiReport, Lang, Metrics } from "./types";
+import { METRIC_KEYS } from "./types";
 import { coachingCopy, volumeCopy, type CoachingVariants } from "./strings";
 
 export interface CoachRequest {
@@ -13,21 +14,51 @@ export interface CoachRequest {
 
 export class CoachUnavailableError extends Error {}
 
-/** Call the serverless Claude proxy. Throws CoachUnavailableError when offline/unconfigured. */
-export async function requestCoaching(req: CoachRequest): Promise<AiFeedback> {
+/** Hard ceiling on one analysis round-trip — the spinner must never be infinite. */
+const COACH_TIMEOUT_MS = 45_000;
+
+/** Remove accidental markdown code fences around a JSON payload. */
+function stripFences(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  return fenced ? fenced[1] : trimmed;
+}
+
+/**
+ * Fetch the structured 8-metric coaching report. Throws CoachUnavailableError
+ * on network failure, non-OK status, timeout, or an unparseable payload —
+ * callers show the offline/pending state instead of spinning forever.
+ */
+export async function requestReport(req: CoachRequest): Promise<AiReport> {
   let res: Response;
   try {
     res = await fetch("/api/feedback", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...req, metrics: { ...req.metrics, durationSec: undefined } }),
+      signal: AbortSignal.timeout(COACH_TIMEOUT_MS),
     });
   } catch {
     throw new CoachUnavailableError("network");
   }
   if (!res.ok) throw new CoachUnavailableError(String(res.status));
-  const data = (await res.json()) as Omit<AiFeedback, "source">;
-  return { ...data, source: "claude" };
+
+  let report: AiReport;
+  try {
+    report = JSON.parse(stripFences(await res.text())) as AiReport;
+  } catch {
+    throw new CoachUnavailableError("bad_json");
+  }
+  if (
+    typeof report !== "object" ||
+    report === null ||
+    typeof report.scores !== "object" ||
+    typeof report.oneLiners !== "object" ||
+    METRIC_KEYS.some((k) => typeof report.scores?.[k] !== "number")
+  ) {
+    throw new CoachUnavailableError("bad_shape");
+  }
+  return report;
 }
 
 export interface CategoryCoaching {
@@ -115,8 +146,9 @@ export function wordOfDayUsed(transcript: string, word: string): boolean {
 }
 
 /**
- * Deterministic metrics-only coaching for offline use. Honest about its
- * limits — the UI labels it and offers a retry when back online.
+ * @deprecated Legacy offline coaching in the pre-progression AiFeedback shape.
+ * The redesigned Feedback screen renders offline state from computeEight() +
+ * deliveryCoaching() directly; this stays only until old stored sessions age out.
  */
 export function offlineFeedback(input: {
   metrics: Metrics;

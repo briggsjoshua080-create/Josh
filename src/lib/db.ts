@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { Session } from "./types";
+import { progressFromSessions, type ProgressState } from "./progression";
 
 /**
  * All user data lives here, on-device. No accounts, no server-side storage.
@@ -7,10 +8,18 @@ import type { Session } from "./types";
  */
 const db = new Dexie("orato") as Dexie & {
   sessions: EntityTable<Session, "id">;
+  progress: EntityTable<ProgressState, "id">;
 };
 
 db.version(1).stores({
   sessions: "++id, dateISO, kind, startedAt, day",
+});
+
+// v2: aggregate progression state (cumulative XP, level, rolling stat
+// averages/trends). Single row, keyed "main"; sessions table is unchanged.
+db.version(2).stores({
+  sessions: "++id, dateISO, kind, startedAt, day",
+  progress: "id",
 });
 
 export { db };
@@ -32,6 +41,22 @@ export async function getSession(id: number): Promise<Session | undefined> {
 
 export async function allSessions(): Promise<Session[]> {
   return db.sessions.orderBy("startedAt").toArray();
+}
+
+/**
+ * Recompute the aggregate progression state from all stored sessions and
+ * persist it. Recompute-from-source keeps XP idempotent: re-running after a
+ * retry or a re-opened report can never double-award.
+ */
+export async function recomputeProgress(): Promise<ProgressState> {
+  const sessions = await db.sessions.toArray();
+  const state = progressFromSessions(sessions);
+  await db.progress.put(state);
+  return state;
+}
+
+export async function getProgressState(): Promise<ProgressState> {
+  return (await db.progress.get("main")) ?? (await recomputeProgress());
 }
 
 /** Distinct local dates that have at least one completed daily-path session. */

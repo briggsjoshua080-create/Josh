@@ -33,6 +33,11 @@ export interface Metrics {
     count: number;
     longestMs: number;
   };
+  /**
+   * Longest unbroken stretch of speech in seconds, from pause timing.
+   * Optional: absent on sessions recorded before the progression system.
+   */
+  cleanSpeechSec?: number;
   vocab: {
     unique: number;
     ttr: number;
@@ -44,10 +49,65 @@ export interface Metrics {
    * are 0–1 RMS; `score` is the deterministic 0–100 projection score.
    */
   volume?: { mean: number; std: number; score: number } | null;
+  /**
+   * Hedge words ("I think", "maybe", …) counted on-device; they temper the
+   * AI's Confidence score. Optional: absent on sessions recorded before the
+   * progression system existed.
+   */
+  hedges?: { total: number; perMin: number; counts: Record<string, number> };
   /** Deterministic 0–100 scores computed client-side. */
   paceScore: number;
   fillerScore: number;
   fluencyScore: number;
+}
+
+/* ————— The eight scored metrics (progression system) ————— */
+
+export const METRIC_KEYS = [
+  "clarity",
+  "confidence",
+  "structure",
+  "pace",
+  "fluency",
+  "wordPower",
+  "conciseness",
+  "engagement",
+] as const;
+
+export type MetricKey = (typeof METRIC_KEYS)[number];
+
+/** 0–100 per metric; null when it couldn't be scored (offline: only pace/fluency). */
+export type EightScores = Record<MetricKey, number | null>;
+
+/** Structured coaching report returned by /api/feedback (see server/coach.ts). */
+export interface AiReport {
+  scores: Record<MetricKey, number>;
+  /** Exactly one coach sentence per metric. */
+  oneLiners: Record<MetricKey, string>;
+  strongestLine: { quote: string; why: string };
+  tighten: { quote: string; rewrite: string };
+  powerWords: { word: string; count: number }[];
+  weakWords: { word: string; count: number }[];
+  /** Words the transcription likely garbled — proxy for articulation trouble. */
+  hardToCatch: string[];
+  cleanSpeechSeconds: number;
+  articulation: number;
+  confidenceLabel: string;
+  confidenceNote: string;
+  /** AI's guess; the client always prefers the on-device series from segments. */
+  wpmOverTime: number[];
+}
+
+/** Per-speech progression record, written once analysis is complete. */
+export interface SpeechProgress {
+  scores: EightScores;
+  /** round(mean of the 8); null while analysis is pending (offline). */
+  overallScore: number | null;
+  xpEarned: number;
+  wordOfDayUsed: boolean;
+  wpm: number;
+  /** True until a full AI analysis completes — no partial XP is awarded. */
+  xpPending: boolean;
 }
 
 export interface AiRewrite {
@@ -117,6 +177,10 @@ export interface Session {
   metrics: Metrics;
   ai: AiFeedback | null;
   scores: Scores;
+  /** Structured 8-metric coaching report (null until analysis completes). */
+  report?: AiReport | null;
+  /** Progression record (absent on sessions from before the XP system). */
+  progress?: SpeechProgress;
   promptTitle: string;
   promptText: string;
   wordOfDay?: string;

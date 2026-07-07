@@ -19,6 +19,21 @@ const FILLERS: Record<Lang, { single: string[]; multi: string[]; segmentInitial:
   },
 };
 
+/**
+ * Hedge words and phrases that read as tentative. Counted on-device so the
+ * Confidence metric has a deterministic anchor next to the AI's judgment.
+ */
+const HEDGES: Record<Lang, { single: string[]; multi: string[] }> = {
+  en: {
+    single: ["maybe", "perhaps", "possibly", "probably", "hopefully", "somewhat"],
+    multi: ["i think", "i guess", "i suppose", "i feel like", "kind of", "sort of", "a little bit", "i'm not sure", "im not sure", "or something"],
+  },
+  de: {
+    single: ["vielleicht", "eventuell", "möglicherweise", "wahrscheinlich", "hoffentlich", "irgendwie"],
+    multi: ["ich glaube", "ich denke", "ich schätze", "ein bisschen", "oder so", "ich bin mir nicht sicher", "würde ich sagen"],
+  },
+};
+
 /** "like" as a filler, excluding the verb ("I like", "you'd like", …). */
 const LIKE_VERB_PRECEDERS = new Set(["i", "you", "we", "they", "would", "d", "not", "dont", "don't", "really"]);
 
@@ -72,6 +87,71 @@ export function countFillers(segments: SpeechSegment[], lang: Lang) {
   return { total, counts };
 }
 
+export function countHedges(segments: SpeechSegment[], lang: Lang) {
+  const cfg = HEDGES[lang];
+  const counts: Record<string, number> = {};
+  const bump = (w: string) => {
+    counts[w] = (counts[w] ?? 0) + 1;
+  };
+
+  for (const seg of segments) {
+    const words = tokenize(seg.text);
+    const joined = words.join(" ");
+
+    for (const phrase of cfg.multi) {
+      let idx = 0;
+      while ((idx = joined.indexOf(phrase, idx)) !== -1) {
+        const before = idx === 0 || joined[idx - 1] === " ";
+        const after = idx + phrase.length === joined.length || joined[idx + phrase.length] === " ";
+        if (before && after) bump(phrase);
+        idx += phrase.length;
+      }
+    }
+    for (const w of words) if (cfg.single.includes(w)) bump(w);
+  }
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { total, counts };
+}
+
+/**
+ * Words-per-minute over time, from the finalized segment timestamps. Buckets
+ * the speech into ~15–30s windows so the sparkline reads as a delivery arc,
+ * not noise. Returns [] when there's too little timing data to be honest.
+ */
+export function wpmSeries(segments: SpeechSegment[], durationSec: number): number[] {
+  if (durationSec < 20 || segments.length < 2) return [];
+  const bins = Math.max(3, Math.min(12, Math.round(durationSec / 20)));
+  const binMs = (durationSec * 1000) / bins;
+  const counts = new Array(bins).fill(0) as number[];
+  for (const seg of segments) {
+    const words = tokenize(seg.text).length;
+    // A segment's timestamp marks when it finalized — attribute its words there.
+    const bin = Math.min(bins - 1, Math.floor(seg.t / binMs));
+    counts[bin] += words;
+  }
+  const perMinute = 60_000 / binMs;
+  const raw = counts.map((c) => c * perMinute);
+  // Light 3-point smoothing: recognition finalizes in bursts, delivery doesn't.
+  return raw.map((v, i) => {
+    const window = [raw[i - 1], v, raw[i + 1]].filter((x): x is number => x !== undefined);
+    return Math.round(window.reduce((a, b) => a + b, 0) / window.length);
+  });
+}
+
+/** Longest stretch of speech without a detected pause, in whole seconds. */
+export function cleanSpeechSeconds(pauses: PauseEvent[], durationSec: number): number {
+  const cuts = [...pauses].sort((a, b) => a.atMs - b.atMs);
+  let longest = 0;
+  let cursor = 0;
+  for (const p of cuts) {
+    longest = Math.max(longest, p.atMs - cursor);
+    cursor = p.atMs + p.durationMs;
+  }
+  longest = Math.max(longest, durationSec * 1000 - cursor);
+  return Math.max(0, Math.round(longest / 1000));
+}
+
 export function countRepetitions(text: string) {
   const words = tokenize(text);
   let count = 0;
@@ -93,7 +173,7 @@ export function countRepetitions(text: string) {
   return { count, examples };
 }
 
-const PACE_BAND: Record<Lang, [number, number]> = {
+export const PACE_BAND: Record<Lang, [number, number]> = {
   en: [115, 165],
   de: [105, 155],
 };
@@ -142,6 +222,7 @@ export function computeMetrics(input: {
 
   const fillers = countFillers(segments, lang);
   const perMin = +(fillers.total / minutes).toFixed(1);
+  const hedges = countHedges(segments, lang);
   const reps = countRepetitions(transcript);
   const repsPer100 = wordCount > 0 ? (reps.count / wordCount) * 100 : 0;
 
@@ -163,12 +244,14 @@ export function computeMetrics(input: {
       count: pauses.length,
       longestMs: pauses.reduce((m, p) => Math.max(m, p.durationMs), 0),
     },
+    cleanSpeechSec: cleanSpeechSeconds(pauses, durationSec),
     vocab: {
       unique,
       ttr: wordCount > 0 ? +(unique / wordCount).toFixed(2) : 0,
       avgWordLen,
     },
     volume,
+    hedges: { total: hedges.total, perMin: +(hedges.total / minutes).toFixed(1), counts: hedges.counts },
     paceScore: wordCount > 0 ? paceScore(wpm, lang) : 0,
     fillerScore: wordCount > 0 ? fillerScore(perMin) : 0,
     fluencyScore: wordCount > 0 ? fluencyScore(repsPer100) : 0,
