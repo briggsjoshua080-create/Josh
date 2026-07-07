@@ -52,15 +52,18 @@ const ONE_LINERS = {
   properties: Object.fromEntries(METRIC_KEYS.map((k) => [k, { type: "string" }])),
 } as const;
 
-const WORD_COUNT = {
-  type: "array",
-  items: {
-    type: "object",
-    additionalProperties: false,
-    required: ["word", "count"],
-    properties: { word: { type: "string" }, count: { type: "integer" } },
-  },
-} as const;
+/** Array of { <a>: string, <b>: string } pairs — the shape of every list section. */
+function pairList(a: string, b: string) {
+  return {
+    type: "array",
+    items: {
+      type: "object",
+      additionalProperties: false,
+      required: [a, b],
+      properties: { [a]: { type: "string" }, [b]: { type: "string" } },
+    },
+  } as const;
+}
 
 const REPORT_SCHEMA = {
   type: "object",
@@ -68,10 +71,11 @@ const REPORT_SCHEMA = {
   required: [
     "scores",
     "oneLiners",
-    "strongestLine",
+    "whatWorked",
+    "strongWords",
+    "improvements",
+    "stylisticDevices",
     "tighten",
-    "powerWords",
-    "weakWords",
     "hardToCatch",
     "cleanSpeechSeconds",
     "articulation",
@@ -82,20 +86,16 @@ const REPORT_SCHEMA = {
   properties: {
     scores: SCORES,
     oneLiners: ONE_LINERS,
-    strongestLine: {
-      type: "object",
-      additionalProperties: false,
-      required: ["quote", "why"],
-      properties: { quote: { type: "string" }, why: { type: "string" } },
-    },
+    whatWorked: pairList("point", "detail"),
+    strongWords: pairList("word", "note"),
+    improvements: pairList("issue", "action"),
+    stylisticDevices: pairList("device", "note"),
     tighten: {
       type: "object",
       additionalProperties: false,
       required: ["quote", "rewrite"],
       properties: { quote: { type: "string" }, rewrite: { type: "string" } },
     },
-    powerWords: WORD_COUNT,
-    weakWords: WORD_COUNT,
     hardToCatch: { type: "array", items: { type: "string" } },
     cleanSpeechSeconds: { type: "integer" },
     articulation: { type: "integer" },
@@ -125,9 +125,11 @@ Rules:
   • "conciseness": economy — no rambling, no redundant restatement, every sentence earns its place.
   • "engagement": rhetorical devices actually used (rule of three, contrast, rhetorical questions, anaphora, metaphor), vividness, story.
 - "oneLiners": for each metric, EXACTLY ONE coach sentence — a specific observation or an imperative move for next time, ideally quoting their words. One sentence, never two.
-- "strongestLine": their single best verbatim sentence, and one sentence on why it works.
+- "whatWorked": 2–4 things the speaker genuinely did well. Each item: "point" = the strength in a short phrase, "detail" = one sentence of supporting evidence, quoting their words where possible. Never pad with empty praise — fewer honest items beat filler.
+- "strongWords": 4–6 genuinely impactful words or short phrases they ACTUALLY used (verbatim). Each item: "word" = the word/phrase, "note" = one brief note on where or how it worked well. Fewer (or empty) if the speech truly had none.
+- "improvements": EXACTLY 3 items, ranked most impactful first. Each item: "issue" = one short sentence naming the problem, "action" = one concrete, actionable step to fix it next time. Specific to THIS speech, not generic advice.
+- "stylisticDevices": rhetorical/stylistic techniques found in the transcript (repetition, rule of three, contrast, metaphor, rhetorical question, anaphora, deliberate pauses/pacing, …). Each item: "device" = the technique name, "note" = one sentence on the effect it had or how to use it more deliberately. If none were used, return 1–2 devices that would suit this speech, with the note framed as how to add it. At most 4 items.
 - "tighten": their weakest or most rambling verbatim sentence, and a one-line rewrite a stronger speaker would say. If the speech is genuinely clean, pick the flattest line and sharpen it.
-- "powerWords": up to 6 genuinely strong words/short phrases they used, with counts. "weakWords": up to 6 weak, vague, or overused words with counts. Empty arrays if none.
 - "hardToCatch": words the recognition likely garbled or that would be hard to catch when spoken (proxy for articulation trouble). Empty array if none.
 - "articulation": 0–100 — how cleanly words were formed, judging from transcription quality and word choice.
 - "cleanSpeechSeconds": your estimate of the longest unbroken, filler-free stretch, in seconds, from the metrics.
@@ -153,9 +155,11 @@ Regeln:
   • "conciseness": Ökonomie — kein Abschweifen, keine redundanten Wiederholungen, jeder Satz verdient seinen Platz.
   • "engagement": Tatsächlich eingesetzte Stilmittel (Dreierfigur, Kontrast, rhetorische Fragen, Anapher, Metapher), Bildhaftigkeit, Erzählung.
 - "oneLiners": Pro Metrik GENAU EIN Coach-Satz — eine konkrete Beobachtung oder ein imperativer Kniff fürs nächste Mal, idealerweise mit wörtlichem Zitat. Ein Satz, nie zwei.
-- "strongestLine": ihr bester wörtlicher Satz plus ein Satz, warum er funktioniert.
+- "whatWorked": 2–4 Dinge, die wirklich gut gelungen sind. Pro Eintrag: "point" = die Stärke als kurze Wendung, "detail" = ein Satz Beleg, möglichst mit wörtlichem Zitat. Kein Füll-Lob — lieber weniger ehrliche Punkte als Ausschmückung.
+- "strongWords": 4–6 wirklich wirkungsvolle Wörter oder kurze Wendungen, die TATSÄCHLICH gesagt wurden (wörtlich). Pro Eintrag: "word" = das Wort/die Wendung, "note" = eine kurze Notiz, wo oder wie es gut gewirkt hat. Weniger (oder leer), wenn die Rede wirklich keine hatte.
+- "improvements": GENAU 3 Einträge, nach Wirkung sortiert — das Wichtigste zuerst. Pro Eintrag: "issue" = ein kurzer Satz, der das Problem benennt, "action" = ein konkreter, umsetzbarer Schritt fürs nächste Mal. Spezifisch für DIESE Rede, keine Allgemeinplätze.
+- "stylisticDevices": im Transkript gefundene rhetorische Stilmittel (Wiederholung, Dreierfigur, Kontrast, Metapher, rhetorische Frage, Anapher, bewusste Pausen/Tempo, …). Pro Eintrag: "device" = Name des Stilmittels, "note" = ein Satz zur Wirkung oder dazu, wie es gezielter eingesetzt wird. Wurden keine verwendet, gib 1–2 passende Stilmittel zurück, mit der Notiz, wie man sie einbaut. Höchstens 4 Einträge.
 - "tighten": ihr schwächster oder ausschweifendster wörtlicher Satz plus eine einzeilige Neuformulierung, wie ein starker Redner ihn sagen würde. Ist die Rede wirklich sauber, nimm die flachste Zeile und schärfe sie.
-- "powerWords": bis zu 6 wirklich starke Wörter/kurze Wendungen mit Zählung. "weakWords": bis zu 6 schwache, vage oder überstrapazierte Wörter mit Zählung. Leere Arrays, wenn nichts auffällt.
 - "hardToCatch": Wörter, die die Erkennung wahrscheinlich verstümmelt hat oder die gesprochen schwer zu verstehen wären (Näherung für Artikulationsprobleme). Leeres Array, wenn keine.
 - "articulation": 0–100 — wie sauber die Wörter geformt wurden, beurteilt anhand der Transkriptqualität und Wortwahl.
 - "cleanSpeechSeconds": deine Schätzung der längsten ununterbrochenen, füllwortfreien Passage in Sekunden, aus den Metriken.
