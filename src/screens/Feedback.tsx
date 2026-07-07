@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
-import { db, getSession } from "@/lib/db";
-import { requestCoaching, offlineFeedback, deliveryCoaching, CoachUnavailableError } from "@/lib/feedback";
-import { blendScores, type Session } from "@/lib/types";
-import { ProgressRing } from "@/components/ProgressRing";
+import { db, getSession, getProgressState, recomputeProgress } from "@/lib/db";
+import { requestReport, deliveryCoaching, wordOfDayUsed, CoachUnavailableError } from "@/lib/feedback";
+import { METRIC_KEYS, type EightScores, type MetricKey, type Session } from "@/lib/types";
+import { computeEight, overallFromEight, xpForScore, levelForXp, WORD_OF_DAY_BONUS, type LevelState } from "@/lib/progression";
+import { METRIC_META, CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
+import { PACE_BAND, wpmSeries } from "@/lib/metrics";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { CountUp } from "@/components/CountUp";
+import { Meter } from "@/components/Meter";
+import { Sparkline } from "@/components/Sparkline";
 
 function gradeFor(score: number): string {
   if (score >= 90) return "A";
@@ -17,24 +22,26 @@ function gradeFor(score: number): string {
   return "F";
 }
 
-interface HeadlineRow {
-  key: string;
-  icon: string;
-  label: string;
-  score: number | null;
-  note?: string;
-  improve?: string;
-  unmeasured?: boolean;
+/** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
+const PACE_DOMAIN: [number, number] = [60, 220];
+
+type Phase = "loading" | "ready" | "offline";
+
+interface Earned {
+  xp: number;
+  wordBonus: boolean;
+  levelUp: LevelState | null;
 }
 
 export function Feedback() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { id } = useParams();
   const [params] = useSearchParams();
   const fresh = params.get("fresh") === "1";
 
   const [session, setSession] = useState<Session | null>(null);
-  const [coaching, setCoaching] = useState(false);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [earned, setEarned] = useState<Earned | null>(null);
   const inFlight = useRef(false);
 
   useEffect(() => {
@@ -42,18 +49,18 @@ export function Feedback() {
       const s = await getSession(Number(id));
       if (!s) return;
       setSession(s);
-      if (!s.ai) await fetchCoaching(s);
+      if (s.report) setPhase("ready");
+      else await fetchReport(s);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function fetchCoaching(s: Session) {
+  async function fetchReport(s: Session) {
     if (inFlight.current) return;
     inFlight.current = true;
-    setCoaching(true);
-    let ai;
+    setPhase("loading");
     try {
-      ai = await requestCoaching({
+      const report = await requestReport({
         lang: s.lang,
         promptTitle: s.promptTitle,
         promptText: s.promptText,
@@ -62,68 +69,112 @@ export function Feedback() {
         wordOfDay: s.wordOfDay,
         metrics: s.metrics,
       });
+
+      const scores = computeEight(s.metrics, report);
+      const overallScore = overallFromEight(scores)!;
+      const wodUsed =
+        s.progress?.wordOfDayUsed ?? (s.wordOfDay ? wordOfDayUsed(s.transcript, s.wordOfDay) : false);
+      const xpEarned = xpForScore(overallScore) + (wodUsed ? WORD_OF_DAY_BONUS : 0);
+      const wasPending = s.progress?.xpPending ?? true;
+
+      const xpBefore = (await getProgressState()).cumulativeXp;
+      const progress = {
+        scores,
+        overallScore,
+        xpEarned,
+        wordOfDayUsed: wodUsed,
+        wpm: s.metrics.wpm,
+        xpPending: false,
+      };
+      await db.sessions.update(s.id!, { report, progress });
+      const after = await recomputeProgress();
+
+      if (wasPending) {
+        const levelNow = levelForXp(after.cumulativeXp);
+        setEarned({
+          xp: xpEarned,
+          wordBonus: wodUsed,
+          levelUp: levelNow.level > levelForXp(xpBefore).level ? levelNow : null,
+        });
+      }
+      setSession({ ...s, report, progress });
+      setPhase("ready");
     } catch (err) {
       if (!(err instanceof CoachUnavailableError)) console.error(err);
-      ai = offlineFeedback({ metrics: s.metrics, lang: s.lang, transcript: s.transcript, wordOfDay: s.wordOfDay });
+      setPhase("offline");
     }
-    const scores = blendScores(s.metrics, ai);
-    await db.sessions.update(s.id!, { ai, scores });
-    setSession({ ...s, ai, scores });
-    setCoaching(false);
     inFlight.current = false;
   }
 
-  if (!session) return null;
+  if (!session) return <FeedbackSkeleton />;
 
-  const { metrics: m, ai, scores } = session;
-  const offline = ai?.source === "offline";
+  const { metrics: m, report } = session;
+  const eight: EightScores = session.progress?.xpPending === false && session.progress
+    ? session.progress.scores
+    : computeEight(m, report ?? null);
+  const overall = session.progress?.overallScore ?? overallFromEight(eight);
+  const offline = phase === "offline" && !report;
   const delivery = deliveryCoaching(m, session.lang);
-  const aiOnline = ai && ai.source !== "offline";
 
-  const headlineRows: HeadlineRow[] = [
-    {
-      key: "pace",
-      icon: "gauge",
-      label: t("scorePace"),
-      score: scores.pace,
-      note: ai?.paceNote || undefined,
-      improve: delivery.pace.improve,
-    },
-    scores.volume !== null
-      ? {
-          key: "volume",
-          icon: "volume",
-          label: t("scoreVolume"),
-          score: scores.volume,
-          note: delivery.volume?.note,
-          improve: delivery.volume?.improve,
-        }
-      : { key: "volume", icon: "volume", label: t("scoreVolume"), score: null, unmeasured: true },
-    ...(aiOnline
-      ? ([
-          ["eloquence", "word", t("scoreEloquence"), ai.eloquence],
-          ["structure", "layers", t("scoreStructure"), ai.structure],
-          ["stylistic", "sparkle", t("scoreStyle"), ai.stylistic],
-          ["comprehensiveness", "target", t("scoreComprehensiveness"), ai.comprehensiveness],
-          ["logic", "branch", t("scoreLogic"), ai.logic],
-        ] as const).map(([key, icon, label, cat]) => ({
-          key,
-          icon,
-          label,
-          score: cat.score,
-          note: cat.note,
-          improve: cat.improve,
-        }))
-      : []),
-  ];
+  /** The single coach sentence per metric row. */
+  const oneLiner = (key: MetricKey): string | undefined => {
+    if (report) return report.oneLiners[key] || undefined;
+    if (key === "pace") return delivery.pace.improve;
+    if (key === "fluency") return delivery.fluency.improve;
+    return undefined;
+  };
+
+  const band = PACE_BAND[session.lang];
+  const series = wpmSeries(session.segments, m.durationSec);
+  const wpmValues = series.length >= 2 ? series : (report?.wpmOverTime ?? []).map((v) => Math.round(v));
+  const cleanSec = m.cleanSpeechSec ?? report?.cleanSpeechSeconds ?? 0;
+  const paceFrac = (wpm: number) => (wpm - PACE_DOMAIN[0]) / (PACE_DOMAIN[1] - PACE_DOMAIN[0]);
 
   return (
     <div className="pt-2 lg:pt-0">
       <p className="text-sm text-muted">{session.promptTitle}</p>
 
-      {/* Score reveal */}
-      <div className="mt-6 flex flex-col items-center">
-        <ProgressRing value={scores.overall} label={t("overall")} reveal={fresh} />
+      {/* ——— Hero: overall score, grade, XP moment ——— */}
+      <div className="mt-6 flex flex-col items-center text-center">
+        {phase === "loading" ? (
+          <>
+            <div className="skeleton h-24 w-40" />
+            <p className="mt-4 text-sm text-muted">{t("analyzing")}</p>
+          </>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-3">
+              <span className="lectern tnum text-[4.5rem] leading-none font-semibold text-ink">
+                {overall !== null ? <CountUp value={overall} active={fresh || earned !== null} /> : "—"}
+              </span>
+              {overall !== null && (
+                <span className="lectern text-2xl text-accent">{gradeFor(overall)}</span>
+              )}
+            </div>
+
+            {/* XP chips */}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {session.progress?.xpPending === false && session.progress.xpEarned > 0 && (
+                <span className="tnum rounded-full bg-accent/12 px-3.5 py-1 text-sm font-semibold text-accent">
+                  {earned ? <CountUp value={earned.xp} prefix="+" suffix=" XP" delay={0.4} /> : `+${session.progress.xpEarned} XP`}
+                </span>
+              )}
+              {session.progress?.wordOfDayUsed && session.progress.xpPending === false && (
+                <span className="rounded-full border border-line px-3 py-1 text-xs text-accent-dim">
+                  {t("wordBonusChip")}
+                </span>
+              )}
+              {(offline || session.progress?.xpPending !== false) && (
+                <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
+                  {t("xpPendingChip")}
+                </span>
+              )}
+            </div>
+
+            {earned?.levelUp && <LevelUpFlourish state={earned.levelUp} lang={lang} title={t("levelUpTitle")} />}
+          </>
+        )}
+
         {/* Delivery stats */}
         <div className="tnum mt-6 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted">
           <span>
@@ -140,156 +191,167 @@ export function Feedback() {
           <span>
             <b className="font-semibold text-ink">{m.fillers.total}</b> {t("fillersDetected")}
           </span>
-          <span>
-            <b className="font-semibold text-ink">{m.pauses.count}</b> {t("pausesUnit")}
-          </span>
         </div>
       </div>
 
-      {/* The seven dimensions */}
-      <section className="mt-8">
-        <h2 className="text-sm font-medium text-accent">{t("categoryScores")}</h2>
-        <div className="mt-3 flex flex-col gap-3">
-          {headlineRows.map((r, i) => (
-            <CategoryCard
-              key={r.key}
-              icon={r.icon}
-              label={r.label}
-              score={r.score}
-              note={r.note}
-              improve={r.improve}
-              unmeasured={r.unmeasured}
-              unmeasuredText={t("volumeUnmeasured")}
-              delay={0.05 * i}
-            />
-          ))}
-        </div>
-      </section>
-
-      {coaching && (
-        <div className="mt-8 flex items-center gap-3 rounded-(--radius-card) bg-surface p-5 text-muted">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-surface-2 border-t-accent" />
-          {t("analyzing")}
+      {/* Offline / failed analysis */}
+      {offline && (
+        <div className="mt-8 flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
+          <p className="text-sm text-muted">
+            {t("coachFailed")} {t("xpPendingNote")}
+          </p>
+          <Button variant="gold" onClick={() => fetchReport(session)}>
+            <Icon name="refresh" size={16} />
+            {t("retryCoach")}
+          </Button>
         </div>
       )}
 
-      {ai && !coaching && (
+      {/* ——— The eight metrics ——— */}
+      <section className="mt-10">
+        <h2 className="label-caps">{t("metricsSection")}</h2>
+        <div className="mt-3 flex flex-col gap-2.5">
+          {phase === "loading"
+            ? METRIC_KEYS.map((key) => <div key={key} className="skeleton h-[76px]" />)
+            : METRIC_KEYS.map((key, i) => (
+                <MetricRow
+                  key={key}
+                  metric={key}
+                  label={t(METRIC_META[key].nameKey)}
+                  score={eight[key]}
+                  sentence={oneLiner(key)}
+                  delay={0.05 * i}
+                />
+              ))}
+        </div>
+        {offline && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
+      </section>
+
+      {/* ——— Scroll-down detail ——— */}
+      {report && phase === "ready" && (
         <>
-          {offline && (
-            <div className="mt-8 flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
-              <p className="text-sm text-muted">{t("offlineCoach")}</p>
-              <Button variant="gold" onClick={() => fetchCoaching(session)}>
-                <Icon name="refresh" size={16} />
-                {t("retryCoach")}
-              </Button>
-            </div>
-          )}
-
-          {/* Verdict */}
-          {ai.summary && (
-            <section className="mt-10">
-              <h2 className="text-sm font-medium text-accent">{t("coachSummary")}</h2>
-              <p className="lectern mt-3 text-lg leading-relaxed text-ink">{ai.summary}</p>
-            </section>
-          )}
-
-          {/* What worked */}
-          {ai.strengths.length > 0 && (
-            <section className="mt-8 border-t hairline pt-6">
-              <h2 className="text-sm font-medium text-ok">{t("whatWorked")}</h2>
-              <ul className="mt-3 flex flex-col gap-2">
-                {ai.strengths.map((s, i) => (
-                  <li key={i} className="flex gap-2.5 text-base text-ink/90">
-                    <Icon name="check" size={18} className="mt-0.5 shrink-0 text-ok" />
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Say it better */}
-          {ai.phrasing.rewrites.length > 0 && (
-            <section className="mt-8 border-t hairline pt-6">
-              <h2 className="text-sm font-medium text-accent">{t("sayItBetter")}</h2>
-              <div className="mt-3 flex flex-col gap-5">
-                {ai.phrasing.rewrites.map((r, i) => (
-                  <div key={i}>
-                    <p className="text-sm text-muted">
-                      {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{r.original}”</span>
-                    </p>
-                    <p className="mt-1.5 text-sm text-muted">
-                      {t("betterVersion")}: <span className="quoted-phrase text-accent">“{r.better}”</span>
-                    </p>
-                    <p className="mt-1.5 text-sm text-faint">{r.why}</p>
+          {(report.powerWords.length > 0 || report.weakWords.length > 0) && (
+            <section className="mt-10 border-t hairline pt-6">
+              {report.powerWords.length > 0 && (
+                <>
+                  <h2 className="label-caps">{t("powerWordsTitle")}</h2>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {report.powerWords.map((w) => (
+                      <WordChip key={w.word} word={w.word} count={w.count} strong />
+                    ))}
                   </div>
-                ))}
+                </>
+              )}
+              {report.weakWords.length > 0 && (
+                <>
+                  <h2 className={`label-caps ${report.powerWords.length > 0 ? "mt-6" : ""}`}>{t("weakWordsTitle")}</h2>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {report.weakWords.map((w) => (
+                      <WordChip key={w.word} word={w.word} count={w.count} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {report.strongestLine.quote && (
+            <section className="mt-10 border-t hairline pt-6">
+              <h2 className="label-caps">{t("strongestLineTitle")}</h2>
+              <blockquote className="quoted-phrase mt-3 text-lg leading-relaxed text-ink">
+                “{report.strongestLine.quote}”
+              </blockquote>
+              <p className="mt-2 text-sm text-muted">{report.strongestLine.why}</p>
+            </section>
+          )}
+
+          {report.tighten.quote && (
+            <section className="mt-10 border-t hairline pt-6">
+              <h2 className="label-caps">{t("tightenTitle")}</h2>
+              <p className="mt-3 text-sm text-muted">
+                {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                {t("tightenRewrite")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
+              </p>
+            </section>
+          )}
+
+          <section className="mt-10 border-t hairline pt-6">
+            <h2 className="label-caps">{t("vocalDeliveryTitle")}</h2>
+            {wpmValues.length >= 2 && (
+              <div className="mt-4">
+                <Sparkline
+                  values={wpmValues}
+                  band={band}
+                  bandLabel={t("easyBandLabel")}
+                  unit={t("wpmUnit")}
+                  ariaLabel={`${t("vocalDeliveryTitle")}: ${m.wpm} ${t("wpmUnit")}`}
+                />
               </div>
-            </section>
-          )}
-
-          {/* Delivery detail */}
-          <section className="mt-8 border-t hairline pt-6">
-            <h2 className="text-sm font-medium text-muted">{t("deliveryDetail")}</h2>
-            <dl className="mt-3 flex flex-col gap-4">
-              {[
-                [t("scoreFillers"), ai.fillerNote, delivery.fillers.improve],
-                [t("scoreFluency"), ai.fluencyNote, delivery.fluency.improve],
-                [t("scorePhrasing"), ai.phrasing.note, ai.phrasing.improve],
-                [t("scoreProfessionalism"), ai.professionalism.note, ai.professionalism.improve],
-              ]
-                .filter(([, note]) => note)
-                .map(([label, note, improve]) => (
-                  <div key={label}>
-                    <dt className="text-sm font-medium text-ink">{label}</dt>
-                    <dd className="mt-1 text-sm leading-relaxed text-ink/85">{note}</dd>
-                    {improve && (
-                      <dd className="mt-1 flex gap-1.5 text-sm text-accent">
-                        <Icon name="arrowRight" size={15} className="mt-0.5 shrink-0" />
-                        <span>{improve}</span>
-                      </dd>
-                    )}
-                  </div>
-                ))}
-            </dl>
-            {ai.professionalism.flags.length > 0 && (
-              <ul className="mt-4 flex flex-col gap-1.5">
-                {ai.professionalism.flags.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-warn">
-                    <Icon name="shield" size={16} className="mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
             )}
+            <div className="mt-5 flex flex-col gap-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted">{t("articulationLabel")}</span>
+                <span className="lectern tnum text-lg text-ink">
+                  {report.articulation}
+                  <span className="text-sm text-faint">/100</span>
+                </span>
+              </div>
+              {cleanSec > 0 && (
+                <p className="text-sm text-muted">{t("cleanSpeechLabel", { n: cleanSec })}</p>
+              )}
+              {report.hardToCatch.length > 0 && (
+                <div>
+                  <span className="text-sm text-muted">{t("hardToCatchLabel")}</span>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {report.hardToCatch.map((w) => (
+                      <WordChip key={w} word={w} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
 
-          {/* Next steps */}
-          {ai.tips.length > 0 && (
-            <section className="mt-8 border-t hairline pt-6">
-              <h2 className="text-sm font-medium text-accent">{t("nextSteps")}</h2>
-              <ol className="mt-3 flex flex-col gap-4">
-                {ai.tips.map((tip, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="tnum mt-0.5 text-sm font-semibold text-accent-dim">{i + 1}</span>
-                    <div>
-                      <p className="font-medium text-ink">{tip.title}</p>
-                      <p className="mt-0.5 text-sm text-muted">{tip.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+          {eight.confidence !== null && (
+            <section className="mt-10 border-t hairline pt-6">
+              <div className="flex items-baseline justify-between">
+                <h2 className="label-caps">{t("confidenceTitle")}</h2>
+                <span className="text-sm font-medium text-accent-dim">
+                  {t(CONFIDENCE_LABEL_KEY[report.confidenceLabel] ?? "confLabelSteady")}
+                </span>
+              </div>
+              <div className="mt-4">
+                <Meter
+                  value={eight.confidence / 100}
+                  leftLabel={t("meterTentative")}
+                  rightLabel={t("meterCommanding")}
+                  ariaLabel={`${t("confidenceTitle")}: ${eight.confidence}/100`}
+                />
+              </div>
+              {report.confidenceNote && <p className="mt-3 text-sm text-muted">{report.confidenceNote}</p>}
             </section>
           )}
 
-          {/* Word of day */}
-          {session.wordOfDay && ai.wordOfDay && (
-            <p className={`mt-8 flex items-center gap-2 text-sm ${ai.wordOfDay.used ? "text-ok" : "text-muted"}`}>
-              <Icon name={ai.wordOfDay.used ? "check" : "x"} size={16} />
-              {ai.wordOfDay.used ? t("wordUsedYes") : t("wordUsedNo")}
-              {ai.wordOfDay.comment && <span className="text-muted">— {ai.wordOfDay.comment}</span>}
-            </p>
-          )}
+          <section className="mt-10 border-t hairline pt-6">
+            <div className="flex items-baseline justify-between">
+              <h2 className="label-caps">{t("paceSectionTitle")}</h2>
+              <span className="tnum text-sm font-medium text-ink">
+                {m.wpm} {t("wpmUnit")}
+              </span>
+            </div>
+            <div className="mt-4">
+              <Meter
+                value={paceFrac(m.wpm)}
+                band={[paceFrac(band[0]), paceFrac(band[1])]}
+                leftLabel={t("meterSlow")}
+                rightLabel={t("meterFast")}
+                ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
+              />
+            </div>
+            {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
+          </section>
         </>
       )}
 
@@ -302,6 +364,12 @@ export function Feedback() {
       </details>
 
       <div className="mt-10 flex flex-col gap-3 pb-6">
+        <Link to="/progress">
+          <Button variant="gold" className="w-full">
+            {t("viewStats")}
+            <Icon name="arrowRight" size={16} />
+          </Button>
+        </Link>
         <Link to="/">
           <Button variant="ghost" className="w-full">
             {t("backToToday")}
@@ -317,71 +385,92 @@ export function Feedback() {
   );
 }
 
-function CategoryCard({
-  icon,
+function LevelUpFlourish({ state, lang, title }: { state: LevelState; lang: "en" | "de"; title: string }) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      className="mt-4 flex items-center gap-3 rounded-(--radius-card) border border-accent/40 bg-accent/8 px-5 py-3"
+      initial={reduced ? false : { opacity: 0, scale: 0.9, y: 8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 180, damping: 16, delay: 0.9 }}
+    >
+      <Icon name="sparkle" size={20} className="text-accent" />
+      <span className="text-sm text-muted">{title}</span>
+      <span className="lectern text-lg text-accent">
+        {state.level} — {state.rank.name[lang]}
+      </span>
+    </motion.div>
+  );
+}
+
+function MetricRow({
+  metric,
   label,
   score,
-  note,
-  improve,
-  unmeasured,
-  unmeasuredText,
+  sentence,
   delay,
 }: {
-  icon: string;
+  metric: MetricKey;
   label: string;
   score: number | null;
-  note?: string;
-  improve?: string;
-  unmeasured?: boolean;
-  unmeasuredText: string;
+  sentence?: string;
   delay: number;
 }) {
   const reduced = useReducedMotion();
-  const barColor =
-    score === null
-      ? "var(--color-surface-2)"
-      : score >= 85
-        ? "var(--color-accent)"
-        : score >= 60
-          ? "var(--color-accent-dim)"
-          : "var(--color-bad)";
+  const meta = METRIC_META[metric];
 
   return (
     <div className="rounded-(--radius-card) bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <Icon name={icon} size={18} className="shrink-0 text-accent" />
-          <span className="lectern text-base text-ink">{label}</span>
+          <Icon name={meta.icon} size={17} className="shrink-0 text-muted" />
+          <span className="text-base font-medium text-ink">{label}</span>
         </div>
-        {score !== null && (
-          <span className="tnum flex items-baseline gap-1.5 whitespace-nowrap text-sm text-muted">
-            <b className="font-semibold text-ink">{score}</b>
-            /100
-            <span className="font-medium text-accent">{gradeFor(score)}</span>
-          </span>
-        )}
+        <span className="tnum whitespace-nowrap text-sm text-faint">
+          <b className="lectern text-lg font-semibold text-ink">{score ?? "—"}</b>
+          {score !== null && "/100"}
+        </span>
       </div>
-
-      {score !== null && (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-surface-2">
+        {score !== null && (
           <motion.div
             className="h-full rounded-full"
-            style={{ background: barColor }}
+            style={{ background: meta.tint }}
             initial={reduced ? { width: `${score}%` } : { width: 0 }}
             animate={{ width: `${score}%` }}
-            transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ type: "spring", stiffness: 90, damping: 20, delay }}
           />
-        </div>
-      )}
+        )}
+      </div>
+      {sentence && <p className="mt-2.5 text-sm leading-relaxed text-ink/85">{sentence}</p>}
+    </div>
+  );
+}
 
-      {unmeasured && <p className="mt-2 text-sm leading-relaxed text-muted">{unmeasuredText}</p>}
-      {note && <p className="mt-2.5 text-sm leading-relaxed text-ink/85">{note}</p>}
-      {improve && (
-        <p className="mt-1.5 flex gap-1.5 text-sm text-accent">
-          <Icon name="arrowRight" size={15} className="mt-0.5 shrink-0" />
-          <span>{improve}</span>
-        </p>
-      )}
+function WordChip({ word, count, strong }: { word: string; count?: number; strong?: boolean }) {
+  return (
+    <span
+      className={`rounded-full border border-line px-3 py-1 text-sm ${strong ? "text-accent-dim" : "text-muted"}`}
+    >
+      {word}
+      {count !== undefined && count > 1 && <span className="tnum text-xs text-faint"> ×{count}</span>}
+    </span>
+  );
+}
+
+function FeedbackSkeleton() {
+  return (
+    <div className="pt-2 lg:pt-0">
+      <div className="skeleton h-4 w-40" />
+      <div className="mx-auto mt-8 flex flex-col items-center gap-4">
+        <div className="skeleton h-24 w-40" />
+        <div className="skeleton h-6 w-56" />
+      </div>
+      <div className="mt-10 flex flex-col gap-2.5">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="skeleton h-[76px]" />
+        ))}
+      </div>
     </div>
   );
 }

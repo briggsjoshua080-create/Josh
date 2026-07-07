@@ -87,6 +87,26 @@ const PATHS: Record<string, React.ReactNode> = {
   ),
   volume: <path d="M4 9v6h3l5 4V5L7 9zM16 9a3 3 0 0 1 0 6M18.5 6.5a7 7 0 0 1 0 11" />,
   layers: <path d="M12 3l9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5" />,
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  wave: <path d="M2 12c2.5 0 2.5-5 5-5s2.5 8 5 8 2.5-8 5-8 2.5 5 5 5" />,
+  scissors: (
+    <>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <path d="M8.2 7.6L20 19M8.2 16.4L20 5M12 12h.01" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8h.01" />
+    </>
+  ),
   branch: (
     <>
       <circle cx="6" cy="5" r="2" />

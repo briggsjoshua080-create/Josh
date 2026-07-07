@@ -59,7 +59,7 @@ export function Library() {
     const map = new Map<string, number>();
     for (const s of sessions ?? []) {
       if (s.kind !== "scenario") continue;
-      map.set(s.refId, Math.max(map.get(s.refId) ?? 0, s.scores.overall));
+      map.set(s.refId, Math.max(map.get(s.refId) ?? 0, s.progress?.overallScore ?? s.scores.overall));
     }
     return map;
   }, [sessions]);

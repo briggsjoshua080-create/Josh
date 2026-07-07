@@ -144,6 +144,94 @@ export const strings = {
   backToToday: { en: "Back to today", de: "Zurück zu Heute" },
   anotherScenario: { en: "Another scenario", de: "Noch ein Szenario" },
 
+  // The eight metrics (progression system)
+  metricClarity: { en: "Clarity", de: "Klarheit" },
+  metricConfidence: { en: "Confidence", de: "Souveränität" },
+  metricStructure: { en: "Structure", de: "Struktur" },
+  metricPace: { en: "Pace", de: "Tempo" },
+  metricFluency: { en: "Fluency", de: "Redefluss" },
+  metricWordPower: { en: "Word Power", de: "Wortkraft" },
+  metricConciseness: { en: "Conciseness", de: "Prägnanz" },
+  metricEngagement: { en: "Engagement", de: "Wirkung" },
+  expClarity: {
+    en: "How easily a listener follows your ideas.",
+    de: "Wie mühelos ein Zuhörer deinen Gedanken folgt.",
+  },
+  expConfidence: {
+    en: "How assured you sound — hedge words lower it.",
+    de: "Wie souverän du klingst — Relativierungen senken den Wert.",
+  },
+  expStructure: {
+    en: "Opening, body, close — with clear transitions.",
+    de: "Einstieg, Hauptteil, Schluss — mit klaren Übergängen.",
+  },
+  expPace: {
+    en: "Words per minute against the easy-to-follow band.",
+    de: "Wörter pro Minute im gut folgbaren Bereich.",
+  },
+  expFluency: {
+    en: "Fillers, false starts, and repeated words.",
+    de: "Füllwörter, Fehlstarts und Wiederholungen.",
+  },
+  expWordPower: {
+    en: "Strong, vivid words over weak, vague ones.",
+    de: "Starke, bildhafte Wörter statt schwacher, vager.",
+  },
+  expConciseness: {
+    en: "Every sentence earns its place.",
+    de: "Jeder Satz verdient seinen Platz.",
+  },
+  expEngagement: {
+    en: "Rhetorical devices, vividness, story.",
+    de: "Stilmittel, Bildhaftigkeit, Erzählung.",
+  },
+
+  // Feedback (redesigned report)
+  metricsSection: { en: "The eight metrics", de: "Die acht Metriken" },
+  wordBonusChip: { en: "+20 word of the day", de: "+20 Wort des Tages" },
+  xpPendingChip: { en: "XP pending", de: "XP ausstehend" },
+  xpPendingNote: {
+    en: "XP is awarded once the full analysis completes.",
+    de: "XP gibt es, sobald die volle Analyse abgeschlossen ist.",
+  },
+  reconnectNote: {
+    en: "Reconnect for your full score.",
+    de: "Geh online für deine volle Bewertung.",
+  },
+  levelUpTitle: { en: "Level up", de: "Aufgestiegen" },
+  viewStats: { en: "View Your Stats", de: "Deine Statistik ansehen" },
+  powerWordsTitle: { en: "Power Words", de: "Starke Wörter" },
+  weakWordsTitle: { en: "Weak Words", de: "Schwache Wörter" },
+  strongestLineTitle: { en: "Your Strongest Line", de: "Deine stärkste Zeile" },
+  tightenTitle: { en: "Tighten This", de: "Straffe das" },
+  tightenRewrite: { en: "Tighter", de: "Straffer" },
+  vocalDeliveryTitle: { en: "Vocal Delivery", de: "Stimmlicher Vortrag" },
+  articulationLabel: { en: "Articulation", de: "Artikulation" },
+  hardToCatchLabel: { en: "Hard to catch", de: "Schwer zu verstehen" },
+  cleanSpeechLabel: {
+    en: "{n}s of clean, unbroken speech",
+    de: "{n}s sauberes Sprechen am Stück",
+  },
+  easyBandLabel: { en: "easy to follow", de: "gut folgbar" },
+  confidenceTitle: { en: "Confidence", de: "Souveränität" },
+  paceSectionTitle: { en: "Pace", de: "Tempo" },
+  meterTentative: { en: "Tentative", de: "Zögerlich" },
+  meterCommanding: { en: "Commanding", de: "Souverän" },
+  meterSlow: { en: "Slow", de: "Langsam" },
+  meterFast: { en: "Fast", de: "Schnell" },
+  confLabelTentative: { en: "Tentative", de: "Zögerlich" },
+  confLabelHesitant: { en: "Hesitant", de: "Unsicher" },
+  confLabelSteady: { en: "Steady", de: "Stabil" },
+  confLabelAssured: { en: "Assured", de: "Sicher" },
+  confLabelCommanding: { en: "Commanding", de: "Souverän" },
+
+  // Progress / progression
+  statsLabel: { en: "Stats", de: "Statistik" },
+  xpTotal: { en: "{n} XP total", de: "{n} XP gesamt" },
+  xpToNext: { en: "{n} XP to {rank}", de: "{n} XP bis {rank}" },
+  maxRank: { en: "Max rank", de: "Höchster Rang" },
+  levelWord: { en: "Level {n}", de: "Level {n}" },
+
   // Progress
   progressTitle: { en: "Your journey", de: "Deine Reise" },
   progressSub: {
