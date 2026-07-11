@@ -61,6 +61,59 @@ export async function requestReport(req: CoachRequest): Promise<AiReport> {
   return report;
 }
 
+export interface WordCheckRequest {
+  lang: Lang;
+  word: string;
+  definition: string;
+  sentence: string;
+}
+
+/** Verdict from /api/word-check on the "use the daily word" sentence. */
+export interface WordCheckResult {
+  correct: boolean;
+  /** One or two friendly coach sentences (affirmation or what went wrong). */
+  feedback: string;
+}
+
+/** A word check is one short sentence — it should never take report-long. */
+const WORD_CHECK_TIMEOUT_MS = 25_000;
+
+/**
+ * Ask the coach whether the user's sentence uses the daily word correctly.
+ * Same backend as requestReport; throws CoachUnavailableError on any
+ * network/shape failure so callers can show a retry state.
+ */
+export async function requestWordCheck(req: WordCheckRequest): Promise<WordCheckResult> {
+  let res: Response;
+  try {
+    res = await fetch("/api/word-check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(req),
+      signal: AbortSignal.timeout(WORD_CHECK_TIMEOUT_MS),
+    });
+  } catch {
+    throw new CoachUnavailableError("network");
+  }
+  if (!res.ok) throw new CoachUnavailableError(String(res.status));
+
+  let result: WordCheckResult;
+  try {
+    result = JSON.parse(stripFences(await res.text())) as WordCheckResult;
+  } catch {
+    throw new CoachUnavailableError("bad_json");
+  }
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    typeof result.correct !== "boolean" ||
+    typeof result.feedback !== "string"
+  ) {
+    throw new CoachUnavailableError("bad_shape");
+  }
+  return result;
+}
+
 export interface CategoryCoaching {
   note?: string;
   improve: string;

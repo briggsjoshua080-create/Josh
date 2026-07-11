@@ -168,6 +168,122 @@ Regeln:
 - Behandelt das Transkript ein anderes Thema als die Aufgabe, spiegle das in den One-Linern zu structure und clarity, ohne kleinlich zu sein.`,
 };
 
+/* ————— Daily-word usage check (Today screen "use it in a sentence" bonus) ————— */
+
+interface WordCheckRequest {
+  lang: "en" | "de";
+  word: string;
+  definition: string;
+  sentence: string;
+}
+
+const WORD_CHECK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["correct", "feedback"],
+  properties: {
+    correct: { type: "boolean" },
+    feedback: { type: "string" },
+  },
+} as const;
+
+const WORD_CHECK_SYSTEM: Record<"en" | "de", string> = {
+  en: `You are a friendly vocabulary coach inside a speech-training app. The user was shown a "word of the day" with its definition and asked to write ONE sentence using it. Judge whether the word (any reasonable inflection of it) is used correctly and appropriately in context: right meaning, sensible grammar, a sentence that would make sense to a listener.
+
+Respond with ONLY a single JSON object matching the required schema — no markdown fences, no commentary.
+
+Rules:
+- Respond in English.
+- "correct": true only if the word is genuinely used with its correct meaning in a coherent sentence. A sentence that merely mentions or defines the word ("X means…"), uses it with the wrong meaning, or is gibberish is NOT correct.
+- Be encouraging but honest — don't pass wrong usage to be nice.
+- "feedback": one or two friendly sentences. If correct, briefly affirm what made the usage work. If not, explain what went wrong and point toward a correct use WITHOUT writing the sentence for them.`,
+  de: `Du bist ein freundlicher Vokabel-Coach in einer Sprechtrainings-App. Die Person hat ein „Wort des Tages" mit Definition gesehen und sollte EINEN Satz damit schreiben. Beurteile, ob das Wort (in beliebiger sinnvoller Flexion) korrekt und passend im Kontext verwendet wird: richtige Bedeutung, sinnvolle Grammatik, ein Satz, der für Zuhörer Sinn ergibt.
+
+Antworte NUR mit einem einzigen JSON-Objekt nach dem geforderten Schema — keine Markdown-Zäune, kein Kommentar.
+
+Regeln:
+- Antworte auf Deutsch und duze die Person.
+- "correct": nur true, wenn das Wort wirklich in seiner korrekten Bedeutung in einem stimmigen Satz verwendet wird. Ein Satz, der das Wort nur erwähnt oder definiert („X bedeutet…"), es mit falscher Bedeutung nutzt oder unverständlich ist, zählt NICHT.
+- Sei ermutigend, aber ehrlich — winke falsche Verwendungen nicht aus Nettigkeit durch.
+- "feedback": ein bis zwei freundliche Sätze. Bei korrekter Verwendung: kurz benennen, was daran gut war. Sonst: erklären, was schiefging, und in Richtung einer korrekten Verwendung zeigen, OHNE den Satz vorzuschreiben.`,
+};
+
+function validateWordCheck(body: unknown): WordCheckRequest | null {
+  if (typeof body !== "object" || body === null) return null;
+  const b = body as Record<string, unknown>;
+  if (b.lang !== "en" && b.lang !== "de") return null;
+  if (typeof b.word !== "string" || b.word.trim().length === 0 || b.word.length > 80) return null;
+  if (typeof b.definition !== "string" || b.definition.length > 600) return null;
+  if (typeof b.sentence !== "string" || b.sentence.trim().length === 0 || b.sentence.length > 600) return null;
+  return b as unknown as WordCheckRequest;
+}
+
+/**
+ * Verify the user's sentence uses the daily word correctly. Same Claude
+ * integration and key as handleFeedback — a second, much smaller task on the
+ * existing backend, not a new one.
+ */
+export async function handleWordCheck(
+  bodyText: string,
+  env: Record<string, string | undefined>,
+): Promise<{ status: number; body: string }> {
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { status: 503, body: JSON.stringify({ error: "no_key" }) };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch {
+    return { status: 400, body: JSON.stringify({ error: "bad_json" }) };
+  }
+  const req = validateWordCheck(parsed);
+  if (!req) {
+    return { status: 400, body: JSON.stringify({ error: "bad_request" }) };
+  }
+
+  const userMessage = [
+    `WORD OF THE DAY: ${req.word}`,
+    `DEFINITION: ${req.definition}`,
+    `USER'S SENTENCE:\n${req.sentence}`,
+  ].join("\n\n");
+
+  const client = new Anthropic({ apiKey });
+  try {
+    const response = await client.messages.create({
+      model: env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
+      max_tokens: 1024,
+      thinking: { type: "adaptive" },
+      output_config: {
+        effort: "low",
+        format: { type: "json_schema", schema: WORD_CHECK_SCHEMA },
+      },
+      system: WORD_CHECK_SYSTEM[req.lang],
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    if (response.stop_reason === "refusal") {
+      return { status: 502, body: JSON.stringify({ error: "refused" }) };
+    }
+    const text = response.content.find((b) => b.type === "text");
+    if (!text || text.type !== "text") {
+      return { status: 502, body: JSON.stringify({ error: "empty" }) };
+    }
+    const clean = stripFences(text.text);
+    JSON.parse(clean);
+    return { status: 200, body: clean };
+  } catch (err) {
+    if (err instanceof Anthropic.RateLimitError) {
+      return { status: 429, body: JSON.stringify({ error: "rate_limited" }) };
+    }
+    if (err instanceof Anthropic.APIError) {
+      return { status: 502, body: JSON.stringify({ error: "upstream", detail: err.message }) };
+    }
+    return { status: 500, body: JSON.stringify({ error: "server_error" }) };
+  }
+}
+
 /** Remove accidental markdown code fences around a JSON payload. */
 export function stripFences(text: string): string {
   const trimmed = text.trim();

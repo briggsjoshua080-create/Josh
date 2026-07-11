@@ -196,7 +196,7 @@ export function Feedback() {
 
       {/* Offline / failed analysis */}
       {offline && (
-        <div className="mt-8 flex flex-col gap-3 rounded-(--radius-card) bg-surface p-5">
+        <div className="mt-8 flex flex-col gap-3 rounded-(--radius-card) border border-line bg-surface p-5">
           <p className="text-sm text-muted">
             {t("coachFailed")} {t("xpPendingNote")}
           </p>
@@ -232,7 +232,7 @@ export function Feedback() {
         <>
           {/* What worked — the speaker's confirmed strengths */}
           {(report.whatWorked?.length ?? 0) > 0 && (
-            <section className="mt-10 border-t hairline pt-6">
+            <section className="mt-6 rounded-(--radius-card) border border-line p-5">
               <h2 className="label-caps">{t("whatWorked")}</h2>
               <ul className="mt-3 flex flex-col gap-3">
                 {report.whatWorked!.map((w) => (
@@ -252,7 +252,7 @@ export function Feedback() {
 
           {/* Strong words the speaker actually used */}
           {(report.strongWords?.length ?? 0) > 0 && (
-            <section className="mt-10 border-t hairline pt-6">
+            <section className="mt-6 rounded-(--radius-card) border border-line p-5">
               <h2 className="label-caps">{t("strongWordsTitle")}</h2>
               <ul className="mt-3 flex flex-col gap-2.5">
                 {report.strongWords!.slice(0, 6).map((w) => (
@@ -267,7 +267,7 @@ export function Feedback() {
 
           {/* 3 things to improve — plain ranked list, no scores, no animation */}
           {(report.improvements?.length ?? 0) > 0 && (
-            <section className="mt-10 border-t hairline pt-6">
+            <section className="mt-6 rounded-(--radius-card) border border-line p-5">
               <h2 className="label-caps">{t("improveTitle")}</h2>
               <ol className="mt-3 flex flex-col gap-3">
                 {report.improvements!.slice(0, 3).map((item, i) => (
@@ -285,7 +285,7 @@ export function Feedback() {
 
           {/* Stylistic devices found in the transcript */}
           {(report.stylisticDevices?.length ?? 0) > 0 && (
-            <section className="mt-10 border-t hairline pt-6">
+            <section className="mt-6 rounded-(--radius-card) border border-line p-5">
               <h2 className="label-caps">{t("stylisticTitle")}</h2>
               <ul className="mt-3 flex flex-col gap-2.5">
                 {report.stylisticDevices!.map((d) => (
@@ -299,7 +299,7 @@ export function Feedback() {
           )}
 
           {report.tighten.quote && (
-            <section className="mt-10 border-t hairline pt-6">
+            <section className="mt-6 rounded-(--radius-card) border border-line p-5">
               <h2 className="label-caps">{t("sayItBetter")}</h2>
               <p className="mt-3 text-sm text-muted">
                 {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
@@ -310,7 +310,7 @@ export function Feedback() {
             </section>
           )}
 
-          <section className="mt-10 border-t hairline pt-6">
+          <section className="mt-6 rounded-(--radius-card) border border-line p-5">
             <h2 className="label-caps">{t("vocalDeliveryTitle")}</h2>
             {wpmValues.length >= 2 && (
               <div className="mt-4">
@@ -348,7 +348,7 @@ export function Feedback() {
           </section>
 
           {eight.confidence !== null && (
-            <section className="mt-10 border-t hairline pt-6">
+            <section className="mt-6 rounded-(--radius-card) border border-line p-5">
               <div className="flex items-baseline justify-between">
                 <h2 className="label-caps">{t("confidenceTitle")}</h2>
                 <span className="text-sm font-medium text-accent-dim">
@@ -367,7 +367,7 @@ export function Feedback() {
             </section>
           )}
 
-          <section className="mt-10 border-t hairline pt-6">
+          <section className="mt-6 rounded-(--radius-card) border border-line p-5">
             <div className="flex items-baseline justify-between">
               <h2 className="label-caps">{t("paceSectionTitle")}</h2>
               <span className="tnum text-sm font-medium text-ink">
@@ -389,7 +389,7 @@ export function Feedback() {
       )}
 
       {/* Transcript */}
-      <details className="mt-10 border-t hairline pt-6">
+      <details className="mt-6 rounded-(--radius-card) border border-line p-5">
         <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">
           {t("transcriptTitle")}
         </summary>
@@ -409,7 +409,7 @@ export function Feedback() {
           </Button>
         </Link>
         {session.kind === "scenario" && (
-          <Link to="/library" className="text-center text-sm text-muted hover:text-ink underline underline-offset-4">
+          <Link to="/scenarios" className="text-center text-sm text-muted hover:text-ink underline underline-offset-4">
             {t("anotherScenario")}
           </Link>
         )}
@@ -453,7 +453,7 @@ function MetricRow({
   const meta = METRIC_META[metric];
 
   return (
-    <div className="rounded-(--radius-card) bg-surface p-4">
+    <div className="rounded-(--radius-card) border border-line bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Icon name={meta.icon} size={17} className="shrink-0 text-muted" />

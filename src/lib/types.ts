@@ -197,6 +197,19 @@ export interface Session {
   wordOfDay?: string;
 }
 
+/**
+ * One earned "use the daily word in a sentence" bonus. Keyed by local date —
+ * there is exactly one daily word per day, so the key doubles as the
+ * once-per-word guard against resubmitting for more XP.
+ */
+export interface WordBonus {
+  dateISO: string;
+  day: number;
+  word: string;
+  xp: number;
+  awardedAt: number;
+}
+
 export interface Challenge {
   day: number;
   title: Bilingual;

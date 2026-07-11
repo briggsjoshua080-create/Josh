@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 
 const NAV = [
   { to: "/", icon: "stage", key: "navToday" as const },
+  { to: "/scenarios", icon: "layers", key: "navScenarios" as const },
   { to: "/library", icon: "library", key: "navLibrary" as const },
   { to: "/progress", icon: "chart", key: "navProgress" as const },
 ];
@@ -36,8 +37,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Wordmark />
         </div>
         {navItems}
-        <div className="mt-auto px-3">
-          <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} />
+        <div className="mt-auto flex flex-col gap-3">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-(--radius-control) px-3 py-2 text-base transition-colors duration-150 ` +
+              (isActive ? "text-accent" : "text-muted hover:text-ink")
+            }
+          >
+            <Icon name="gear" size={22} />
+            <span className="font-medium">{t("navSettings")}</span>
+          </NavLink>
+          <div className="px-3">
+            <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} />
+          </div>
         </div>
       </aside>
 
@@ -45,7 +58,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-3">
           <Wordmark />
-          <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} compact />
+          <div className="flex items-center gap-3">
+            <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} compact />
+            <NavLink
+              to="/settings"
+              aria-label={t("navSettings")}
+              className={({ isActive }) =>
+                `transition-colors duration-150 ${isActive ? "text-accent" : "text-muted hover:text-ink"}`
+              }
+            >
+              <Icon name="gear" size={20} />
+            </NavLink>
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-md flex-1 px-5 pb-28 lg:max-w-3xl lg:px-10 lg:py-10 lg:pb-10">

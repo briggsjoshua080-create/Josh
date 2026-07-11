@@ -5,34 +5,38 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
 /**
- * Dev-only mirror of the Vercel function in api/feedback.ts so the full
- * loop can run locally with `vite dev`. Production traffic never touches this.
+ * Dev-only mirror of the Vercel functions in api/ so the full loop can run
+ * locally with `vite dev`. Production traffic never touches this.
  */
 function devApi(): Plugin {
   return {
     name: "orato-dev-api",
     configureServer(server) {
-      server.middlewares.use("/api/feedback", async (req, res) => {
-        if (req.method !== "POST") {
-          res.statusCode = 405;
-          res.end(JSON.stringify({ error: "method_not_allowed" }));
-          return;
-        }
-        const chunks: Buffer[] = [];
-        for await (const chunk of req) chunks.push(chunk as Buffer);
-        const bodyText = Buffer.concat(chunks).toString("utf8");
-        try {
-          const { handleFeedback } = await server.ssrLoadModule("/server/coach.ts");
-          const out = await handleFeedback(bodyText, process.env);
-          res.statusCode = out.status;
-          res.setHeader("content-type", "application/json");
-          res.end(out.body);
-        } catch (err) {
-          res.statusCode = 500;
-          res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ error: "server_error", detail: String(err) }));
-        }
-      });
+      const mount = (route: string, handlerName: "handleFeedback" | "handleWordCheck") => {
+        server.middlewares.use(route, async (req, res) => {
+          if (req.method !== "POST") {
+            res.statusCode = 405;
+            res.end(JSON.stringify({ error: "method_not_allowed" }));
+            return;
+          }
+          const chunks: Buffer[] = [];
+          for await (const chunk of req) chunks.push(chunk as Buffer);
+          const bodyText = Buffer.concat(chunks).toString("utf8");
+          try {
+            const mod = await server.ssrLoadModule("/server/coach.ts");
+            const out = await mod[handlerName](bodyText, process.env);
+            res.statusCode = out.status;
+            res.setHeader("content-type", "application/json");
+            res.end(out.body);
+          } catch (err) {
+            res.statusCode = 500;
+            res.setHeader("content-type", "application/json");
+            res.end(JSON.stringify({ error: "server_error", detail: String(err) }));
+          }
+        });
+      };
+      mount("/api/feedback", "handleFeedback");
+      mount("/api/word-check", "handleWordCheck");
     },
   };
 }

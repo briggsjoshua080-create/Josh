@@ -1,0 +1,263 @@
+[
+  {
+    "id": "a1",
+    "title": "Reappraise Anxiety as Excitement",
+    "technique": "Say out loud 'I am excited' right before you speak instead of trying to calm down. Anxiety and excitement are both high-arousal states, so relabeling is easier than de-escalating, and it shifts you into an opportunity mindset.",
+    "context_tags": ["public_speaking", "interviews", "high_stakes"],
+    "effect_tags": ["reduces_nervousness", "projects_confidence"],
+    "source": "Alison Wood Brooks, 'Get Excited,' Journal of Experimental Psychology: General 143(3), 2014",
+    "source_tier": 1
+  },
+  {
+    "id": "a3",
+    "title": "Long Exhalations to Calm Arousal",
+    "technique": "Breathe in through the nose, then out longer through the mouth. This lowers physiological arousal and steadies your voice.",
+    "context_tags": ["public_speaking", "virtual"],
+    "effect_tags": ["reduces_nervousness", "improves_clarity"],
+    "source": "Julian Treasure, TED; Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "a7",
+    "title": "Don't Memorize — Internalize",
+    "technique": "Never memorize word-for-word. It raises cognitive load because you're comparing what you meant to say against what you're saying. Instead, learn a roadmap of key ideas and keep exact figures on a note card.",
+    "context_tags": ["public_speaking", "presentations"],
+    "effect_tags": ["reduces_nervousness", "improves_clarity"],
+    "source": "Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "b1",
+    "title": "Build Around One Throughline",
+    "technique": "Anchor the whole talk to a single connecting idea that every point hangs on. Try to state it in 15 words or less. A throughline is not the same as a topic.",
+    "context_tags": ["public_speaking", "presentations"],
+    "effect_tags": ["improves_memorability", "improves_clarity"],
+    "source": "Chris Anderson, TED Talks: The Official TED Guide to Public Speaking, 2016",
+    "source_tier": 2
+  },
+  {
+    "id": "b3",
+    "title": "What? So What? Now What?",
+    "technique": "Structure any message in three parts: state your point (What?), explain why it matters (So What?), give the call to action (Now What?).",
+    "context_tags": ["presentations", "interviews", "small_talk"],
+    "effect_tags": ["improves_clarity", "improves_memorability"],
+    "source": "Matt Abrahams, Stanford GSB Insights",
+    "source_tier": 2
+  },
+  {
+    "id": "b9",
+    "title": "Start Strong (Hook)",
+    "technique": "Open with a startling fact, a provocative question, or a short story instead of throat-clearing. Attention is highest in the first 10-20 seconds.",
+    "context_tags": ["public_speaking", "presentations"],
+    "effect_tags": ["increases_engagement"],
+    "source": "Toastmasters International; Vanessa Van Edwards, Cues",
+    "source_tier": 2
+  },
+  {
+    "id": "c1",
+    "title": "The Power of the Pause",
+    "technique": "Pause for a few seconds before starting and around key points. Silence gives the audience time to process and makes you look thoughtful and in control.",
+    "context_tags": ["public_speaking", "presentations"],
+    "effect_tags": ["projects_confidence", "improves_clarity"],
+    "source": "Toastmasters International; Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "c3",
+    "title": "Land the Phrase to Cut Fillers",
+    "technique": "Finish each thought on a clear out-breath instead of bridging into the next one with 'um' or 'uh.' Filler words spike under cognitive overload, so slowing down here helps.",
+    "context_tags": ["public_speaking", "interviews", "impromptu"],
+    "effect_tags": ["improves_clarity", "projects_confidence"],
+    "source": "Matt Abrahams, Stanford GSB (Huberman Lab), citing Jerry Weissman",
+    "source_tier": 2
+  },
+  {
+    "id": "c6",
+    "title": "Drop Hedges and Up-Talk",
+    "technique": "Cut phrases like 'I think,' 'sort of,' and rising question-intonation on statements that aren't questions.",
+    "context_tags": ["presentations", "interviews", "difficult_conversations"],
+    "effect_tags": ["projects_confidence"],
+    "source": "Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "d1",
+    "title": "Make Sustained Eye Contact",
+    "technique": "Hold soft eye contact with individuals for about 3-4 seconds at a time, spending the majority of your speaking time in eye contact. Research links this to higher perceived credibility.",
+    "context_tags": ["public_speaking", "small_talk"],
+    "effect_tags": ["increases_trust", "reduces_nervousness"],
+    "source": "'Eye contact: A nonverbal determinant of speaker credibility,' The Speech Teacher 23(1), 1974",
+    "source_tier": 1
+  },
+  {
+    "id": "d2",
+    "title": "Use Purposeful Explanatory Gestures",
+    "technique": "Talk with your hands using gestures that actually illustrate your meaning. The brain gives extra attentional weight to hand gestures.",
+    "context_tags": ["presentations", "virtual"],
+    "effect_tags": ["increases_engagement", "improves_memorability"],
+    "source": "Vanessa Van Edwards, Cues",
+    "source_tier": 2
+  },
+  {
+    "id": "e1",
+    "title": "Ethos, Pathos, Logos",
+    "technique": "Combine credibility (ethos), emotional appeal (pathos), and logic (logos). Keep ethos always high and adjust the pathos/logos ratio to your audience and topic.",
+    "context_tags": ["persuasion", "presentations"],
+    "effect_tags": ["increases_persuasion"],
+    "source": "Aristotle, Rhetoric (foundational rhetoric framework)",
+    "source_tier": 2
+  },
+  {
+    "id": "e2",
+    "title": "Reciprocity",
+    "technique": "Give something of value first, ideally personalized and a little unexpected. People feel an urge to return the favor.",
+    "context_tags": ["negotiation", "networking", "persuasion"],
+    "effect_tags": ["increases_persuasion", "builds_rapport"],
+    "source": "Robert Cialdini, Influence",
+    "source_tier": 1
+  },
+  {
+    "id": "e9",
+    "title": "The Rule of Three",
+    "technique": "Group your key points in threes. Triads are rhythmic and easier to remember than lists of two or four.",
+    "context_tags": ["persuasion", "presentations"],
+    "effect_tags": ["improves_memorability", "increases_persuasion"],
+    "source": "Rhetorical tradition (Aristotle), standard in communication coursework",
+    "source_tier": 2
+  },
+  {
+    "id": "f1",
+    "title": "Character + Tension Keeps Attention",
+    "technique": "Tell character-driven stories with rising tension. Sustained tension holds attention and has been linked to oxytocin release, which builds empathy and trust in listeners.",
+    "context_tags": ["public_speaking", "presentations", "persuasion"],
+    "effect_tags": ["builds_rapport", "increases_persuasion"],
+    "source": "Paul Zak, 'Why Inspiring Stories Make Us React,' PMC4445577",
+    "source_tier": 1
+  },
+  {
+    "id": "f3",
+    "title": "Three-Act Transformation",
+    "technique": "Structure a personal story as setup, then confrontation or struggle, then resolution. The most transformative stories reveal a real flaw or hardship and require genuine candor.",
+    "context_tags": ["public_speaking", "presentations"],
+    "effect_tags": ["increases_engagement", "builds_rapport"],
+    "source": "Nancy Duarte, Duarte Inc.",
+    "source_tier": 2
+  },
+  {
+    "id": "g1",
+    "title": "Ask Rhetorical & Poll Questions",
+    "technique": "Use questions for effect, quick polls (hand-raise or live poll), or brief thought-experiments to make listening feel two-way. Tell the audience how you want them to respond.",
+    "context_tags": ["presentations", "virtual"],
+    "effect_tags": ["increases_engagement"],
+    "source": "Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "g3",
+    "title": "Use 'You' and 'We'",
+    "technique": "Connect your topic to the audience using inclusive pronouns, even when telling a personal story.",
+    "context_tags": ["public_speaking", "presentations"],
+    "effect_tags": ["builds_rapport", "increases_engagement"],
+    "source": "Toastmasters International",
+    "source_tier": 2
+  },
+  {
+    "id": "h1",
+    "title": "Balance Warmth and Competence",
+    "technique": "Charisma is a learnable blend of warmth (trust) and competence (capability). The most charismatic people hit the sweet spot of both rather than leaning fully into either.",
+    "context_tags": ["leadership", "first_impressions", "interviews"],
+    "effect_tags": ["increases_trust", "projects_confidence"],
+    "source": "Vanessa Van Edwards, Cues, citing Fiske, Cuddy & Glick, Trends in Cognitive Sciences, 2007",
+    "source_tier": 1
+  },
+  {
+    "id": "h2",
+    "title": "Send Deliberate Warmth Cues",
+    "technique": "Use personal stories, a genuine (slightly slow) smile, listening sounds, leaning in, and open gestures when you're being perceived as cold or intimidating.",
+    "context_tags": ["small_talk", "networking", "first_impressions"],
+    "effect_tags": ["builds_rapport", "increases_trust"],
+    "source": "Vanessa Van Edwards, Cues",
+    "source_tier": 2
+  },
+  {
+    "id": "i1",
+    "title": "RASA: Receive, Appreciate, Summarize, Ask",
+    "technique": "Pay full attention (Receive), make small acknowledging sounds like 'hmm' or 'okay' (Appreciate), summarize what you heard with 'so...' (Summarize), then ask a follow-up (Ask).",
+    "context_tags": ["small_talk", "networking", "difficult_conversations"],
+    "effect_tags": ["builds_rapport", "increases_trust"],
+    "source": "Julian Treasure, TED; Stanford GSB 'Four Pillars of Active Listening'",
+    "source_tier": 2
+  },
+  {
+    "id": "i3",
+    "title": "Be Interested, Not Interesting",
+    "technique": "Lead with genuine curiosity about the other person instead of trying to perform for them. The best small-talkers ask more than they tell.",
+    "context_tags": ["small_talk", "dating", "networking"],
+    "effect_tags": ["builds_rapport", "reduces_nervousness"],
+    "source": "Rachel Greenwald, via Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "i4",
+    "title": "Escalating Self-Disclosure",
+    "technique": "Exchange reciprocal, gradually deepening personal questions rather than staying on small talk. Pairs who did this reported far greater closeness than pairs who made small talk for the same amount of time.",
+    "context_tags": ["dating", "networking", "small_talk"],
+    "effect_tags": ["builds_rapport"],
+    "source": "Aron et al., 'The Experimental Generation of Interpersonal Closeness,' Personality and Social Psychology Bulletin 23(4), 1997",
+    "source_tier": 1
+  },
+  {
+    "id": "j1",
+    "title": "Tactical Empathy",
+    "technique": "Understand and name the other person's feelings and perspective to lower their defensiveness. This is empathy used strategically, not agreement.",
+    "context_tags": ["difficult_conversations", "negotiation"],
+    "effect_tags": ["builds_rapport", "reduces_conflict"],
+    "source": "Chris Voss, Never Split the Difference",
+    "source_tier": 2
+  },
+  {
+    "id": "j2",
+    "title": "Labeling",
+    "technique": "Name the emotion you observe: 'It sounds like...' or 'It seems like...' Labeling a negative emotion tends to defuse it; labeling a positive one reinforces it.",
+    "context_tags": ["difficult_conversations", "negotiation"],
+    "effect_tags": ["reduces_conflict", "builds_rapport"],
+    "source": "Chris Voss, Never Split the Difference",
+    "source_tier": 2
+  },
+  {
+    "id": "k1",
+    "title": "Paraphrase Every Question First",
+    "technique": "Restate each question in your own words before answering. It buys you thinking time, confirms you understood correctly, and lets you reframe if needed.",
+    "context_tags": ["q_and_a", "interviews"],
+    "effect_tags": ["projects_confidence", "improves_clarity"],
+    "source": "Matt Abrahams, Stanford GSB",
+    "source_tier": 2
+  },
+  {
+    "id": "l1",
+    "title": "Look Into the Camera, Not the Screen",
+    "technique": "Direct your gaze at the camera lens rather than the screen to create the illusion of eye contact. Position notes or slides close to the camera.",
+    "context_tags": ["virtual"],
+    "effect_tags": ["builds_rapport", "projects_confidence"],
+    "source": "Matt Abrahams, Stanford GSB, '10 Tips for Giving Effective Virtual Presentations'",
+    "source_tier": 2
+  },
+  {
+    "id": "m1",
+    "title": "Trust Before Competence",
+    "technique": "Lead with warmth and trustworthiness before showcasing competence. People subconsciously ask 'Can I trust this person?' before 'Can I respect this person?' — and trust comes first.",
+    "context_tags": ["interviews", "first_impressions", "networking"],
+    "effect_tags": ["increases_trust", "projects_confidence"],
+    "source": "Amy Cuddy, Presence, 2016; 'Connect, Then Lead,' Harvard Business Review, 2013",
+    "source_tier": 1
+  },
+  {
+    "id": "m4",
+    "title": "Brevity Conveys Conviction",
+    "technique": "Use fewer words. Over-explaining tends to signal insecurity, while concise answers project confidence and competence.",
+    "context_tags": ["interviews", "presentations"],
+    "effect_tags": ["projects_confidence"],
+    "source": "Matt Abrahams, Stanford GSB (Think Fast, Talk Smart, with Irv Grousbeck)",
+    "source_tier": 2
+  }
+]
