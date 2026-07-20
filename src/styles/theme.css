@@ -1,25 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* ——— The Stage palette (see DESIGN.md) ——— */
-  --color-bg: oklch(0.13 0.01 25);
-  --color-surface: oklch(0.175 0.012 30);
-  --color-surface-2: oklch(0.22 0.014 32);
-  --color-line: oklch(0.3 0.015 35);
-  --color-ink: oklch(0.95 0.01 75);
-  --color-muted: oklch(0.7 0.02 50);
-  --color-faint: oklch(0.52 0.018 45);
-  --color-primary: oklch(0.52 0.19 15);
-  --color-primary-bright: oklch(0.58 0.2 17);
-  --color-primary-deep: oklch(0.36 0.13 12);
-  --color-accent: oklch(0.82 0.13 80);
-  --color-accent-dim: oklch(0.7 0.1 78);
-  /* Chart stroke: validated categorical step for the dark surface (dataviz pass) */
-  --color-chart: oklch(0.66 0.11 78);
-  --color-accent-ink: oklch(0.24 0.04 70);
-  --color-ok: oklch(0.72 0.13 155);
-  --color-warn: oklch(0.78 0.13 85);
-  --color-bad: oklch(0.62 0.19 25);
+  /* ——— The Cellar palette: wine-label black, Dutch White, Wine ———
+     Base hexes: bg #0D0B0A · ink #EFDFBB (Dutch White) · accent #722F37 (Wine).
+     Every other value is a tint/shade of those three — nothing outside the family. */
+  --color-bg: oklch(0.145 0.006 40);
+  --color-surface: oklch(0.175 0.012 25);
+  --color-surface-2: oklch(0.215 0.018 22);
+  /* Wine at ~30% — the thin outline every content box wears instead of a fill */
+  --color-line: oklch(0.42 0.105 17 / 0.32);
+  --color-ink: oklch(0.905 0.048 92);
+  --color-muted: oklch(0.72 0.035 85);
+  --color-faint: oklch(0.55 0.028 70);
+  /* Wine #722F37 — CTAs and primary actions */
+  --color-primary: oklch(0.4 0.105 17);
+  --color-primary-bright: oklch(0.46 0.12 17);
+  --color-primary-deep: oklch(0.32 0.088 15);
+  /* Lifted rose-wine for text highlights that must read on near-black */
+  --color-accent: oklch(0.64 0.13 17);
+  --color-accent-dim: oklch(0.56 0.105 17);
+  /* Chart stroke: cream step, validated against the near-black surface */
+  --color-chart: oklch(0.76 0.06 88);
+  --color-accent-ink: oklch(0.17 0.03 20);
+  --color-ok: oklch(0.83 0.085 88);
+  --color-warn: oklch(0.7 0.095 55);
+  --color-bad: oklch(0.56 0.155 20);
 
   --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
   --font-serif: "Newsreader Variable", Georgia, serif;
@@ -44,6 +49,7 @@
 /* Semantic z-scale — never arbitrary values */
 :root {
   --z-nav: 10;
+  --z-pin: 20;
   --z-backdrop: 40;
   --z-sheet: 50;
   --z-toast: 60;
@@ -85,8 +91,8 @@ p {
 }
 
 ::selection {
-  background: oklch(0.36 0.13 12);
-  color: oklch(0.95 0.01 75);
+  background: oklch(0.4 0.105 17);
+  color: oklch(0.905 0.048 92);
 }
 
 /* The prompt gets the lectern treatment */
@@ -108,19 +114,19 @@ p {
 /* Recording spotlight — state-driven glow (scaled via --level set from mic input) */
 .spotlight-glow {
   box-shadow:
-    0 0 0 calc(6px + 10px * var(--level, 0)) oklch(0.52 0.19 15 / 0.28),
-    0 0 calc(24px + 36px * var(--level, 0)) oklch(0.58 0.2 17 / 0.35);
+    0 0 0 calc(6px + 10px * var(--level, 0)) oklch(0.4 0.105 17 / 0.32),
+    0 0 calc(24px + 36px * var(--level, 0)) oklch(0.46 0.12 17 / 0.38);
   transition: box-shadow 120ms linear;
 }
 
-/* Recording ring: soft amber glow inside the ideal window, urgent pulse past max */
+/* Recording ring: soft cream glow inside the ideal window, urgent pulse past max */
 @keyframes ringGlowIdeal {
   0%,
   100% {
-    filter: drop-shadow(0 0 2px oklch(0.82 0.13 80 / 0.15));
+    filter: drop-shadow(0 0 2px oklch(0.905 0.048 92 / 0.15));
   }
   50% {
-    filter: drop-shadow(0 0 12px oklch(0.82 0.13 80 / 0.45));
+    filter: drop-shadow(0 0 12px oklch(0.905 0.048 92 / 0.4));
   }
 }
 
@@ -131,10 +137,10 @@ p {
 @keyframes ringGlowOver {
   0%,
   100% {
-    filter: drop-shadow(0 0 3px oklch(0.62 0.19 25 / 0.2));
+    filter: drop-shadow(0 0 3px oklch(0.56 0.155 20 / 0.2));
   }
   50% {
-    filter: drop-shadow(0 0 14px oklch(0.62 0.19 25 / 0.5));
+    filter: drop-shadow(0 0 14px oklch(0.56 0.155 20 / 0.5));
   }
 }
 
@@ -173,6 +179,48 @@ p {
   }
 }
 
+/* ——— Premium snap scrolling ———
+   The four main screens flag the root scroller with data-snap; every content
+   box carries .snap-section so a flick lands it flush at the top of the
+   screen — no half-visible boxes. Desktop pointers get the gentler proximity
+   flavour; reduced motion falls back to plain scrolling entirely. */
+html[data-snap] {
+  scroll-snap-type: y mandatory;
+  scroll-padding-top: calc(env(safe-area-inset-top) + 10px);
+}
+
+@media (min-width: 1024px) {
+  html[data-snap] {
+    scroll-snap-type: y proximity;
+  }
+}
+
+.snap-section {
+  scroll-snap-align: start;
+  scroll-margin-top: calc(env(safe-area-inset-top) + 10px);
+}
+
+/* The page must stay reachable past the last box */
+.snap-end {
+  scroll-snap-align: end;
+}
+
+/* Vertical card deck: one card per swipe, scrollbar hidden */
+.deck-scroller {
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.deck-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.deck-card {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -181,5 +229,10 @@ p {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Snap becomes plain scrolling — position is never animated for you */
+  html[data-snap] {
+    scroll-snap-type: none;
   }
 }

@@ -10,14 +10,15 @@ export const METRIC_META: Record<
   MetricKey,
   { icon: string; nameKey: StringKey; expKey: StringKey; tint: string }
 > = {
-  clarity: { icon: "eye", nameKey: "metricClarity", expKey: "expClarity", tint: "oklch(0.68 0.07 230)" },
-  confidence: { icon: "shield", nameKey: "metricConfidence", expKey: "expConfidence", tint: "oklch(0.62 0.1 20)" },
-  structure: { icon: "layers", nameKey: "metricStructure", expKey: "expStructure", tint: "oklch(0.64 0.08 290)" },
-  pace: { icon: "gauge", nameKey: "metricPace", expKey: "expPace", tint: "oklch(0.7 0.09 80)" },
-  fluency: { icon: "wave", nameKey: "metricFluency", expKey: "expFluency", tint: "oklch(0.68 0.08 200)" },
-  wordPower: { icon: "bolt", nameKey: "metricWordPower", expKey: "expWordPower", tint: "oklch(0.68 0.1 55)" },
-  conciseness: { icon: "scissors", nameKey: "metricConciseness", expKey: "expConciseness", tint: "oklch(0.66 0.08 340)" },
-  engagement: { icon: "sparkle", nameKey: "metricEngagement", expKey: "expEngagement", tint: "oklch(0.66 0.09 155)" },
+  // Tints walk the wine→cream ramp so the bars stay inside the label palette.
+  clarity: { icon: "eye", nameKey: "metricClarity", expKey: "expClarity", tint: "oklch(0.85 0.055 90)" },
+  confidence: { icon: "shield", nameKey: "metricConfidence", expKey: "expConfidence", tint: "oklch(0.62 0.13 17)" },
+  structure: { icon: "layers", nameKey: "metricStructure", expKey: "expStructure", tint: "oklch(0.72 0.075 55)" },
+  pace: { icon: "gauge", nameKey: "metricPace", expKey: "expPace", tint: "oklch(0.78 0.065 75)" },
+  fluency: { icon: "wave", nameKey: "metricFluency", expKey: "expFluency", tint: "oklch(0.67 0.1 35)" },
+  wordPower: { icon: "bolt", nameKey: "metricWordPower", expKey: "expWordPower", tint: "oklch(0.88 0.045 95)" },
+  conciseness: { icon: "scissors", nameKey: "metricConciseness", expKey: "expConciseness", tint: "oklch(0.56 0.115 17)" },
+  engagement: { icon: "sparkle", nameKey: "metricEngagement", expKey: "expEngagement", tint: "oklch(0.75 0.085 65)" },
 };
 
 /** Map the AI's confidenceLabel enum to a translatable string key. */

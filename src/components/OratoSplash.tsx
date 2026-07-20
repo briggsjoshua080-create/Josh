@@ -11,7 +11,7 @@ export default function OratoSplash({ onDone }: { onDone?: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
 
-  const stroke = "#E9A45C";
+  const stroke = "#EFDFBB";
   return (
     <div style={styles.wrap}>
       <style>{css}</style>
@@ -47,14 +47,14 @@ export default function OratoSplash({ onDone }: { onDone?: () => void }) {
 const d = (delay: number): React.CSSProperties => ({ animationDelay: `${delay}s` });
 
 const styles: Record<"wrap" | "svg", React.CSSProperties> = {
-  wrap: { position: "fixed", inset: 0, background: "radial-gradient(70% 60% at 50% 42%, #211712 0%, #130E0C 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 9999 },
+  wrap: { position: "fixed", inset: 0, background: "radial-gradient(70% 60% at 50% 42%, #1B1210 0%, #0D0B0A 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 9999 },
   svg: { width: "min(58vw, 260px)", height: "auto", overflow: "visible" },
 };
 
 const css = `
 .orato-draw path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: oratoDraw 1s ease forwards; }
 @keyframes oratoDraw { to { stroke-dashoffset: 0; } }
-.orato-word { margin-top: 22px; font-family: ui-serif, Georgia, serif; letter-spacing: 0.42em; padding-left: 0.42em; font-size: 22px; color: #F0E7DD; opacity: 0; transform: translateY(8px); animation: oratoWord 0.8s ease forwards; animation-delay: 1.35s; }
+.orato-word { margin-top: 22px; font-family: ui-serif, Georgia, serif; letter-spacing: 0.42em; padding-left: 0.42em; font-size: 22px; color: #EFDFBB; opacity: 0; transform: translateY(8px); animation: oratoWord 0.8s ease forwards; animation-delay: 1.35s; }
 @keyframes oratoWord { to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .orato-draw path { animation: none; stroke-dashoffset: 0; } .orato-word { animation: none; opacity: 1; transform: none; } }
 `;

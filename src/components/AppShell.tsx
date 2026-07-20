@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { Icon } from "./Icon";
 import { useI18n } from "@/lib/i18n";
 
@@ -10,8 +10,26 @@ const NAV = [
   { to: "/progress", icon: "chart", key: "navProgress" as const },
 ];
 
+/** Screens whose root scroller snaps per section (see html[data-snap] in theme.css). */
+function isSnapRoute(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/library" ||
+    pathname === "/progress" ||
+    pathname.startsWith("/feedback")
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { t, lang, setLang } = useI18n();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isSnapRoute(pathname)) root.setAttribute("data-snap", "");
+    else root.removeAttribute("data-snap");
+    return () => root.removeAttribute("data-snap");
+  }, [pathname]);
 
   const navItems = NAV.map((item) => (
     <NavLink
