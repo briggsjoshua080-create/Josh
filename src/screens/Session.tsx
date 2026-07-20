@@ -231,7 +231,7 @@ export function Session() {
           </div>
 
           {/* Live transcript */}
-          <div className="mt-5 max-h-[32vh] min-h-24 flex-1 overflow-y-auto rounded-(--radius-card) border border-accent/25 bg-surface p-5">
+          <div className="mt-5 max-h-[32vh] min-h-24 flex-1 overflow-y-auto box p-5">
             <p className="lectern text-base leading-relaxed text-ink" data-testid="live-transcript">
               {finalText} <span className="text-muted">{interim}</span>
               {!finalText && !interim && <span className="text-faint">{t("waitingForSpeech")}</span>}
@@ -252,7 +252,7 @@ export function Session() {
                 onKeyDown={(e) => e.key === "Enter" && injectTyped()}
                 placeholder={t("typeFallbackLabel")}
                 data-testid="typed-fallback"
-                className="h-11 flex-1 rounded-(--radius-control) border border-line bg-surface-2 px-4 text-base text-ink placeholder:text-muted"
+                className="box-control h-11 flex-1 px-4 text-base"
               />
               <Button variant="ghost" onClick={injectTyped}>
                 {t("typeFallbackSubmit")}

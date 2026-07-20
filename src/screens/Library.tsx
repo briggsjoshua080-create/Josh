@@ -42,7 +42,7 @@ export function Library() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("searchTips")}
           aria-label={t("searchTips")}
-          className="h-11 w-full rounded-(--radius-control) border border-line bg-surface px-4 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          className="box-control h-11 w-full px-4 text-base"
         />
       </div>
 
@@ -129,7 +129,7 @@ function TechniqueCard({
   }, [open]);
 
   return (
-    <li ref={ref} className="snap-section rounded-(--radius-card) border border-line">
+    <li ref={ref} className="snap-section box">
       <button
         onClick={onToggle}
         aria-expanded={open}

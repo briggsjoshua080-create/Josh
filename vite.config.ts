@@ -48,7 +48,7 @@ export default defineConfig({
     devApi(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icons/*.png", "orato-icon*.png", "orato-icon.svg"],
+      includeAssets: ["orato-icon*.png", "orato-icon.svg"],
       manifest: {
         name: "Orato — Speech Training Studio",
         short_name: "Orato",
