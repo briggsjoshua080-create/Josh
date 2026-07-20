@@ -9,7 +9,7 @@ import { WORD_USE_BONUS } from "@/lib/progression";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { SnapSection } from "@/components/SnapSection";
-import { TodayHero } from "@/components/TodayHero";
+import { PageHero } from "@/components/PageHero";
 import type { Session, WordEntry } from "@/lib/types";
 
 export function Today() {
@@ -42,23 +42,22 @@ export function Today() {
     <div className="pt-2 lg:pt-0">
       {/* Duolingo-style streak pin — always visible, even mid-scroll */}
       <div
-        className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+8px)] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-gold/60 bg-card/90 px-3 py-1 backdrop-blur-sm"
+        className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+8px)] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-cream/60 bg-card/90 px-3 py-1 backdrop-blur-sm"
         style={{ zIndex: "var(--z-pin)" }}
         role="status"
         aria-label={streakLabel}
         data-testid="streak-pin"
       >
-        <Icon name="flame" size={15} className="text-gold" />
-        <span className="tnum text-sm font-semibold text-gold">{state.streak}</span>
+        <Icon name="flame" size={15} className="text-cream" />
+        <span className="tnum text-sm font-semibold text-cream">{state.streak}</span>
       </div>
 
-      {/* Hero collage + day heading */}
+      {/* Hero poster + day heading */}
       <SnapSection>
-        <TodayHero />
-        <h1 className="mt-4 text-2xl font-semibold text-ink">{t("dayLabel", { n: state.day })}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
-        </p>
+        <PageHero
+          title={t("dayLabel", { n: state.day })}
+          subtitle={isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
+        />
       </SnapSection>
 
       {/* Word of the day — definition hidden until tapped */}
@@ -75,7 +74,7 @@ export function Today() {
         <h2 className="text-sm font-medium text-muted">{t("todayChallenge")}</h2>
         {state.doneToday ? (
           <div className="mt-3">
-            <div className="box box-shade-c flex items-center gap-3 p-5">
+            <div className="box flex items-center gap-3 p-5">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ok/15 text-ok">
                 <Icon name="check" size={22} />
               </span>
@@ -97,7 +96,7 @@ export function Today() {
           </div>
         ) : (
           <>
-            <div className="box box-shade-c mt-3 p-5">
+            <div className="box mt-3 p-5">
               <h3 className="lectern text-2xl lg:text-3xl text-ink">{challenge.title[lang]}</h3>
               <p className="lectern mt-4 text-lg leading-relaxed text-ink/90">{challenge.prompt[lang]}</p>
               <p className="mt-5 text-sm text-muted">
@@ -136,7 +135,7 @@ export function Today() {
           <Icon name="sparkle" size={16} />
           {t("dailyTipsTitle")}
         </h2>
-        <div className="box box-shade-d mt-3 p-5" data-testid="daily-tips">
+        <div className="box mt-3 p-5" data-testid="daily-tips">
           <ul className="flex flex-col gap-4">
             {tipsForToday().map((tip) => (
               <li key={tip.title.en}>
@@ -193,7 +192,7 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
   }
 
   return (
-    <div className="box box-shade-b mt-3">
+    <div className="box mt-3">
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}

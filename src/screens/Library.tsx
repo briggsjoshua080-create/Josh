@@ -10,6 +10,7 @@ import {
 } from "@/data/library";
 import { Icon } from "@/components/Icon";
 import { FilterPill } from "@/components/FilterPill";
+import { PageHero } from "@/components/PageHero";
 
 /**
  * The Library: a scrollable list of expandable technique cards, fed entirely
@@ -31,8 +32,7 @@ export function Library() {
   return (
     <div className="pt-2 lg:pt-0">
       <section className="snap-section">
-      <h1 className="text-2xl font-semibold text-ink">{t("tipsTitle")}</h1>
-      <p className="mt-1 text-sm text-muted">{t("tipsSub", { n: LIBRARY_CARDS.length })}</p>
+      <PageHero title={t("tipsTitle")} subtitle={t("tipsSub", { n: LIBRARY_CARDS.length })} />
 
       {/* Search — on-device, against the local JSON only */}
       <div className="relative mt-6">

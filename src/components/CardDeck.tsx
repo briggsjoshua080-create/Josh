@@ -80,7 +80,7 @@ function DeckArrow({ dir, onClick, disabled }: { dir: "up" | "down"; onClick: ()
       onClick={onClick}
       disabled={disabled}
       aria-label={dir === "up" ? "Previous" : "Next"}
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 text-gold/70 transition-colors hover:text-gold hover:bg-card disabled:opacity-35"
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-cream/40 text-cream/70 transition-colors hover:text-cream hover:bg-card disabled:opacity-35"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         {dir === "up" ? <path d="M5 15l7-7 7 7" /> : <path d="M5 9l7 7 7-7" />}

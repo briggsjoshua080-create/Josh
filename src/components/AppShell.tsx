@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       className={({ isActive }) =>
         `flex items-center gap-3 rounded-(--radius-control) px-3 py-2 transition-colors duration-150 ` +
         `max-lg:flex-col max-lg:gap-1 max-lg:px-5 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
-        (isActive ? "text-gold" : "text-muted hover:text-ink")
+        (isActive ? "text-cream" : "text-muted hover:text-ink")
       }
     >
       <Icon name={item.icon} size={22} />
@@ -120,7 +120,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             to="/settings"
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-(--radius-control) px-3 py-2 text-base transition-colors duration-150 ` +
-              (isActive ? "text-gold" : "text-muted hover:text-ink")
+              (isActive ? "text-cream" : "text-muted hover:text-ink")
             }
           >
             <Icon name="gear" size={22} />
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               to="/settings"
               aria-label={t("navSettings")}
               className={({ isActive }) =>
-                `transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
+                `transition-colors duration-150 ${isActive ? "text-cream" : "text-muted hover:text-ink"}`
               }
             >
               <Icon name="gear" size={20} />
@@ -184,15 +184,15 @@ function Wordmark() {
   return (
     <span className="flex items-center gap-2.5">
       <img
-        src="/orato-icon.svg"
+        src="/orato-logo.png"
         alt=""
         width={30}
         height={30}
         draggable={false}
-        className="h-[30px] w-[30px] shrink-0 select-none rounded-full border border-gold/50"
+        className="h-[30px] w-[30px] shrink-0 select-none rounded-lg border border-cream/40"
       />
       <span className="lectern text-xl font-semibold tracking-tight text-ink">
-        Orato<span className="text-gold">.</span>
+        Orato<span className="text-cream">.</span>
       </span>
     </span>
   );

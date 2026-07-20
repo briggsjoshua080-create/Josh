@@ -9,6 +9,7 @@ import { Icon } from "@/components/Icon";
 import { Button } from "@/components/Button";
 import { CardDeck } from "@/components/CardDeck";
 import { FilterPill } from "@/components/FilterPill";
+import { PageHero } from "@/components/PageHero";
 import type { StringKey } from "@/lib/strings";
 import type { CategoryId, Scenario, Session } from "@/lib/types";
 
@@ -124,27 +125,27 @@ export function Scenarios() {
 
   return (
     <div className="pt-2 lg:pt-0">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">{t("libraryTitle")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("librarySub", { n: SCENARIOS.length })}</p>
-        </div>
-        <div className="flex shrink-0 rounded-full border border-gold/60 bg-card p-0.5" role="tablist">
-          {(["deck", "list"] as const).map((v) => (
-            <button
-              key={v}
-              role="tab"
-              aria-selected={view === v}
-              onClick={() => setView(v)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
-                view === v ? "bg-gold/20 text-gold" : "text-gold/65 hover:text-gold"
-              }`}
-            >
-              {v === "deck" ? t("viewDeck") : t("viewList")}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHero
+        title={t("libraryTitle")}
+        subtitle={t("librarySub", { n: SCENARIOS.length })}
+        trailing={
+          <div className="flex rounded-full border border-cream/45 bg-card p-0.5" role="tablist">
+            {(["deck", "list"] as const).map((v) => (
+              <button
+                key={v}
+                role="tab"
+                aria-selected={view === v}
+                onClick={() => setView(v)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+                  view === v ? "bg-cream text-accent-ink" : "text-cream/65 hover:text-cream"
+                }`}
+              >
+                {v === "deck" ? t("viewDeck") : t("viewList")}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {/* Recommended next / first-run empty state */}
       {recommended &&
@@ -217,7 +218,7 @@ export function Scenarios() {
         onClick={surprise}
         className="box-control mt-4 flex w-full items-center justify-center gap-2 py-3 text-base font-medium transition-colors hover:bg-card/70"
       >
-        <Icon name="dice" size={18} className="text-gold/70" />
+        <Icon name="dice" size={18} className="text-cream/70" />
         {t("surpriseMe")}
       </button>
 

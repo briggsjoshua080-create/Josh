@@ -10,6 +10,7 @@ import type { StringKey } from "@/lib/strings";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { TrendChart } from "@/components/TrendChart";
+import { PageHero } from "@/components/PageHero";
 
 /** One concrete training suggestion per metric, shown on the Focus Point card. */
 const FOCUS_SUGGESTION: Record<MetricKey, StringKey> = {
@@ -90,8 +91,10 @@ export function Progress() {
 
   return (
     <div className="pt-2 lg:pt-0">
+      <PageHero title={t("navProgress")} subtitle={t("xpTotal", { n: progress.cumulativeXp })} />
+
       {/* ——— Level hero ——— */}
-      <section className="snap-section">
+      <section className="snap-section mt-8">
       <div className="mt-2 flex items-start justify-between gap-4">
         <div>
           <div className="flex items-baseline gap-3">

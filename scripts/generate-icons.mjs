@@ -1,16 +1,15 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
 /**
- * Render public/orato-icon.svg to the PNG sizes the PWA manifest and iOS
- * home screen need. Run once after changing the SVG:
+ * Regenerate the PWA / iOS icon PNGs from the master orator artwork,
+ * public/orato-logo.png. Run once after replacing the logo:
  *   node scripts/generate-icons.mjs
- * The SVG is full-bleed on its own charcoal background, so the same render
- * works for the maskable variant.
+ * The artwork is a full-bleed rounded emblem on its own wine ground, so the
+ * same render serves the maskable variant.
  */
 const root = path.resolve(import.meta.dirname, "..");
-const svg = await readFile(path.join(root, "public/orato-icon.svg"));
+const src = path.join(root, "public/orato-logo.png");
 
 const targets = [
   ["orato-icon-180.png", 180],
@@ -20,8 +19,8 @@ const targets = [
 ];
 
 for (const [name, size] of targets) {
-  await sharp(svg, { density: 300 })
-    .resize(size, size)
+  await sharp(src)
+    .resize(size, size, { fit: "cover" })
     .png()
     .toFile(path.join(root, "public", name));
   console.log(`✓ public/${name} (${size}×${size})`);

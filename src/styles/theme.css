@@ -1,30 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  /* ——— The Cellar palette: wine-label black, Dutch White, Wine ———
-     Base hexes: bg #0D0B0A · ink #EFDFBB (Dutch White) · accent #722F37 (Wine).
-     Every other value is a tint/shade of those three — nothing outside the family. */
-  --color-bg: oklch(0.145 0.006 40);
-  --color-surface: oklch(0.175 0.012 25);
-  --color-surface-2: oklch(0.215 0.018 22);
-  /* Wine at ~30% — the thin outline every content box wears instead of a fill */
-  --color-line: oklch(0.42 0.105 17 / 0.32);
-  --color-ink: oklch(0.905 0.048 92);
-  --color-muted: oklch(0.72 0.035 85);
-  --color-faint: oklch(0.55 0.028 70);
-  /* Wine #722F37 — CTAs and primary actions */
-  --color-primary: oklch(0.4 0.105 17);
-  --color-primary-bright: oklch(0.46 0.12 17);
-  --color-primary-deep: oklch(0.32 0.088 15);
-  /* Lifted rose-wine for text highlights that must read on near-black */
-  --color-accent: oklch(0.64 0.13 17);
-  --color-accent-dim: oklch(0.56 0.105 17);
-  /* Chart stroke: cream step, validated against the near-black surface */
-  --color-chart: oklch(0.76 0.06 88);
-  --color-accent-ink: oklch(0.17 0.03 20);
-  --color-ok: oklch(0.83 0.085 88);
-  --color-warn: oklch(0.7 0.095 55);
-  --color-bad: oklch(0.56 0.155 20);
+  /* ——— The Cellar palette: two colours on a dark-wine ground ———
+     Wine #722F37 and Dutch White #EFDFBB carry the whole app; the page
+     background is a very dark shade of the same wine (#230A0F), so nothing
+     is pure black. Boxes are solid wine, their type and outline Dutch White. */
+  --color-bg: #230a0f;
+  --color-surface: #2e0f15;
+  --color-surface-2: #3a141b;
+  /* Dutch White at low alpha — the hairline dividers on the dark ground */
+  --color-line: rgb(239 223 187 / 0.22);
+  --color-ink: #efdfbb;
+  --color-muted: rgb(239 223 187 / 0.72);
+  --color-faint: rgb(239 223 187 / 0.5);
+  /* Wine #722F37 — CTA fills and primary actions */
+  --color-primary: #722f37;
+  --color-primary-bright: #843845;
+  --color-primary-deep: #5a252c;
+  /* Emphasis reads in Dutch White on the dark-wine ground */
+  --color-accent: #efdfbb;
+  --color-accent-dim: rgb(239 223 187 / 0.85);
+  --color-chart: #efdfbb;
+  /* Text that sits on a Dutch-White fill (buttons) is wine */
+  --color-accent-ink: #722f37;
+  --color-ok: #efdfbb;
+  --color-warn: oklch(0.72 0.09 60);
+  --color-bad: oklch(0.6 0.16 22);
 
   --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
   --font-serif: "Newsreader Variable", Georgia, serif;
@@ -39,9 +40,9 @@
   --text-3xl: 2.25rem;
   --text-4xl: 2.75rem;
 
-  /* Wine & gold box palette — solid deep-wine fills with gold/tan line + type */
-  --color-gold: #c9a876;
-  --color-card: #4a1420;
+  /* Box palette: solid wine fill, Dutch White line + type */
+  --color-cream: #efdfbb;
+  --color-card: #722f37;
 
   --radius-card: 22px;
   --radius-control: 12px;
@@ -157,61 +158,45 @@ p {
   border-color: var(--color-line);
 }
 
-/* ——— Wine & gold boxes ———
-   Every text box / card wears a solid deep-wine fill (#4A1420), a thin gold
-   outline, and gold type. Inside a box the semantic colour variables are
-   remapped, so existing text-ink / text-muted / border-line / bg-surface
-   utilities on children resolve into the gold-on-wine family automatically. */
+/* ——— Wine & Dutch-White boxes ———
+   Every text box / card wears the same solid wine fill (#722F37), a thin
+   Dutch-White outline, and Dutch-White type. Inside a box the semantic
+   colour variables are remapped, so existing text-ink / text-muted /
+   border-line / bg-surface utilities on children resolve into the
+   cream-on-wine family automatically. One colour — no shade variation. */
 .box {
-  background: var(--box-fill, var(--color-card));
-  border: 1px solid var(--color-gold);
+  background: var(--color-card);
+  border: 1px solid rgb(239 223 187 / 0.55);
   border-radius: var(--radius-card);
-  color: var(--color-gold);
-  --color-ink: var(--color-gold);
-  --color-muted: color-mix(in oklab, var(--color-gold) 80%, transparent);
-  --color-faint: color-mix(in oklab, var(--color-gold) 58%, transparent);
-  --color-accent: var(--color-gold);
-  --color-accent-dim: var(--color-gold);
-  --color-ok: var(--color-gold);
-  --color-warn: var(--color-gold);
-  --color-chart: var(--color-gold);
-  --color-line: color-mix(in oklab, var(--color-gold) 42%, transparent);
-  --color-surface: color-mix(in oklab, var(--box-fill, var(--color-card)) 80%, black);
-  --color-surface-2: color-mix(in oklab, var(--box-fill, var(--color-card)) 62%, black);
+  color: var(--color-cream);
+  --color-ink: var(--color-cream);
+  --color-muted: rgb(239 223 187 / 0.82);
+  --color-faint: rgb(239 223 187 / 0.6);
+  --color-accent: var(--color-cream);
+  --color-accent-dim: rgb(239 223 187 / 0.85);
+  --color-ok: var(--color-cream);
+  --color-warn: var(--color-cream);
+  --color-chart: var(--color-cream);
+  --color-line: rgb(239 223 187 / 0.35);
+  --color-surface: #5c2830;
+  --color-surface-2: #5c2830;
 }
 
 /* Inputs and other control-radius boxes */
 .box-control {
   background: var(--color-card);
-  border: 1px solid color-mix(in oklab, var(--color-gold) 65%, transparent);
+  border: 1px solid rgb(239 223 187 / 0.5);
   border-radius: var(--radius-control);
-  color: var(--color-gold);
+  color: var(--color-cream);
 }
 
 .box-control::placeholder {
-  color: color-mix(in oklab, var(--color-gold) 55%, transparent);
+  color: rgb(239 223 187 / 0.55);
 }
 
 .box-control:focus {
-  border-color: var(--color-gold);
+  border-color: var(--color-cream);
   outline: none;
-}
-
-/* Today-only shade rhythm: each box a slightly different wine, same gold line */
-.box-shade-a {
-  --box-fill: #4a1420;
-}
-
-.box-shade-b {
-  --box-fill: #5a1826;
-}
-
-.box-shade-c {
-  --box-fill: #3e1119;
-}
-
-.box-shade-d {
-  --box-fill: #52182a;
 }
 
 /* Wide-tracked uppercase section labels (STATS, VOCAL DELIVERY) */

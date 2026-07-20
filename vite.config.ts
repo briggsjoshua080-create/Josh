@@ -48,14 +48,14 @@ export default defineConfig({
     devApi(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["orato-icon*.png", "orato-icon.svg"],
+      includeAssets: ["orato-icon*.png", "orato-logo.png"],
       manifest: {
         name: "Orato — Speech Training Studio",
         short_name: "Orato",
         description:
           "Daily speaking challenges and AI speech coaching. Train like a future politician, storyteller, and communication expert.",
-        theme_color: "#0D0B0A",
-        background_color: "#0D0B0A",
+        theme_color: "#230A0F",
+        background_color: "#230A0F",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
