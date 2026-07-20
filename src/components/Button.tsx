@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "gold" | "ghost";
+  variant?: "primary" | "gold" | "ghost" | "danger";
   size?: "md" | "lg";
   children: ReactNode;
 }
@@ -17,6 +17,7 @@ const VARIANTS: Record<string, string> = {
   gold: "bg-accent text-accent-ink hover:brightness-105 active:brightness-95",
   ghost:
     "bg-transparent text-ink border border-line hover:bg-surface active:bg-surface-2",
+  danger: "bg-bad text-white hover:brightness-110 active:brightness-90",
 };
 
 const SIZES: Record<string, string> = {

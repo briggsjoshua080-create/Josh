@@ -59,6 +59,13 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
   check: <path d="M4.5 12.5l5 5 10-11" />,
+  chevronDown: <path d="M6 9.5l6 6 6-6" />,
+  gear: (
+    <>
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+    </>
+  ),
   x: <path d="M6 6l12 12M18 6L6 18" />,
   arrowRight: <path d="M4 12h16m-6-6l6 6-6 6" />,
   arrowLeft: <path d="M20 12H4m6-6l-6 6 6 6" />,

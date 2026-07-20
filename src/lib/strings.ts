@@ -5,8 +5,10 @@
 export const strings = {
   // App shell
   navToday: { en: "Today", de: "Heute" },
-  navLibrary: { en: "Library", de: "Szenarien" },
+  navScenarios: { en: "Scenarios", de: "Szenarien" },
+  navLibrary: { en: "Library", de: "Bibliothek" },
   navProgress: { en: "Progress", de: "Fortschritt" },
+  navSettings: { en: "Settings", de: "Einstellungen" },
   appName: { en: "Orato", de: "Orato" },
 
   // Today screen
@@ -21,6 +23,31 @@ export const strings = {
     en: "Work it into today's recording.",
     de: "Baue es in deine heutige Aufnahme ein.",
   },
+  wordRevealHint: { en: "Tap to reveal", de: "Zum Aufdecken tippen" },
+  wordUsePrompt: {
+    en: "Use today's word in a sentence",
+    de: "Verwende das heutige Wort in einem Satz",
+  },
+  wordUseBonusHint: {
+    en: "Used correctly, it earns +{n} XP — once per daily word.",
+    de: "Richtig verwendet gibt es +{n} XP — einmal pro Tageswort.",
+  },
+  wordUsePlaceholder: {
+    en: "Write your sentence here…",
+    de: "Schreib deinen Satz hierhin…",
+  },
+  wordUseSubmit: { en: "Check my sentence", de: "Satz prüfen" },
+  wordUseChecking: { en: "Your coach is reading…", de: "Dein Coach liest…" },
+  wordUseTryAgain: { en: "Edit your sentence and try again.", de: "Überarbeite deinen Satz und versuch es erneut." },
+  wordUseOffline: {
+    en: "Couldn't reach your coach — check your connection and try again. Nothing was lost.",
+    de: "Dein Coach war nicht erreichbar — prüfe deine Verbindung und versuch es erneut. Nichts ist verloren.",
+  },
+  wordUseEarned: { en: "+{n} XP earned", de: "+{n} XP verdient" },
+  wordUseDone: {
+    en: "Bonus earned — you used today's word correctly.",
+    de: "Bonus verdient — du hast das heutige Wort richtig verwendet.",
+  },
   beginSession: { en: "Take the stage", de: "Auf die Bühne" },
   doneToday: { en: "Day {n} complete", de: "Tag {n} geschafft" },
   doneTodaySub: {
@@ -34,7 +61,19 @@ export const strings = {
   coachFocus: { en: "Coach's focus", de: "Fokus des Coaches" },
   dailyTipsTitle: { en: "Today's communication insights", de: "Kommunikations-Impulse des Tages" },
 
-  // Library
+  // Library (speaking & communication techniques)
+  tipsTitle: { en: "Library", de: "Bibliothek" },
+  tipsSub: {
+    en: "{n} speaking & communication techniques — yours from day one, no unlocks.",
+    de: "{n} Sprech- und Kommunikationstechniken — ab Tag eins frei, nichts gesperrt.",
+  },
+  searchTips: { en: "Search techniques…", de: "Techniken durchsuchen…" },
+  tipsContextFilter: { en: "Context", de: "Kontext" },
+  tipsEffectFilter: { en: "Effect", de: "Wirkung" },
+  tipsSourceLabel: { en: "Source", de: "Quelle" },
+  tipsCaveatLabel: { en: "Caveat", de: "Einordnung" },
+
+  // Scenarios
   libraryTitle: { en: "Scenario library", de: "Szenario-Bibliothek" },
   librarySub: {
     en: "{n} rehearsal rooms. Pick one or let fate decide.",
@@ -289,6 +328,40 @@ export const strings = {
     de: "Noch keine Sessions. Deine erste Aufnahme eröffnet die Chronik.",
   },
   emptyProgressCta: { en: "Record your first session", de: "Nimm deine erste Session auf" },
+
+  // Settings
+  settingsTitle: { en: "Settings", de: "Einstellungen" },
+  settingsSub: {
+    en: "Everything Orato knows lives on this device.",
+    de: "Alles, was Orato weiß, liegt auf diesem Gerät.",
+  },
+  settingsLanguage: { en: "Language", de: "Sprache" },
+  settingsDataTitle: { en: "Data", de: "Daten" },
+  resetDataTitle: { en: "Reset app data", de: "App-Daten zurücksetzen" },
+  resetDataDesc: {
+    en: "Wipe all progress and preferences from this device and start over from day one.",
+    de: "Löscht allen Fortschritt und alle Einstellungen von diesem Gerät — du startest wieder bei Tag eins.",
+  },
+  resetDataButton: { en: "Reset data", de: "Daten zurücksetzen" },
+  resetConfirmTitle: { en: "Reset everything?", de: "Wirklich alles zurücksetzen?" },
+  resetConfirmBody: {
+    en: "This is permanent and cannot be undone. It will erase:",
+    de: "Das ist endgültig und kann nicht rückgängig gemacht werden. Gelöscht werden:",
+  },
+  resetItemXp: { en: "Your XP and level", de: "Deine XP und dein Level" },
+  resetItemStreak: { en: "Your streaks", de: "Deine Serien" },
+  resetItemHistory: { en: "Your practice history and scores", de: "Dein Übungsverlauf und deine Scores" },
+  resetItemRecordings: {
+    en: "Saved recordings and transcripts",
+    de: "Gespeicherte Aufnahmen und Transkripte",
+  },
+  resetItemSettings: {
+    en: "All settings and preferences (back to defaults)",
+    de: "Alle Einstellungen und Präferenzen (zurück auf Standard)",
+  },
+  resetConfirmYes: { en: "Yes, reset everything", de: "Ja, alles zurücksetzen" },
+  resetConfirmCancel: { en: "Cancel", de: "Abbrechen" },
+  resetWorking: { en: "Resetting…", de: "Wird zurückgesetzt…" },
 
   // Misc
   minutes: { en: "min", de: "Min." },
