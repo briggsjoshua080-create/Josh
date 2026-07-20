@@ -38,7 +38,7 @@ export function Settings() {
       {/* Language */}
       <section className="mt-8">
         <h2 className="label-caps">{t("settingsLanguage")}</h2>
-        <div className="mt-3 flex rounded-(--radius-card) border border-line bg-surface p-1" role="radiogroup">
+        <div className="mt-3 flex box p-1" role="radiogroup">
           {(["en", "de"] as Lang[]).map((l) => (
             <button
               key={l}
@@ -58,7 +58,7 @@ export function Settings() {
       {/* Data */}
       <section className="mt-10">
         <h2 className="label-caps">{t("settingsDataTitle")}</h2>
-        <div className="mt-3 rounded-(--radius-card) border border-line bg-surface p-5">
+        <div className="mt-3 box p-5">
           <h3 className="text-base font-medium text-ink">{t("resetDataTitle")}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-muted">{t("resetDataDesc")}</p>
           <Button

@@ -47,7 +47,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-sm rounded-(--radius-card) border border-line bg-surface p-6"
+        className="w-full max-w-sm box p-6"
         style={{ zIndex: "var(--z-sheet)" }}
         onClick={(e) => e.stopPropagation()}
       >

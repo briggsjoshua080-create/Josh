@@ -127,7 +127,7 @@ export function Progress() {
       {/* ——— Focus point: the weakest metric of the recent sessions ——— */}
       {focus && (
         <section
-          className="snap-section mt-6 rounded-(--radius-card) border border-accent/40 bg-accent/5 p-5"
+          className="snap-section mt-6 box p-5"
           data-testid="focus-point"
         >
           <div className="flex items-center justify-between gap-3">
@@ -215,7 +215,7 @@ export function Progress() {
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-(--radius-card) border border-line px-2 py-3 text-center">
+    <div className="box px-2 py-3 text-center">
       <p className="lectern tnum text-xl font-semibold text-ink">{value}</p>
       <p className="mt-0.5 text-xs text-muted">{label}</p>
     </div>

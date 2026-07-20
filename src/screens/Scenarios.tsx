@@ -129,7 +129,7 @@ export function Scenarios() {
           <h1 className="text-2xl font-semibold text-ink">{t("libraryTitle")}</h1>
           <p className="mt-1 text-sm text-muted">{t("librarySub", { n: SCENARIOS.length })}</p>
         </div>
-        <div className="flex shrink-0 rounded-full border border-line p-0.5" role="tablist">
+        <div className="flex shrink-0 rounded-full border border-gold/60 bg-card p-0.5" role="tablist">
           {(["deck", "list"] as const).map((v) => (
             <button
               key={v}
@@ -137,7 +137,7 @@ export function Scenarios() {
               aria-selected={view === v}
               onClick={() => setView(v)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
-                view === v ? "bg-surface-2 text-ink" : "text-muted hover:text-ink"
+                view === v ? "bg-gold/20 text-gold" : "text-gold/65 hover:text-gold"
               }`}
             >
               {v === "deck" ? t("viewDeck") : t("viewList")}
@@ -149,7 +149,7 @@ export function Scenarios() {
       {/* Recommended next / first-run empty state */}
       {recommended &&
         (masteryById.size === 0 ? (
-          <section className="mt-6 rounded-(--radius-card) border border-accent/40 bg-accent/5 p-5">
+          <section className="mt-6 box p-5">
             <h2 className="font-medium text-ink">{t("emptyLibraryTitle")}</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{t("emptyLibraryBody")}</p>
             <p className="lectern mt-2 text-lg text-ink">{recommended.scenario.title[lang]}</p>
@@ -160,7 +160,7 @@ export function Scenarios() {
           </section>
         ) : (
           <section
-            className="mt-6 rounded-(--radius-card) border border-accent/40 bg-accent/5 p-5"
+            className="mt-6 box p-5"
             data-testid="recommended-next"
           >
             <div className="flex items-center justify-between gap-3">
@@ -198,7 +198,7 @@ export function Scenarios() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("searchScenarios")}
           aria-label={t("searchScenarios")}
-          className="h-11 w-full rounded-(--radius-control) border border-line bg-surface px-4 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          className="box-control h-11 w-full px-4 text-base"
         />
       </div>
       <div className="mt-3 flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap">
@@ -215,9 +215,9 @@ export function Scenarios() {
 
       <button
         onClick={surprise}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-(--radius-control) border border-line py-3 text-base font-medium text-ink transition-colors hover:bg-surface"
+        className="box-control mt-4 flex w-full items-center justify-center gap-2 py-3 text-base font-medium transition-colors hover:bg-card/70"
       >
-        <Icon name="dice" size={18} className="text-muted" />
+        <Icon name="dice" size={18} className="text-gold/70" />
         {t("surpriseMe")}
       </button>
 
@@ -350,7 +350,7 @@ function ScenariosSkeleton({ title }: { title: string }) {
         ))}
       </div>
       <div className="mt-6 lg:mx-auto lg:max-w-md">
-        <div className="h-[420px] animate-pulse rounded-(--radius-card) border border-line bg-surface" />
+        <div className="h-[420px] animate-pulse box bg-surface" />
       </div>
     </div>
   );
