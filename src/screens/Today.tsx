@@ -8,6 +8,8 @@ import { requestWordCheck, type WordCheckResult } from "@/lib/feedback";
 import { WORD_USE_BONUS } from "@/lib/progression";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { SnapSection } from "@/components/SnapSection";
+import { TodayHero } from "@/components/TodayHero";
 import type { Session, WordEntry } from "@/lib/types";
 
 export function Today() {
@@ -33,39 +35,47 @@ export function Today() {
   const word = wordForDay(state.day, lang);
   const mins = (s: number) => (s >= 60 ? `${Math.round(s / 60)} ${t("minutes")}` : `${s} ${t("seconds")}`);
 
+  const streakLabel =
+    state.streak === 1 ? t("streakOneDay") : state.streak > 0 ? t("streakDays", { n: state.streak }) : t("streakNone");
+
   return (
     <div className="pt-2 lg:pt-0">
-      {/* Day + streak line */}
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold text-ink">{t("dayLabel", { n: state.day })}</h1>
-        <span className={`flex items-center gap-1.5 text-sm ${state.streak > 0 ? "text-accent" : "text-muted"}`}>
-          <Icon name="flame" size={16} />
-          {state.streak === 1
-            ? t("streakOneDay")
-            : state.streak > 0
-              ? t("streakDays", { n: state.streak })
-              : t("streakNone")}
-        </span>
+      {/* Duolingo-style streak pin — always visible, even mid-scroll */}
+      <div
+        className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+8px)] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-line bg-bg/85 px-3 py-1 backdrop-blur-sm"
+        style={{ zIndex: "var(--z-pin)" }}
+        role="status"
+        aria-label={streakLabel}
+        data-testid="streak-pin"
+      >
+        <Icon name="flame" size={15} className="text-ink" />
+        <span className="tnum text-sm font-semibold text-ink">{state.streak}</span>
       </div>
-      <p className="mt-1 text-sm text-muted">
-        {isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
-      </p>
+
+      {/* Hero collage + day heading */}
+      <SnapSection>
+        <TodayHero />
+        <h1 className="mt-4 text-2xl font-semibold text-ink">{t("dayLabel", { n: state.day })}</h1>
+        <p className="mt-1 text-sm text-muted">
+          {isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
+        </p>
+      </SnapSection>
 
       {/* Word of the day — definition hidden until tapped */}
-      <section className="mt-8">
+      <SnapSection className="mt-8">
         <h2 className="flex items-center gap-2 text-sm font-medium text-accent">
           <Icon name="sparkle" size={16} />
           {t("wordOfDay")}
         </h2>
         <WordOfDay key={`${state.day}:${lang}`} word={word} day={state.day} />
-      </section>
+      </SnapSection>
 
       {/* Challenge */}
-      <section className="mt-10">
+      <SnapSection className="mt-10">
         <h2 className="text-sm font-medium text-muted">{t("todayChallenge")}</h2>
         {state.doneToday ? (
           <div className="mt-3">
-            <div className="flex items-center gap-3 rounded-(--radius-card) border border-line bg-surface p-5">
+            <div className="flex items-center gap-3 rounded-(--radius-card) border border-line p-5">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ok/15 text-ok">
                 <Icon name="check" size={22} />
               </span>
@@ -118,15 +128,15 @@ export function Today() {
             </Button>
           </>
         )}
-      </section>
+      </SnapSection>
 
       {/* Daily communication tips — three rotate with the calendar */}
-      <section className="mt-10">
+      <SnapSection className="mt-10 pb-4">
         <h2 className="flex items-center gap-2 text-sm font-medium text-accent">
           <Icon name="sparkle" size={16} />
           {t("dailyTipsTitle")}
         </h2>
-        <div className="mt-3 rounded-(--radius-card) border border-line bg-surface p-5" data-testid="daily-tips">
+        <div className="mt-3 rounded-(--radius-card) border border-line p-5" data-testid="daily-tips">
           <ul className="flex flex-col gap-4">
             {tipsForToday().map((tip) => (
               <li key={tip.title.en}>
@@ -136,7 +146,7 @@ export function Today() {
             ))}
           </ul>
         </div>
-      </section>
+      </SnapSection>
     </div>
   );
 }
@@ -183,14 +193,18 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
   }
 
   return (
-    <div className="mt-3 rounded-(--radius-card) border border-line bg-surface">
+    <div className="mt-3 rounded-(--radius-card) border border-line">
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         className="flex w-full items-center gap-3 p-5 text-left"
         data-testid="word-of-day-toggle"
       >
-        <span className="lectern text-2xl text-ink">{word.word}</span>
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
+          <span className="lectern text-2xl text-ink">{word.word}</span>
+          {/* Dictionary-style IPA, always visible next to the word */}
+          <span className="text-sm text-muted">{word.pronunciation}</span>
+        </span>
         {done && (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
             <Icon name="check" size={13} />
@@ -206,10 +220,7 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
 
       {open && (
         <div className="border-t hairline p-5 pt-4">
-          <div className="flex items-baseline gap-3">
-            <span className="text-sm text-muted italic">{word.pos}</span>
-            <span className="tnum ml-auto text-sm text-muted">{word.pronunciation}</span>
-          </div>
+          <span className="text-sm text-muted italic">{word.pos}</span>
           <p className="mt-2 text-base text-ink/90">{word.definition}</p>
           <p className="lectern mt-3 text-base italic text-muted">“{word.example}”</p>
           <p className="mt-3 text-sm text-accent-dim">{t("wordOfDayHint")}</p>

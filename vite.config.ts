@@ -54,8 +54,8 @@ export default defineConfig({
         short_name: "Orato",
         description:
           "Daily speaking challenges and AI speech coaching. Train like a future politician, storyteller, and communication expert.",
-        theme_color: "#17110F",
-        background_color: "#17110F",
+        theme_color: "#0D0B0A",
+        background_color: "#0D0B0A",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",

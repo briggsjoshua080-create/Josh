@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import {
   CONTEXT_TAGS,
@@ -30,6 +30,7 @@ export function Library() {
 
   return (
     <div className="pt-2 lg:pt-0">
+      <section className="snap-section">
       <h1 className="text-2xl font-semibold text-ink">{t("tipsTitle")}</h1>
       <p className="mt-1 text-sm text-muted">{t("tipsSub", { n: LIBRARY_CARDS.length })}</p>
 
@@ -58,6 +59,7 @@ export function Library() {
         active={effectTag}
         onPick={(tag) => setEffectTag(effectTag === tag ? null : tag)}
       />
+      </section>
 
       {list.length === 0 ? (
         <p className="mt-10 text-center text-sm text-muted">{t("noResults")}</p>
@@ -117,8 +119,17 @@ function TechniqueCard({
   sourceLabel: string;
   caveatLabel: string;
 }) {
+  const ref = useRef<HTMLLIElement>(null);
+
+  // Opening a card snaps it flush to the top so its full text is on screen.
+  useEffect(() => {
+    if (!open) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ref.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  }, [open]);
+
   return (
-    <li className="rounded-(--radius-card) border border-line bg-surface">
+    <li ref={ref} className="snap-section rounded-(--radius-card) border border-line">
       <button
         onClick={onToggle}
         aria-expanded={open}

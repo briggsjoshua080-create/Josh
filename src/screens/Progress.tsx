@@ -91,6 +91,7 @@ export function Progress() {
   return (
     <div className="pt-2 lg:pt-0">
       {/* ——— Level hero ——— */}
+      <section className="snap-section">
       <div className="mt-2 flex items-start justify-between gap-4">
         <div>
           <div className="flex items-baseline gap-3">
@@ -113,9 +114,10 @@ export function Progress() {
             : t("maxRank")}
         </p>
       </div>
+      </section>
 
       {/* ——— Headline aggregates across all sessions ——— */}
-      <section className="mt-8 grid grid-cols-4 gap-2" data-testid="progress-stats">
+      <section className="snap-section mt-8 grid grid-cols-4 gap-2" data-testid="progress-stats">
         <StatTile label={t("sessionsCount")} value={sessions.length} />
         <StatTile label={t("avgScore")} value={avgScore} />
         <StatTile label={t("bestScore")} value={bestScore} />
@@ -125,7 +127,7 @@ export function Progress() {
       {/* ——— Focus point: the weakest metric of the recent sessions ——— */}
       {focus && (
         <section
-          className="mt-6 rounded-(--radius-card) border border-accent/40 bg-accent/5 p-5"
+          className="snap-section mt-6 rounded-(--radius-card) border border-accent/40 bg-accent/5 p-5"
           data-testid="focus-point"
         >
           <div className="flex items-center justify-between gap-3">
@@ -145,7 +147,7 @@ export function Progress() {
       )}
 
       {/* ——— The eight stats ——— */}
-      <section className="mt-10">
+      <section className="snap-section mt-10">
         <h2 className="label-caps">{t("statsLabel")}</h2>
         <div className="mt-4 flex flex-col gap-5">
           {METRIC_KEYS.map((key, i) => (
@@ -166,7 +168,7 @@ export function Progress() {
 
       {/* Trend */}
       {sessions.length >= 2 && (
-        <section className="mt-10 border-t hairline pt-6">
+        <section className="snap-section mt-10 border-t hairline pt-6">
           <h2 className="text-sm font-medium text-muted">{t("trendTitle")}</h2>
           <div className="mt-3">
             <TrendChart
@@ -182,7 +184,7 @@ export function Progress() {
       )}
 
       {/* History */}
-      <section className="mt-8">
+      <section className="snap-section mt-8">
         <h2 className="text-sm font-medium text-muted">{t("historyTitle")}</h2>
         <ul className="mt-3 flex flex-col">
           {[...sessions].reverse().map((s) => (
@@ -213,7 +215,7 @@ export function Progress() {
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-(--radius-card) bg-surface px-2 py-3 text-center">
+    <div className="rounded-(--radius-card) border border-line px-2 py-3 text-center">
       <p className="lectern tnum text-xl font-semibold text-ink">{value}</p>
       <p className="mt-0.5 text-xs text-muted">{label}</p>
     </div>
