@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  /* ——— The Cellar palette: wine-label black, Dutch White, Wine ———
-     Base hexes: bg #0D0B0A · ink #EFDFBB (Dutch White) · accent #722F37 (Wine).
-     Every other value is a tint/shade of those three — nothing outside the family. */
-  --color-bg: oklch(0.145 0.006 40);
-  --color-surface: oklch(0.175 0.012 25);
-  --color-surface-2: oklch(0.215 0.018 22);
+  /* ——— The Cellar palette: wine-black, Dutch White, Wine ———
+     Base hexes: bg #230A0F · ink #EFDFBB (Dutch White) · accent #722F37 (Wine).
+     Every other value is a tint/shade of those three — nothing outside the family.
+     The three base hexes are sampled from the reference screen. */
+  --color-bg: #230a0f;
+  --color-surface: oklch(0.21 0.035 18);
+  --color-surface-2: oklch(0.26 0.05 18);
   /* Wine at ~30% — the thin outline every content box wears instead of a fill */
   --color-line: oklch(0.42 0.105 17 / 0.32);
   --color-ink: oklch(0.905 0.048 92);
@@ -39,9 +40,11 @@
   --text-3xl: 2.25rem;
   --text-4xl: 2.75rem;
 
-  /* Wine & gold box palette — solid deep-wine fills with gold/tan line + type */
+  /* Wine & gold box palette — solid wine fills with gold/tan line + type */
   --color-gold: #c9a876;
-  --color-card: #4a1420;
+  --color-card: #722f37;
+  /* The parchment half of the Today hero card */
+  --color-parchment: #efdfbb;
 
   --radius-card: 22px;
   --radius-control: 12px;
@@ -158,7 +161,7 @@ p {
 }
 
 /* ——— Wine & gold boxes ———
-   Every text box / card wears a solid deep-wine fill (#4A1420), a thin gold
+   Every text box / card wears a solid wine fill (#722F37), a thin gold
    outline, and gold type. Inside a box the semantic colour variables are
    remapped, so existing text-ink / text-muted / border-line / bg-surface
    utilities on children resolve into the gold-on-wine family automatically. */
@@ -197,21 +200,23 @@ p {
   outline: none;
 }
 
-/* Today-only shade rhythm: each box a slightly different wine, same gold line */
+/* Today-only shade rhythm: each box a slightly different wine, same gold line.
+   Kept within a couple of steps of the base wine — the reference screen reads
+   as one card colour, not four. */
 .box-shade-a {
-  --box-fill: #4a1420;
+  --box-fill: #722f37;
 }
 
 .box-shade-b {
-  --box-fill: #5a1826;
+  --box-fill: #7a343d;
 }
 
 .box-shade-c {
-  --box-fill: #3e1119;
+  --box-fill: #6a2b33;
 }
 
 .box-shade-d {
-  --box-fill: #52182a;
+  --box-fill: #7d363f;
 }
 
 /* Wide-tracked uppercase section labels (STATS, VOCAL DELIVERY) */
@@ -245,10 +250,10 @@ p {
    box carries .snap-section so a flick lands it flush at the top of the
    screen — no half-visible boxes. Desktop pointers get the gentler proximity
    flavour; reduced motion falls back to plain scrolling entirely. */
-/* Height of the sticky mobile header (logo row + streak/XP row). Snapped
+/* Height of the sticky mobile header. Snapped
    sections clear it instead of sliding underneath. */
 :root {
-  --header-h: 96px;
+  --header-h: 60px;
 }
 
 html[data-snap] {

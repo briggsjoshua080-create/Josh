@@ -112,8 +112,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh lg:grid lg:grid-cols-[220px_1fr]">
       {/* Desktop rail */}
       <aside className="hidden lg:flex flex-col gap-1 border-r hairline px-4 py-6 sticky top-0 h-dvh">
-        <div className="mb-8 flex flex-col items-center gap-3 px-3">
-          <Logo size={52} />
+        <div className="mb-8 flex flex-col gap-3 px-3">
+          <Wordmark size={40} />
           <HeaderStats />
         </div>
         {navItems}
@@ -138,31 +138,30 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile header — the logo centred, controls docked to the corners,
             streak and XP on a slim second row underneath. Sits outside <main>,
             so it is not part of the swipe container hierarchy. */}
-        {/* Sticky: the streak it now carries used to be a fixed pin, and the
-            snap scroller would otherwise park it off-screen on the first flick. */}
+        {/* Mobile header — mark and wordmark left, stats centre, controls right,
+            as in the reference screen. Sticky because the streak it carries
+            used to be a fixed pin, and the snap scroller would otherwise park
+            it off-screen on the first flick. Sits outside <main>, so it is not
+            part of the swipe container hierarchy. */}
         <header
-          className="lg:hidden sticky top-0 bg-bg/95 backdrop-blur-sm px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-2.5"
+          className="lg:hidden sticky top-0 flex items-center gap-3 bg-bg/95 px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-3 backdrop-blur-sm"
           style={{ zIndex: "var(--z-nav)" }}
         >
-          {/* Three equal columns keep the mark optically centred no matter how
-              wide the language toggle gets in German. */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <div className="justify-self-start">
-              <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} compact />
-            </div>
-            <Logo size={44} />
+          <Wordmark />
+          <div className="min-w-0 flex-1">
+            <HeaderStats />
+          </div>
+          <div className="flex shrink-0 items-center gap-2.5">
+            <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} compact />
             <NavLink
               to="/settings"
               aria-label={t("navSettings")}
               className={({ isActive }) =>
-                `justify-self-end transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
+                `transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
               }
             >
               <Icon name="gear" size={20} />
             </NavLink>
-          </div>
-          <div className="mt-2">
-            <HeaderStats />
           </div>
         </header>
 
@@ -196,23 +195,25 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * The orator mark — the same artwork as the home-screen icon and the splash,
- * generated from public/icons/orato-logo-source.png.
+ * The orator mark plus the name — the same artwork as the home-screen icon and
+ * the splash, generated from public/icons/orato-logo-source.png. Rounded-square
+ * tile, not a circle: the textured wine ground is part of the artwork.
  */
-function Logo({ size }: { size: number }) {
+function Wordmark({ size = 38 }: { size?: number }) {
   return (
-    <Link to="/" aria-label="Orato" className="block shrink-0 leading-none">
-      {/* Rounded-square tile, not a circle: the textured wine ground is part
-          of the artwork, and a round crop would throw it away. */}
+    <Link to="/" aria-label="Orato" className="flex shrink-0 items-center gap-2.5 leading-none">
       <img
         src="/icons/icon-192.png"
-        alt="Orato"
+        alt=""
         width={size}
         height={size}
         draggable={false}
         style={{ width: size, height: size, borderRadius: "23%" }}
         className="select-none border border-gold/40"
       />
+      <span className="lectern text-xl font-semibold tracking-tight text-ink">
+        Orato<span className="text-gold">.</span>
+      </span>
     </Link>
   );
 }

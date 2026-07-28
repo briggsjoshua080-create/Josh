@@ -1,144 +1,350 @@
-import { useEffect, type CSSProperties } from "react";
-import { motion, useReducedMotion, type Transition } from "motion/react";
+import { useEffect, useRef, type CSSProperties } from "react";
+import { useReducedMotion } from "motion/react";
 
 /**
- * Launch splash — the logo forming itself on a deep wine ground:
- *   1. a clock-hand sweep uncovers the emblem from 12 o'clock, clockwise
- *   2. once it closes the circle the whole mark settles 96% → 100%
- *   3. 200ms later "orato" fades and slides up beneath it, in gold
- * Then the overlay fades out over the booted app. Total ≈2.35s to onDone.
+ * Launch splash — the logo shatters into the wordmark.
  *
- * The sweep is a conic-gradient mask driven by the --sweep custom property,
- * animated by Motion. A clipPath can only iris outwards from the centre; a
- * conic mask is the one that actually reads as a hand going round the dial.
+ *   1. shards fly in from off-centre and assemble into the Orato mark
+ *   2. the mark holds for a beat
+ *   3. it breaks apart, the pieces scattering outward
+ *   4. those pieces reassemble into "orato" in gold
+ *   5. the overlay fades over the booted app
  *
- * Under prefers-reduced-motion nothing animates: the finished state (full
- * emblem + wordmark) renders on the first frame and hands off quickly.
+ * Canvas rather than DOM: this is ~200 independently transformed pieces per
+ * frame, which is cheap to draw and ruinous as elements. The reference
+ * animation runs 7.6s; a splash the user sees on every launch cannot, so the
+ * same five beats are compressed into ~2.6s.
+ *
+ * Under prefers-reduced-motion nothing animates — the finished wordmark and
+ * mark render once and hand off immediately.
  */
 const GOLD = "#C9A876";
+const DONE_MS = 2650;
+const REDUCED_DONE_MS = 700;
 
-/** Timeline, in seconds. Kept here so the sequence stays readable. */
-const SWEEP_S = 1.35;
-const SETTLE_S = 0.4;
-const WORD_GAP_S = 0.2;
-const WORD_S = 0.4;
-const FADE_S = 0.3;
-const DONE_MS = (SWEEP_S + SETTLE_S + WORD_GAP_S + WORD_S + FADE_S) * 1000; // 2350
-const REDUCED_DONE_MS = 600;
+/** Timeline in seconds. Each phase staggers its pieces across `stagger`. */
+const LOGO_IN = { start: 0.0, dur: 0.85, stagger: 0.28 };
+const LOGO_OUT = { start: 1.25, dur: 0.45, stagger: 0.22 };
+const TEXT_IN = { start: 1.45, dur: 0.75, stagger: 0.3 };
+const FADE = { start: 2.35, dur: 0.3 };
+
+/** Grid resolution of the shatter. Bigger = finer shards, more draw calls. */
+const LOGO_COLS = 9;
+const TEXT_COLS = 26;
+const TEXT_ROWS = 7;
+
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+const easeInCubic = (t: number) => t * t * t;
+
+interface Piece {
+  /** Source rect inside the offscreen canvas. */
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+  /** Destination centre on stage, and drawn size. */
+  tx: number;
+  ty: number;
+  dw: number;
+  dh: number;
+  /** Where the piece flies in from, and where it flies out to. */
+  inDx: number;
+  inDy: number;
+  inRot: number;
+  outDx: number;
+  outDy: number;
+  outRot: number;
+  /** 0–1 position in the stagger. */
+  delay: number;
+}
 
 /**
- * Opaque up to --sweep, transparent after. At 360deg the transparent stop
- * clamps back to 360deg, leaving the mark fully painted — so the resting
- * state is correct even if the property never animates.
+ * Cut a canvas into a grid of pieces laid out around (cx, cy), each given a
+ * random fly-in origin and fly-out heading. Cells that are fully transparent
+ * are dropped, so text costs only as many pieces as it has ink.
  */
-const SWEEP_MASK = "conic-gradient(from 0deg at 50% 50%, #000 var(--sweep), transparent 0deg)";
+function slice(
+  src: HTMLCanvasElement,
+  cols: number,
+  rows: number,
+  cx: number,
+  cy: number,
+  spread: number,
+): Piece[] {
+  const cw = src.width / cols;
+  const ch = src.height / rows;
+  const left = cx - src.width / 2;
+  const top = cy - src.height / 2;
 
-const EASE_OUT_QUINT = [0.22, 1, 0.36, 1] as const;
+  const ctx = src.getContext("2d", { willReadFrequently: true })!;
+  const { data } = ctx.getImageData(0, 0, src.width, src.height);
+
+  const pieces: Piece[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const sx = Math.floor(c * cw);
+      const sy = Math.floor(r * ch);
+      const sw = Math.ceil(cw);
+      const sh = Math.ceil(ch);
+
+      // Drop empty cells — sample a coarse lattice rather than every pixel.
+      let ink = false;
+      for (let y = sy; y < Math.min(sy + sh, src.height) && !ink; y += 2) {
+        for (let x = sx; x < Math.min(sx + sw, src.width); x += 2) {
+          if (data[(y * src.width + x) * 4 + 3] > 12) {
+            ink = true;
+            break;
+          }
+        }
+      }
+      if (!ink) continue;
+
+      const angle = Math.random() * Math.PI * 2;
+      const dist = spread * (0.45 + Math.random() * 0.85);
+      const outAngle = Math.random() * Math.PI * 2;
+
+      pieces.push({
+        sx,
+        sy,
+        sw,
+        sh,
+        tx: left + sx + sw / 2,
+        ty: top + sy + sh / 2,
+        dw: sw,
+        dh: sh,
+        inDx: Math.cos(angle) * dist,
+        inDy: Math.sin(angle) * dist,
+        inRot: (Math.random() - 0.5) * 2.6,
+        outDx: Math.cos(outAngle) * spread * 0.9,
+        outDy: Math.sin(outAngle) * spread * 0.5 + spread * 0.35,
+        outRot: (Math.random() - 0.5) * 3.2,
+        delay: Math.random(),
+      });
+    }
+  }
+  return pieces;
+}
+
+/** Draw the mark into an offscreen canvas at the size it will occupy. */
+function markCanvas(img: HTMLImageElement, size: number): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  // Rounded-square tile, matching the header and hero treatment.
+  const r = size * 0.23;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.arcTo(size, 0, size, size, r);
+  ctx.arcTo(size, size, 0, size, r);
+  ctx.arcTo(0, size, 0, 0, r);
+  ctx.arcTo(0, 0, size, 0, r);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(img, 0, 0, size, size);
+  return c;
+}
+
+/**
+ * "orato" set plainly — the reference wordmark is a custom script, but the
+ * ask was for basic lettering, so this is the app's own sans, letter-spaced.
+ * Characters are placed individually: ctx.letterSpacing is too new to rely on.
+ */
+function wordCanvas(fontPx: number): HTMLCanvasElement {
+  const text = "orato";
+  const tracking = fontPx * 0.3;
+  const probe = document.createElement("canvas").getContext("2d")!;
+  const font = `500 ${fontPx}px "Instrument Sans Variable", system-ui, sans-serif`;
+  probe.font = font;
+
+  const widths = [...text].map((ch) => probe.measureText(ch).width);
+  const total = widths.reduce((a, b) => a + b, 0) + tracking * (text.length - 1);
+  const pad = Math.ceil(fontPx * 0.35);
+
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(total) + pad * 2;
+  c.height = Math.ceil(fontPx * 1.5);
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.font = font;
+  ctx.fillStyle = GOLD;
+  ctx.textBaseline = "middle";
+
+  let x = pad;
+  for (let i = 0; i < text.length; i++) {
+    ctx.fillText(text[i], x, c.height / 2);
+    x += widths[i] + tracking;
+  }
+  return c;
+}
+
+/** Progress of one piece through a phase, including its share of the stagger. */
+function phase(t: number, p: { start: number; dur: number; stagger: number }, delay: number) {
+  return clamp01((t - p.start - delay * p.stagger) / p.dur);
+}
 
 export default function OratoSplash({ onDone }: { onDone?: () => void }) {
   const reduced = useReducedMotion();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const t = setTimeout(() => onDone?.(), reduced ? REDUCED_DONE_MS : DONE_MS);
     return () => clearTimeout(t);
   }, [onDone, reduced]);
 
-  const sweep: Transition = { duration: SWEEP_S, ease: "linear" };
-  const settle: Transition = { duration: SETTLE_S, delay: SWEEP_S, ease: EASE_OUT_QUINT };
-  const word: Transition = {
-    duration: WORD_S,
-    delay: SWEEP_S + SETTLE_S + WORD_GAP_S,
-    ease: EASE_OUT_QUINT,
-  };
-  const overlay: Transition = {
-    duration: FADE_S,
-    delay: SWEEP_S + SETTLE_S + WORD_GAP_S + WORD_S,
-    ease: "easeOut",
-  };
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let raf = 0;
+    let cancelled = false;
+
+    const img = new Image();
+    img.src = "/icons/icon-512.png";
+
+    function start() {
+      if (cancelled || !canvas || !ctx) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      canvas.width = Math.round(vw * dpr);
+      canvas.height = Math.round(vh * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const cx = vw / 2;
+      const cy = vh * 0.46;
+      const spread = Math.min(vw, vh) * 0.42;
+
+      const markSize = Math.round(Math.min(vw * 0.56, 220));
+      const mark = markCanvas(img, markSize);
+      const markPieces = slice(mark, LOGO_COLS, LOGO_COLS, cx, cy, spread);
+
+      const word = wordCanvas(Math.round(Math.min(vw * 0.1, 40)));
+      const wordPieces = slice(word, TEXT_COLS, TEXT_ROWS, cx, cy, spread * 0.8);
+
+      const bg = ctx.createRadialGradient(cx, vh * 0.42, 0, cx, vh * 0.42, Math.max(vw, vh) * 0.8);
+      bg.addColorStop(0, "#4A1420");
+      bg.addColorStop(0.62, "#350D16");
+      bg.addColorStop(1, "#230A0F");
+
+      const t0 = performance.now();
+
+      function frame(now: number) {
+        if (cancelled || !canvas || !ctx) return;
+        const t = (now - t0) / 1000;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, vw, vh);
+
+        // The mark: flies in, holds, then breaks apart and scatters.
+        for (const p of markPieces) {
+          const enter = easeOutCubic(phase(t, LOGO_IN, p.delay));
+          const exit = easeInCubic(phase(t, LOGO_OUT, p.delay));
+          if (enter <= 0 || exit >= 1) continue;
+
+          const x = p.tx + p.inDx * (1 - enter) + p.outDx * exit;
+          const y = p.ty + p.inDy * (1 - enter) + p.outDy * exit;
+          const rot = p.inRot * (1 - enter) + p.outRot * exit;
+          const scale = 1 - 0.35 * (1 - enter) - 0.4 * exit;
+
+          ctx.save();
+          ctx.globalAlpha = enter * (1 - exit);
+          ctx.translate(x, y);
+          ctx.rotate(rot);
+          const w = p.dw * scale + 1;
+          const h = p.dh * scale + 1;
+          ctx.drawImage(mark, p.sx, p.sy, p.sw, p.sh, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        }
+
+        // The wordmark: the scattered pieces settling into "orato".
+        for (const p of wordPieces) {
+          const enter = easeOutCubic(phase(t, TEXT_IN, p.delay));
+          if (enter <= 0) continue;
+
+          const x = p.tx + p.inDx * (1 - enter);
+          const y = p.ty + p.inDy * (1 - enter);
+          const rot = p.inRot * (1 - enter);
+          const scale = 1 - 0.3 * (1 - enter);
+
+          ctx.save();
+          ctx.globalAlpha = enter;
+          ctx.translate(x, y);
+          ctx.rotate(rot);
+          const w = p.dw * scale + 1;
+          const h = p.dh * scale + 1;
+          ctx.drawImage(word, p.sx, p.sy, p.sw, p.sh, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        }
+
+        if (wrapRef.current && t >= FADE.start) {
+          wrapRef.current.style.opacity = String(1 - clamp01((t - FADE.start) / FADE.dur));
+        }
+
+        if (t < DONE_MS / 1000) raf = requestAnimationFrame(frame);
+      }
+
+      raf = requestAnimationFrame(frame);
+    }
+
+    /** Reduced motion: paint the resting frame once, never animate. */
+    function still() {
+      if (cancelled || !canvas || !ctx) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      canvas.width = Math.round(vw * dpr);
+      canvas.height = Math.round(vh * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const cx = vw / 2;
+      const cy = vh * 0.46;
+      const bg = ctx.createRadialGradient(cx, vh * 0.42, 0, cx, vh * 0.42, Math.max(vw, vh) * 0.8);
+      bg.addColorStop(0, "#4A1420");
+      bg.addColorStop(0.62, "#350D16");
+      bg.addColorStop(1, "#230A0F");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, vw, vh);
+
+      const markSize = Math.round(Math.min(vw * 0.56, 220));
+      const mark = markCanvas(img, markSize);
+      ctx.drawImage(mark, cx - markSize / 2, cy - markSize * 0.9);
+
+      const word = wordCanvas(Math.round(Math.min(vw * 0.1, 40)));
+      ctx.drawImage(word, cx - word.width / 2, cy + markSize * 0.22);
+    }
+
+    const run = () => (reduced ? still() : start());
+    if (img.complete) run();
+    else {
+      img.onload = run;
+      img.onerror = run;
+    }
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [reduced]);
 
   return (
-    <motion.div
-      style={styles.wrap}
-      initial={{ opacity: 1 }}
-      animate={reduced ? { opacity: 1 } : { opacity: 0 }}
-      transition={reduced ? { duration: 0 } : overlay}
-      aria-label="Orato"
-      role="img"
-    >
-      {/* The glow lives on a wrapper: filters resolve before masks, so a
-          drop-shadow on the masked element itself would trace the square
-          source image instead of the sweep. */}
-      <div style={styles.glow}>
-        <motion.div
-          style={{
-            ...styles.mark,
-            // Typed as a CSS custom property; Motion interpolates the angle.
-            ["--sweep" as string]: reduced ? "360deg" : "0deg",
-            WebkitMaskImage: SWEEP_MASK,
-            maskImage: SWEEP_MASK,
-          }}
-          initial={reduced ? false : { scale: 0.96 }}
-          animate={reduced ? {} : { ["--sweep" as string]: "360deg", scale: 1 }}
-          transition={{ "--sweep": sweep, scale: settle } as Transition}
-        >
-          <img
-            src="/icons/icon-512.png"
-            alt=""
-            width={512}
-            height={512}
-            draggable={false}
-            style={styles.img}
-          />
-        </motion.div>
-      </div>
-
-      <motion.div
-        style={styles.word}
-        initial={reduced ? false : { opacity: 0, y: 10 }}
-        animate={reduced ? {} : { opacity: 1, y: 0 }}
-        transition={word}
-      >
-        orato
-      </motion.div>
-    </motion.div>
+    <div ref={wrapRef} style={styles.wrap} role="img" aria-label="Orato">
+      <canvas ref={canvasRef} style={styles.canvas} />
+    </div>
   );
 }
 
-const styles: Record<"wrap" | "glow" | "mark" | "img" | "word", CSSProperties> = {
+const styles: Record<"wrap" | "canvas", CSSProperties> = {
   wrap: {
     position: "fixed",
     inset: 0,
-    background: "radial-gradient(72% 62% at 50% 42%, #4A1420 0%, #350D16 62%, #260810 100%)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
+    background: "#230A0F",
     zIndex: 9999,
   },
-  glow: {
-    filter: "drop-shadow(0 0 34px rgb(201 168 118 / 0.28))",
-    lineHeight: 0,
-  },
-  mark: {
-    width: "min(62vw, 260px)",
-    aspectRatio: "1 / 1",
-    // clip-path, not border-radius: under a mask the child's border-radius
-    // leaves the source PNG's square corners showing through the sweep.
-    // Rounded square, matching the tile the header and hero use.
-    clipPath: "inset(0 round 23%)",
-  },
-  img: {
-    width: "100%",
-    height: "100%",
-    display: "block",
-    userSelect: "none",
-  },
-  word: {
-    marginTop: 26,
-    fontFamily: '"Newsreader Variable", ui-serif, Georgia, serif',
-    letterSpacing: "0.4em",
-    paddingLeft: "0.4em",
-    fontSize: 26,
-    color: GOLD,
-  },
+  canvas: { display: "block", width: "100%", height: "100%" },
 };

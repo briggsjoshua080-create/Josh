@@ -43,13 +43,12 @@ export function Today() {
     <div className="pt-2 lg:pt-0">
       {/* The streak now lives in the shared header (see HeaderStats), next to XP */}
 
-      {/* Hero collage + day heading */}
+      {/* Hero card — the day heading lives inside its wine half */}
       <SnapSection>
-        <TodayHero />
-        <h1 className="mt-4 text-2xl font-semibold text-ink">{t("dayLabel", { n: state.day })}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
-        </p>
+        <TodayHero
+          day={t("dayLabel", { n: state.day })}
+          caption={isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
+        />
       </SnapSection>
 
       {/* Word of the day — definition hidden until tapped */}
