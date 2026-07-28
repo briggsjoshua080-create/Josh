@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
-import { challengeForDay, wordForDay, isBeyondCore } from "@/lib/daily";
+import { challengeForDay, wordAtIndex, isBeyondCore } from "@/lib/daily";
 import { tipsForToday } from "@/data/tips";
-import { dailyPathState, currentStreak, db, todayISO, getWordBonus, awardWordUseBonus } from "@/lib/db";
+import { dailyPathState, dailyWordIndex, db, todayISO, getWordBonus, awardWordUseBonus } from "@/lib/db";
 import { requestWordCheck, type WordCheckResult } from "@/lib/feedback";
 import { WORD_USE_BONUS } from "@/lib/progression";
 import { Button } from "@/components/Button";
@@ -15,13 +15,17 @@ import type { Session, WordEntry } from "@/lib/types";
 export function Today() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
-  const [state, setState] = useState<{ day: number; doneToday: boolean; streak: number } | null>(null);
+  // wordIndex is the randomly drawn slot for today's calendar date, persisted
+  // in IndexedDB — independent of `day`, so a progress reset can't rewind it.
+  const [state, setState] = useState<{ day: number; doneToday: boolean; wordIndex: number } | null>(
+    null,
+  );
   const [todaySession, setTodaySession] = useState<Session | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ day, doneToday }, streak] = await Promise.all([dailyPathState(), currentStreak()]);
-      setState({ day, doneToday, streak });
+      const [{ day, doneToday }, wordIndex] = await Promise.all([dailyPathState(), dailyWordIndex()]);
+      setState({ day, doneToday, wordIndex });
       if (doneToday) {
         const sessions = await db.sessions.where("day").equals(day).toArray();
         setTodaySession(sessions[sessions.length - 1] ?? null);
@@ -32,25 +36,12 @@ export function Today() {
   if (!state) return <ScreenSkeleton />;
 
   const challenge = challengeForDay(state.day);
-  const word = wordForDay(state.day, lang);
+  const word = wordAtIndex(state.wordIndex, lang);
   const mins = (s: number) => (s >= 60 ? `${Math.round(s / 60)} ${t("minutes")}` : `${s} ${t("seconds")}`);
-
-  const streakLabel =
-    state.streak === 1 ? t("streakOneDay") : state.streak > 0 ? t("streakDays", { n: state.streak }) : t("streakNone");
 
   return (
     <div className="pt-2 lg:pt-0">
-      {/* Duolingo-style streak pin — always visible, even mid-scroll */}
-      <div
-        className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+8px)] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-gold/60 bg-card/90 px-3 py-1 backdrop-blur-sm"
-        style={{ zIndex: "var(--z-pin)" }}
-        role="status"
-        aria-label={streakLabel}
-        data-testid="streak-pin"
-      >
-        <Icon name="flame" size={15} className="text-gold" />
-        <span className="tnum text-sm font-semibold text-gold">{state.streak}</span>
-      </div>
+      {/* The streak now lives in the shared header (see HeaderStats), next to XP */}
 
       {/* Hero collage + day heading */}
       <SnapSection>
@@ -67,7 +58,7 @@ export function Today() {
           <Icon name="sparkle" size={16} />
           {t("wordOfDay")}
         </h2>
-        <WordOfDay key={`${state.day}:${lang}`} word={word} day={state.day} />
+        <WordOfDay key={`${state.wordIndex}:${lang}`} word={word} day={state.day} />
       </SnapSection>
 
       {/* Challenge */}

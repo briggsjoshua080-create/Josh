@@ -1,7 +1,8 @@
 import { useEffect, useRef, type ReactNode, type TouchEvent } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { Icon } from "./Icon";
+import { HeaderStats } from "./HeaderStats";
 import { useI18n } from "@/lib/i18n";
 
 const NAV = [
@@ -111,8 +112,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh lg:grid lg:grid-cols-[220px_1fr]">
       {/* Desktop rail */}
       <aside className="hidden lg:flex flex-col gap-1 border-r hairline px-4 py-6 sticky top-0 h-dvh">
-        <div className="mb-8 px-3">
-          <Wordmark />
+        <div className="mb-8 flex flex-col items-center gap-3 px-3">
+          <Logo size={52} />
+          <HeaderStats />
         </div>
         {navItems}
         <div className="mt-auto flex flex-col gap-3">
@@ -133,20 +135,34 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-h-dvh flex-col">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-3">
-          <Wordmark />
-          <div className="flex items-center gap-3">
-            <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} compact />
+        {/* Mobile header — the logo centred, controls docked to the corners,
+            streak and XP on a slim second row underneath. Sits outside <main>,
+            so it is not part of the swipe container hierarchy. */}
+        {/* Sticky: the streak it now carries used to be a fixed pin, and the
+            snap scroller would otherwise park it off-screen on the first flick. */}
+        <header
+          className="lg:hidden sticky top-0 bg-bg/95 backdrop-blur-sm px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-2.5"
+          style={{ zIndex: "var(--z-nav)" }}
+        >
+          {/* Three equal columns keep the mark optically centred no matter how
+              wide the language toggle gets in German. */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+            <div className="justify-self-start">
+              <LangToggle lang={lang} setLang={setLang} label={t("languageToggle")} compact />
+            </div>
+            <Logo size={44} />
             <NavLink
               to="/settings"
               aria-label={t("navSettings")}
               className={({ isActive }) =>
-                `transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
+                `justify-self-end transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
               }
             >
               <Icon name="gear" size={20} />
             </NavLink>
+          </div>
+          <div className="mt-2">
+            <HeaderStats />
           </div>
         </header>
 
@@ -179,22 +195,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** The orator mark — the same artwork as the home-screen icon and splash. */
-function Wordmark() {
+/**
+ * The orator mark — the same artwork as the home-screen icon and the splash,
+ * generated from public/icons/orato-logo-source.png.
+ */
+function Logo({ size }: { size: number }) {
   return (
-    <span className="flex items-center gap-2.5">
+    <Link to="/" aria-label="Orato" className="block shrink-0 leading-none">
       <img
-        src="/orato-icon.svg"
-        alt=""
-        width={30}
-        height={30}
+        src="/icons/icon-192.png"
+        alt="Orato"
+        width={size}
+        height={size}
         draggable={false}
-        className="h-[30px] w-[30px] shrink-0 select-none rounded-full border border-gold/50"
+        style={{ width: size, height: size }}
+        className="select-none rounded-full border border-gold/50"
       />
-      <span className="lectern text-xl font-semibold tracking-tight text-ink">
-        Orato<span className="text-gold">.</span>
-      </span>
-    </span>
+    </Link>
   );
 }
 

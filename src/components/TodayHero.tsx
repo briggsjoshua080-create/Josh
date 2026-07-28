@@ -30,7 +30,7 @@ export function TodayHero() {
         }}
       />
       <img
-        src="/orato-icon.svg"
+        src="/icons/icon-512.png"
         alt=""
         width={152}
         height={152}

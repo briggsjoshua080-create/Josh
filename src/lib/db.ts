@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { Session, WordBonus } from "./types";
+import type { DailyPick, Session, WordBonus } from "./types";
 import { progressFromSessions, WORD_USE_BONUS, type ProgressState } from "./progression";
+import { DAILY_WORD_COUNT, RECENT_WORD_MEMORY, pickWordIndex } from "./daily";
 
 /**
  * All user data lives here, on-device. No accounts, no server-side storage.
@@ -10,6 +11,7 @@ const db = new Dexie("orato") as Dexie & {
   sessions: EntityTable<Session, "id">;
   progress: EntityTable<ProgressState, "id">;
   wordBonuses: EntityTable<WordBonus, "dateISO">;
+  dailyPicks: EntityTable<DailyPick, "dateISO">;
 };
 
 db.version(1).stores({
@@ -28,6 +30,15 @@ db.version(3).stores({
   sessions: "++id, dateISO, kind, startedAt, day",
   progress: "id",
   wordBonuses: "dateISO",
+});
+
+// v4: the randomly drawn word of the day, one row per calendar day. Keyed by
+// date rather than by day number so it is independent of the path/progress.
+db.version(4).stores({
+  sessions: "++id, dateISO, kind, startedAt, day",
+  progress: "id",
+  wordBonuses: "dateISO",
+  dailyPicks: "dateISO",
 });
 
 export { db };
@@ -86,15 +97,64 @@ export async function awardWordUseBonus(day: number, word: string): Promise<Prog
 }
 
 /**
+ * The word slot drawn for a local date, drawing and persisting one the first
+ * time that date is asked for. The row is what makes the pick stable: reopen
+ * the app, switch language, reload — same word until the calendar date rolls
+ * over, at which point a fresh draw happens.
+ *
+ * Runs inside a transaction so two components mounting at once can't each
+ * draw a different word for the same day.
+ */
+export async function dailyWordIndex(dateISO = todayISO()): Promise<number> {
+  return db.transaction("rw", db.dailyPicks, async () => {
+    const existing = await db.dailyPicks.get(dateISO);
+    if (existing) return existing.wordIndex;
+
+    // The most recent picks before today, newest first — ISO dates sort
+    // lexicographically, so key order is date order.
+    const recent = await db.dailyPicks
+      .where("dateISO")
+      .below(dateISO)
+      .reverse()
+      .limit(RECENT_WORD_MEMORY)
+      .toArray();
+
+    const wordIndex = pickWordIndex(
+      DAILY_WORD_COUNT,
+      recent.map((p) => p.wordIndex),
+    );
+    await db.dailyPicks.put({ dateISO, wordIndex, pickedAt: Date.now() });
+    return wordIndex;
+  });
+}
+
+/**
  * Wipe every trace of the user from this device: the whole IndexedDB database
  * (sessions, transcripts, XP/progress, word bonuses) plus all orato.*
  * localStorage keys (settings/preferences). Callers should hard-reload
  * afterwards so the app boots into its first-launch state on empty stores.
+ *
+ * The daily word picks are deliberately carried across the wipe. They are not
+ * user progress — they are a calendar-keyed random draw — and restoring them
+ * is what guarantees a reset can never rewind the word list to "day one" or
+ * change the word out from under the user mid-day.
  */
 export async function resetAllData(): Promise<void> {
+  let picks: DailyPick[] = [];
+  try {
+    picks = await db.dailyPicks.toArray();
+  } catch {
+    // Nothing drawn yet, or the store predates v4 — nothing to carry over.
+  }
+
   await db.delete();
   for (const key of Object.keys(localStorage)) {
     if (key.startsWith("orato.")) localStorage.removeItem(key);
+  }
+
+  if (picks.length > 0) {
+    await db.open();
+    await db.dailyPicks.bulkPut(picks);
   }
 }
 
