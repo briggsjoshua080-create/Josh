@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
-import { challengeForDay, wordForDay } from "@/lib/daily";
+import { challengeForDay, wordAtIndex } from "@/lib/daily";
 import { SCENARIOS } from "@/data/scenarios";
 import { SpeechSession, speechSupported } from "@/lib/speech";
 import { computeMetrics } from "@/lib/metrics";
 import { blendScores } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
-import { saveSession, todayISO } from "@/lib/db";
+import { dailyWordIndex, saveSession, todayISO } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { RecordRing, ringZone } from "@/components/RecordRing";
@@ -30,7 +30,19 @@ export function Session() {
   const scenarioId = params.get("id");
   const scenario = kind === "scenario" ? SCENARIOS.find((s) => s.id === scenarioId) : undefined;
   const challenge = kind === "daily" ? challengeForDay(day) : undefined;
-  const word = kind === "daily" ? wordForDay(day, lang) : undefined;
+
+  // Today's word is a persisted random draw, so it has to come from IndexedDB
+  // rather than from `day` — same row the Today screen reads, same word.
+  const [wordIndex, setWordIndex] = useState<number | null>(null);
+  useEffect(() => {
+    if (kind !== "daily") return;
+    let live = true;
+    dailyWordIndex().then((i) => live && setWordIndex(i));
+    return () => {
+      live = false;
+    };
+  }, [kind]);
+  const word = wordIndex === null ? undefined : wordAtIndex(wordIndex, lang);
 
   const promptTitle = (scenario?.title ?? challenge!.title)[lang];
   const promptText = (scenario?.prompt ?? challenge!.prompt)[lang];

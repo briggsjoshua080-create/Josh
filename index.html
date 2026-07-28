@@ -2,8 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/orato-icon.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/orato-icon-192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0D0B0A" />
     <meta
@@ -17,7 +18,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Orato" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" href="/orato-icon-180.png" />
+    <!-- iOS picks the closest match by `sizes`; the unsized 180 is the default
+         it actually installs on modern iPhones. All are opaque PNGs — iOS
+         composites transparency onto black and will fall back to a rendered
+         letter if it cannot fetch one. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152.png" />
 
     <title>Orato — Speech Training Studio</title>
   </head>

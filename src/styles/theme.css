@@ -245,14 +245,24 @@ p {
    box carries .snap-section so a flick lands it flush at the top of the
    screen — no half-visible boxes. Desktop pointers get the gentler proximity
    flavour; reduced motion falls back to plain scrolling entirely. */
+/* Height of the sticky mobile header (logo row + streak/XP row). Snapped
+   sections clear it instead of sliding underneath. */
+:root {
+  --header-h: 96px;
+}
+
 html[data-snap] {
   scroll-snap-type: y mandatory;
-  scroll-padding-top: calc(env(safe-area-inset-top) + 10px);
+  scroll-padding-top: calc(env(safe-area-inset-top) + var(--header-h) + 10px);
 }
 
 @media (min-width: 1024px) {
   html[data-snap] {
     scroll-snap-type: y proximity;
+  }
+  /* Desktop uses the side rail — there is no sticky top header to clear. */
+  :root {
+    --header-h: 0px;
   }
 }
 

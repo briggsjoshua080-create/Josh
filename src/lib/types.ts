@@ -210,6 +210,17 @@ export interface WordBonus {
   awardedAt: number;
 }
 
+/**
+ * The word of the day, drawn at random and pinned to a calendar date. Stores
+ * the slot index rather than the word itself so the pick survives a language
+ * switch — EN and DE are index-aligned.
+ */
+export interface DailyPick {
+  dateISO: string;
+  wordIndex: number;
+  pickedAt: number;
+}
+
 export interface Challenge {
   day: number;
   title: Bilingual;

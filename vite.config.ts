@@ -48,7 +48,7 @@ export default defineConfig({
     devApi(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["orato-icon*.png", "orato-icon.svg"],
+      includeAssets: ["icons/*.png", "favicon-16.png", "favicon-32.png"],
       manifest: {
         name: "Orato — Speech Training Studio",
         short_name: "Orato",
@@ -59,19 +59,25 @@ export default defineConfig({
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
+        // All generated from public/icons/orato-logo-source.png by
+        // `npm run icons` — change the logo there, not here.
         icons: [
-          { src: "/orato-icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/orato-icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           {
-            src: "/orato-icon-512-maskable.png",
+            src: "/icons/icon-512-maskable.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
           },
+          { src: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
         ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // The 1024px master and its fallback SVG are inputs to `npm run icons`,
+        // not runtime assets — no reason to spend precache budget on them.
+        globIgnores: ["**/icons/orato-logo-source.png", "**/icons/orato-emblem.svg"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
