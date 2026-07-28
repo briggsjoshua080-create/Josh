@@ -35,8 +35,8 @@ export function TodayHero() {
         width={152}
         height={152}
         draggable={false}
-        className="relative h-38 w-38 select-none rounded-full border border-gold/60"
-        style={{ boxShadow: "0 0 44px rgb(201 168 118 / 0.22)" }}
+        className="relative h-38 w-38 select-none border border-gold/50"
+        style={{ borderRadius: "23%", boxShadow: "0 0 44px rgb(201 168 118 / 0.22)" }}
       />
       <span className="lectern relative mt-5 text-sm italic text-gold/80">ars bene dicendi</span>
     </motion.div>

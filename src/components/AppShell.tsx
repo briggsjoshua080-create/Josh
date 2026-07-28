@@ -202,14 +202,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 function Logo({ size }: { size: number }) {
   return (
     <Link to="/" aria-label="Orato" className="block shrink-0 leading-none">
+      {/* Rounded-square tile, not a circle: the textured wine ground is part
+          of the artwork, and a round crop would throw it away. */}
       <img
         src="/icons/icon-192.png"
         alt="Orato"
         width={size}
         height={size}
         draggable={false}
-        style={{ width: size, height: size }}
-        className="select-none rounded-full border border-gold/50"
+        style={{ width: size, height: size, borderRadius: "23%" }}
+        className="select-none border border-gold/40"
       />
     </Link>
   );

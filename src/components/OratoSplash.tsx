@@ -124,7 +124,8 @@ const styles: Record<"wrap" | "glow" | "mark" | "img" | "word", CSSProperties> =
     aspectRatio: "1 / 1",
     // clip-path, not border-radius: under a mask the child's border-radius
     // leaves the source PNG's square corners showing through the sweep.
-    clipPath: "circle(50% at 50% 50%)",
+    // Rounded square, matching the tile the header and hero use.
+    clipPath: "inset(0 round 23%)",
   },
   img: {
     width: "100%",
