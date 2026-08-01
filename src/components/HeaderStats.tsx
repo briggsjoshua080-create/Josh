@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, currentStreak } from "@/lib/db";
 import { progressFromSessions } from "@/lib/progression";
@@ -28,6 +29,17 @@ export function HeaderStats() {
     return progressFromSessions(sessions, bonusXp).cumulativeXp;
   }, []);
 
+  // One champagne sheen sweep when XP increases — never on a loop. The pill
+  // is re-keyed so the one-shot CSS animation restarts per gain.
+  const prevXp = useRef<number | undefined>(undefined);
+  const [sheenKey, setSheenKey] = useState(0);
+  useEffect(() => {
+    if (xp !== undefined && prevXp.current !== undefined && xp > prevXp.current) {
+      setSheenKey((k) => k + 1);
+    }
+    if (xp !== undefined) prevXp.current = xp;
+  }, [xp]);
+
   // Hold the row's height while IndexedDB answers, so the header never jumps.
   const streakLabel =
     streak === 1 ? t("streakOneDay") : streak && streak > 0 ? t("streakDays", { n: streak }) : t("streakNone");
@@ -41,10 +53,13 @@ export function HeaderStats() {
         data-testid="streak-pin"
       >
         <Icon name="flame" size={13} className="text-gold" />
-        <span className="tnum text-xs font-semibold text-gold">{streak ?? "—"}</span>
+        <span className={`tnum text-xs font-semibold text-gold ${streak !== null && streak >= 3 ? "shimmer-text" : ""}`}>
+          {streak ?? "—"}
+        </span>
       </span>
       <span
-        className="flex items-center gap-1.5 rounded-full border border-gold/45 bg-card/70 px-2.5 py-0.5"
+        key={sheenKey}
+        className={`flex items-center gap-1.5 rounded-full border border-gold/45 bg-card/70 px-2.5 py-0.5 ${sheenKey > 0 ? "xp-sheen" : ""}`}
         role="status"
         aria-label={xp === undefined ? undefined : t("xpTotal", { n: xp })}
         data-testid="xp-pill"

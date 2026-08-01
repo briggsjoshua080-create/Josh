@@ -9,24 +9,21 @@ import { computeEight, overallFromEight, xpForScore, levelForXp, WORD_OF_DAY_BON
 import { METRIC_META, CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
 import { scoreColorVar } from "@/lib/scoreColor";
 import { PACE_BAND, wpmSeries } from "@/lib/metrics";
+import { letterGrade } from "@/lib/grade";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { CountUp } from "@/components/CountUp";
 import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
-
-function gradeFor(score: number): string {
-  if (score >= 90) return "A";
-  if (score >= 80) return "B";
-  if (score >= 70) return "C";
-  if (score >= 60) return "D";
-  return "F";
-}
+import { AnimatedScore } from "@/components/AnimatedScore";
+import { GradeLetter } from "@/components/GradeLetter";
+import { AiTextLoading } from "@/components/kokonut/AiTextLoading";
+import { ParticleBurst } from "@/components/kokonut/ParticleBurst";
 
 /** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
 const PACE_DOMAIN: [number, number] = [60, 220];
 
-type Phase = "loading" | "ready" | "offline";
+type Phase = "loading" | "ready" | "offline" | "missing";
 
 interface Earned {
   xp: number;
@@ -39,6 +36,7 @@ export function Feedback() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const fresh = params.get("fresh") === "1";
+  const reduced = useReducedMotion();
 
   const [session, setSession] = useState<Session | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
@@ -48,7 +46,11 @@ export function Feedback() {
   useEffect(() => {
     (async () => {
       const s = await getSession(Number(id));
-      if (!s) return;
+      if (!s) {
+        // Bad deep link or wiped store: without this the skeleton never resolves.
+        setPhase("missing");
+        return;
+      }
       setSession(s);
       if (s.report) setPhase("ready");
       else await fetchReport(s);
@@ -107,6 +109,22 @@ export function Feedback() {
     inFlight.current = false;
   }
 
+  if (phase === "missing") {
+    return (
+      <div className="pt-2 lg:pt-0">
+        <div className="box mt-8 flex flex-col items-center gap-4 p-6 text-center">
+          <Icon name="info" size={22} className="text-bad" />
+          <p className="text-sm text-muted" style={{ overflowWrap: "break-word" }}>
+            {t("sessionMissing")}
+          </p>
+          <Link to="/" className="text-sm text-accent underline underline-offset-4">
+            {t("backToToday")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!session) return <FeedbackSkeleton />;
 
   const { metrics: m, report } = session;
@@ -139,27 +157,36 @@ export function Feedback() {
       {/* ——— Hero: overall score, grade, XP moment ——— */}
       <div className="mt-6 flex flex-col items-center text-center">
         {phase === "loading" ? (
-          <>
-            <div className="skeleton h-24 w-40" />
-            <p className="mt-4 text-sm text-muted">{t("analyzing")}</p>
-          </>
+          <div className="w-full max-w-sm">
+            <AiTextLoading phrases={[t("aiLoading1"), t("aiLoading2"), t("aiLoading3"), t("aiLoading4")]} />
+          </div>
         ) : (
           <>
             <div className="flex items-baseline gap-3">
-              <span className="lectern tnum text-[4.5rem] leading-none font-semibold text-ink">
-                {overall !== null ? <CountUp value={overall} active={fresh || earned !== null} /> : "—"}
+              <span className="lectern tnum text-[4.5rem] leading-none font-semibold">
+                {overall !== null ? (
+                  <AnimatedScore value={overall} active={fresh || earned !== null} />
+                ) : (
+                  <span className="text-ink">—</span>
+                )}
               </span>
               {overall !== null && (
-                <span className="lectern text-2xl text-accent">{gradeFor(overall)}</span>
+                <GradeLetter
+                  grade={letterGrade(overall)}
+                  color={scoreColorVar(overall)}
+                  className="lectern text-2xl"
+                />
               )}
             </div>
 
             {/* XP chips */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {session.progress?.xpPending === false && session.progress.xpEarned > 0 && (
-                <span className="tnum rounded-full bg-accent/12 px-3.5 py-1 text-sm font-semibold text-accent">
-                  {earned ? <CountUp value={earned.xp} prefix="+" suffix=" XP" delay={0.4} /> : `+${session.progress.xpEarned} XP`}
-                </span>
+                <ParticleBurst key={earned ? "burst" : "static"} count={earned ? 14 : 0}>
+                  <span className="tnum rounded-full bg-accent/12 px-3.5 py-1 text-sm font-semibold text-accent">
+                    {earned ? <CountUp value={earned.xp} prefix="+" suffix=" XP" delay={0.4} /> : `+${session.progress.xpEarned} XP`}
+                  </span>
+                </ParticleBurst>
               )}
               {session.progress?.wordOfDayUsed && session.progress.xpPending === false && (
                 <span className="rounded-full border border-line px-3 py-1 text-xs text-accent-dim">
@@ -198,10 +225,14 @@ export function Feedback() {
 
       </section>
 
-      {/* Offline / failed analysis */}
+      {/* Failed / timed-out analysis — the 45s ceiling lives in lib/feedback.ts */}
       {offline && (
-        <div className="mt-8 flex flex-col gap-3 box p-5">
-          <p className="text-sm text-muted">
+        <div className="box mt-8 flex flex-col gap-3 p-5">
+          <div className="flex items-center gap-2.5">
+            <Icon name="clock" size={18} className="shrink-0 text-bad" />
+            <p className="text-base font-medium text-ink">{t("coachTimeout")}</p>
+          </div>
+          <p className="text-sm text-muted" style={{ overflowWrap: "break-word" }}>
             {t("coachFailed")} {t("xpPendingNote")}
           </p>
           <Button variant="gold" onClick={() => fetchReport(session)}>
@@ -214,20 +245,31 @@ export function Feedback() {
       {/* ——— The eight metrics ——— */}
       <section className="snap-section mt-10">
         <h2 className="label-caps">{t("metricsSection")}</h2>
-        <div className="mt-3 flex flex-col gap-2.5">
-          {phase === "loading"
-            ? METRIC_KEYS.map((key) => <div key={key} className="skeleton h-[76px]" />)
-            : METRIC_KEYS.map((key, i) => (
-                <MetricRow
-                  key={key}
-                  metric={key}
-                  label={t(METRIC_META[key].nameKey)}
-                  score={eight[key]}
-                  sentence={oneLiner(key)}
-                  delay={0.05 * i}
-                />
-              ))}
-        </div>
+        {phase === "loading" ? (
+          <div className="mt-3 flex flex-col gap-2.5">
+            {METRIC_KEYS.map((key) => (
+              <div key={key} className="skeleton h-[76px]" />
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            className="mt-3 flex flex-col gap-2.5"
+            variants={metricListContainer}
+            initial={reduced ? "show" : "hidden"}
+            whileInView="show"
+            viewport={{ once: true }}
+          >
+            {METRIC_KEYS.map((key) => (
+              <MetricRow
+                key={key}
+                metric={key}
+                label={t(METRIC_META[key].nameKey)}
+                score={eight[key]}
+                sentence={oneLiner(key)}
+              />
+            ))}
+          </motion.div>
+        )}
         {offline && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
       </section>
 
@@ -440,31 +482,48 @@ function LevelUpFlourish({ state, lang, title }: { state: LevelState; lang: "en"
   );
 }
 
+/** T6 cascade: rows stagger in; each bar fills 200ms after its row lands. */
+const metricListContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.25 } },
+};
+const metricRowVariant = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
+};
+
 function MetricRow({
   metric,
   label,
   score,
   sentence,
-  delay,
 }: {
   metric: MetricKey;
   label: string;
   score: number | null;
   sentence?: string;
-  delay: number;
 }) {
   const reduced = useReducedMotion();
   const meta = METRIC_META[metric];
+  const barVariant = {
+    hidden: { width: reduced ? `${score ?? 0}%` : 0 },
+    show: {
+      width: `${score ?? 0}%`,
+      transition: { duration: 1.1, ease: [0.16, 1, 0.3, 1] as const, delay: 0.2 },
+    },
+  };
 
   return (
-    <div className="box p-4">
+    <motion.div className="box box-border p-4" variants={metricRowVariant}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <Icon name={meta.icon} size={17} className="shrink-0 text-muted" />
           <span className="text-base font-medium text-ink">{label}</span>
         </div>
         <span className="tnum whitespace-nowrap text-sm text-faint">
-          <b className="lectern text-lg font-semibold text-ink">{score ?? "—"}</b>
+          <b className="lectern text-lg font-semibold" style={{ color: score !== null ? scoreColorVar(score) : undefined }}>
+            {score ?? "—"}
+          </b>
           {score !== null && "/100"}
         </span>
       </div>
@@ -473,14 +532,16 @@ function MetricRow({
           <motion.div
             className="h-full rounded-full"
             style={{ background: scoreColorVar(score) }}
-            initial={reduced ? { width: `${score}%` } : { width: 0 }}
-            animate={{ width: `${score}%` }}
-            transition={{ type: "spring", stiffness: 90, damping: 20, delay }}
+            variants={barVariant}
           />
         )}
       </div>
-      {sentence && <p className="mt-2.5 text-sm leading-relaxed text-ink/85">{sentence}</p>}
-    </div>
+      {sentence && (
+        <p className="mt-2.5 text-sm leading-relaxed text-ink/85" style={{ overflowWrap: "break-word" }}>
+          {sentence}
+        </p>
+      )}
+    </motion.div>
   );
 }
 
