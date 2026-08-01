@@ -286,7 +286,7 @@ export function Scenarios() {
                     <li key={s.id} className="border-b hairline">
                       <button
                         onClick={() => start(s)}
-                        className="group flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-surface/50 -mx-2 px-2 rounded-lg"
+                        className="group flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-surface/50 -mx-2 px-2 rounded-(--radius-control)"
                       >
                         <span className="flex-1 min-w-0">
                           <span className="block truncate font-medium text-ink">{s.title[lang]}</span>

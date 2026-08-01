@@ -125,7 +125,7 @@ export function Progress() {
         <ul className="mt-3 flex flex-col">
           {[...sessions].reverse().map((s) => (
             <li key={s.id} className="border-b hairline">
-              <Link to={`/feedback/${s.id}`} className="flex items-center gap-4 py-3.5 hover:bg-surface/50 -mx-2 px-2 rounded-lg transition-colors">
+              <Link to={`/feedback/${s.id}`} className="flex items-center gap-4 py-3.5 hover:bg-surface/50 -mx-2 px-2 rounded-(--radius-control) transition-colors">
                 <span
                   className="tnum flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-semibold"
                   style={{ color: scoreColorVar(s.progress?.overallScore ?? s.scores.overall) }}
