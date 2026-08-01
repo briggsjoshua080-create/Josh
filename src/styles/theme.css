@@ -214,6 +214,35 @@ p {
   outline: none;
 }
 
+/* Recording indicator pulse: 2s, opacity 1 → 0.4 → 1 (state, not decoration) */
+.rec-pulse {
+  animation: recPulse 2s ease-in-out infinite;
+}
+
+@keyframes recPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* New transcript words fade in over 220ms (interim node re-keyed per update) */
+.fade-in-word {
+  animation: fadeInWord 220ms ease-out;
+}
+
+@keyframes fadeInWord {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* XP pill sheen — one champagne sweep on XP gain (element re-keyed per gain) */
 .xp-sheen {
   position: relative;

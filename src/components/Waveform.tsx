@@ -2,23 +2,23 @@ import { useEffect, useRef } from "react";
 import { useReducedMotion } from "motion/react";
 import type { RefObject } from "react";
 
+const BARS = 32;
+
 /**
- * Minimal live waveform: a strip of amber bars scrolling with the mic level.
- * Reads the latest level from a ref (no re-render per audio frame) and draws
- * on canvas via rAF. Purely decorative — hidden from assistive tech, skipped
- * entirely under reduced motion.
+ * Live level strip: 32 gold DOM bars (3px wide, 4px gap) scrolling with the
+ * mic level. Reads the latest level scalar from a ref (the only signal the
+ * frozen audio layer exposes — no new audio APIs) and writes scaleY
+ * transforms directly on the bar nodes via rAF, so nothing re-renders per
+ * frame. Purely decorative — hidden from assistive tech, skipped entirely
+ * under reduced motion.
  */
 export function Waveform({ levelRef }: { levelRef: RefObject<number> }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const barRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const reduced = useReducedMotion();
 
   useEffect(() => {
     if (reduced) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
 
-    const BARS = 56;
     const levels: number[] = new Array(BARS).fill(0);
     let frame = 0;
     let raf = 0;
@@ -29,32 +29,10 @@ export function Waveform({ levelRef }: { levelRef: RefObject<number> }) {
       if (frame % 3 === 0) {
         levels.push(levelRef.current ?? 0);
         levels.shift();
-      }
-
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      if (canvas.width !== Math.round(rect.width * dpr)) {
-        canvas.width = Math.round(rect.width * dpr);
-        canvas.height = Math.round(rect.height * dpr);
-      }
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-
-      const gap = w / BARS;
-      const barW = Math.max(2 * dpr, gap * 0.55);
-      for (let i = 0; i < BARS; i++) {
-        const level = levels[i];
-        const barH = Math.max(2 * dpr, level * h * 0.92);
-        // Newer bars glow brighter; the tail fades out toward the left.
-        const alpha = 0.25 + 0.6 * (i / BARS);
-        ctx.fillStyle = `rgba(233, 183, 100, ${alpha.toFixed(3)})`;
-        const x = i * gap + (gap - barW) / 2;
-        const y = (h - barH) / 2;
-        const radius = barW / 2;
-        ctx.beginPath();
-        ctx.roundRect(x, y, barW, barH, radius);
-        ctx.fill();
+        for (let i = 0; i < BARS; i++) {
+          const bar = barRefs.current[i];
+          if (bar) bar.style.transform = `scaleY(${Math.max(0.08, levels[i])})`;
+        }
       }
       raf = requestAnimationFrame(draw);
     };
@@ -63,5 +41,18 @@ export function Waveform({ levelRef }: { levelRef: RefObject<number> }) {
   }, [reduced, levelRef]);
 
   if (reduced) return null;
-  return <canvas ref={canvasRef} className="h-10 w-full" aria-hidden="true" />;
+  return (
+    <div className="flex h-10 w-full items-center justify-center" aria-hidden="true" style={{ gap: 4 }}>
+      {Array.from({ length: BARS }, (_, i) => (
+        <span
+          key={i}
+          ref={(el) => {
+            barRefs.current[i] = el;
+          }}
+          className="h-full rounded-full bg-gold"
+          style={{ width: 3, opacity: 0.7, transform: "scaleY(0.08)", transformOrigin: "center" }}
+        />
+      ))}
+    </div>
+  );
 }

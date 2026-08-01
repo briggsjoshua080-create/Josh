@@ -219,16 +219,19 @@ export function Session() {
 
       {phase === "recording" && (
         <div className="flex flex-1 flex-col py-6">
+          {/* Recording indicator: 8px bole dot, 2s pulse */}
           <div className="flex items-center justify-center">
             <span className="flex items-center gap-2 text-sm text-muted">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-primary-bright" />
-              {t("listening")}
+              <span className="rec-pulse h-2 w-2 rounded-full bg-bole" />
+              {t("recordingLabel")}
             </span>
           </div>
 
-          {/* Circular timer with time-zone track */}
+          {/* Central gauge — mic-level glow now lives on the ring, not the button */}
           <div className="mt-5 flex flex-col items-center">
-            <RecordRing elapsed={elapsed} ideal={targetSec} maxSec={maxSec} />
+            <div ref={glowRef} className="spotlight-glow rounded-full">
+              <RecordRing elapsed={elapsed} ideal={targetSec} maxSec={maxSec} />
+            </div>
             <div className="tnum mt-3 flex items-center gap-4 text-xs text-muted">
               <span>{t("idealRange", { a: fmtTime(targetSec[0]), b: fmtTime(targetSec[1]) })}</span>
               <span aria-hidden="true">·</span>
@@ -236,16 +239,30 @@ export function Session() {
             </div>
             {zone === "max" && (
               <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-bad" data-testid="over-max">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-bad" />
+                <span className="rec-pulse h-1.5 w-1.5 rounded-full bg-bad" />
                 {t("overMaxHint")}
               </p>
             )}
           </div>
 
-          {/* Live transcript */}
-          <div className="mt-5 max-h-[32vh] min-h-24 flex-1 overflow-y-auto box p-5">
-            <p className="lectern text-base leading-relaxed text-ink" data-testid="live-transcript">
-              {finalText} <span className="text-muted">{interim}</span>
+          {/* Live transcript: capped strip, top fade, interim words fade in */}
+          <div
+            className="box box-border mt-5 min-h-24 overflow-y-auto p-5"
+            style={{
+              maxHeight: 160,
+              maskImage: "linear-gradient(to bottom, transparent 0, black 40px)",
+              WebkitMaskImage: "linear-gradient(to bottom, transparent 0, black 40px)",
+            }}
+          >
+            <p
+              className="lectern text-base text-ink"
+              style={{ lineHeight: 1.7, overflowWrap: "break-word" }}
+              data-testid="live-transcript"
+            >
+              {finalText}{" "}
+              <span key={interim} className="fade-in-word text-faint">
+                {interim}
+              </span>
               {!finalText && !interim && <span className="text-faint">{t("waitingForSpeech")}</span>}
             </p>
             <div ref={transcriptEndRef} />
@@ -282,27 +299,22 @@ export function Session() {
             </button>
           )}
 
-          <div className="mt-6 flex items-center justify-center gap-8">
+          <div className="mt-6 flex flex-col items-center gap-3">
             <button
               onClick={discard}
-              className="flex flex-col items-center gap-1.5 text-muted transition-colors hover:text-ink"
+              className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line">
-                <Icon name="x" size={20} />
-              </span>
-              <span className="text-xs">{t("discard")}</span>
+              <Icon name="x" size={14} />
+              {t("discard")}
             </button>
-            <div ref={glowRef} className="spotlight-glow rounded-full">
-              <button
-                onClick={finish}
-                aria-label={t("stopRecording")}
-                data-testid="finish-recording"
-                className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white transition-colors duration-150 hover:bg-primary-bright"
-              >
-                <Icon name="stop" size={30} />
-              </button>
-            </div>
-            <span className="w-12" aria-hidden="true" />
+            <button
+              onClick={finish}
+              aria-label={t("stopRecording")}
+              data-testid="finish-recording"
+              className="flex h-14 w-full items-center justify-center rounded-(--radius-pill) border border-bronze bg-claret text-base font-medium text-vellum transition-transform duration-150 active:scale-[0.98]"
+            >
+              {t("stopRecording")}
+            </button>
           </div>
         </div>
       )}
