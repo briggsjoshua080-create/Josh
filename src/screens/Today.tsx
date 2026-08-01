@@ -66,7 +66,7 @@ export function Today() {
         <h2 className="text-sm font-medium text-muted">{t("todayChallenge")}</h2>
         {state.doneToday ? (
           <div className="mt-3">
-            <div className="box box-shade-c flex items-center gap-3 p-5">
+            <div className="box flex items-center gap-3 p-5">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ok/15 text-ok">
                 <Icon name="check" size={22} />
               </span>
@@ -88,7 +88,7 @@ export function Today() {
           </div>
         ) : (
           <>
-            <div className="box box-shade-c mt-3 p-5">
+            <div className="box box-raised mt-3 p-5">
               <h3 className="lectern text-2xl lg:text-3xl text-ink">{challenge.title[lang]}</h3>
               <p className="lectern mt-4 text-lg leading-relaxed text-ink/90">{challenge.prompt[lang]}</p>
               <p className="mt-5 text-sm text-muted">
@@ -127,7 +127,7 @@ export function Today() {
           <Icon name="sparkle" size={16} />
           {t("dailyTipsTitle")}
         </h2>
-        <div className="box box-shade-d mt-3 p-5" data-testid="daily-tips">
+        <div className="box mt-3 p-5" data-testid="daily-tips">
           <ul className="flex flex-col gap-4">
             {tipsForToday().map((tip) => (
               <li key={tip.title.en}>
@@ -184,7 +184,7 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
   }
 
   return (
-    <div className="box box-shade-b mt-3">
+    <div className="box mt-3">
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}

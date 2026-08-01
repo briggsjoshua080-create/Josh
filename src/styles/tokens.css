@@ -1,0 +1,49 @@
+/* ——— Orato design tokens ———
+   The ONLY file in src/ where raw colour values may appear. Components use
+   the role variables (or the Tailwind names wired up in theme.css) — never
+   the foundation ramp directly, never a hex. */
+:root {
+  /* Foundation — wine ramp */
+  --orato-obsidian: #170609;
+  --orato-deep-wine: #2e0b12;
+  --orato-wine-shadow: #3e1119;
+  --orato-wine: #4a1420;
+  --orato-claret: #722f37;
+  --orato-claret-light: #8e4750;
+
+  /* Metals — gold ramp */
+  --orato-bronze: #7a5a31;
+  --orato-gold: #c9a876;
+  --orato-champagne: #e0c795;
+  --orato-vellum: #efdfbb;
+
+  /* Semantic */
+  --orato-verdigris: #6fa88c;
+  --orato-ochre: #d9954a;
+  --orato-bole: #c05553;
+  --orato-lapis: #5c87a8;
+
+  /* Roles — components MUST use these, never the raw ramp values above */
+  --bg-page: var(--orato-obsidian);
+  --bg-surface: var(--orato-deep-wine);
+  --bg-surface-raised: var(--orato-wine);
+  --bg-chip: var(--orato-claret);
+  --border-hairline: var(--orato-wine);
+  --border-emphasis: var(--orato-bronze);
+  --text-primary: var(--orato-vellum);
+  --text-secondary: var(--orato-gold);
+  --text-muted: var(--orato-claret-light);
+  --accent: var(--orato-gold);
+
+  --score-excellent: var(--orato-verdigris);
+  --score-good: var(--orato-gold);
+  --score-fair: var(--orato-ochre);
+  --score-weak: var(--orato-bole);
+
+  /* Motion durations. Radii and easings live in theme.css's @theme block —
+     they are Tailwind namespaces there (rounded-*, ease-*); duplicating the
+     same names here would self-reference. */
+  --dur-fast: 180ms;
+  --dur-base: 420ms;
+  --dur-slow: 900ms;
+}

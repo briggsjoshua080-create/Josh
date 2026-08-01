@@ -19,14 +19,15 @@ export function TodayHero() {
   return (
     <motion.div
       {...enter}
-      className="box box-shade-a relative mx-auto flex max-w-sm flex-col items-center overflow-hidden rounded-[30px] px-8 py-9"
+      className="box box-raised relative mx-auto flex max-w-sm flex-col items-center overflow-hidden px-8 py-9"
       aria-hidden="true"
     >
       {/* Soft gold wash behind the mark */}
       <span
         className="pointer-events-none absolute inset-x-0 top-0 h-full"
         style={{
-          background: "radial-gradient(60% 46% at 50% 40%, rgb(201 168 118 / 0.14) 0%, transparent 100%)",
+          background:
+            "radial-gradient(60% 46% at 50% 40%, color-mix(in srgb, var(--orato-gold) 14%, transparent) 0%, transparent 100%)",
         }}
       />
       <img
@@ -35,8 +36,8 @@ export function TodayHero() {
         width={152}
         height={152}
         draggable={false}
-        className="relative h-38 w-38 select-none rounded-full border border-gold/60"
-        style={{ boxShadow: "0 0 44px rgb(201 168 118 / 0.22)" }}
+        className="relative h-38 w-38 select-none rounded-full border-[0.5px] border-gold/60"
+        style={{ boxShadow: "0 0 44px color-mix(in srgb, var(--orato-gold) 22%, transparent)" }}
       />
       <span className="lectern relative mt-5 text-sm italic text-gold/80">ars bene dicendi</span>
     </motion.div>

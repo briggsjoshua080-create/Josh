@@ -1,30 +1,48 @@
+@import "./tokens.css";
 @import "tailwindcss";
 
 @theme {
-  /* ——— The Cellar palette: wine-label black, Dutch White, Wine ———
-     Base hexes: bg #0D0B0A · ink #EFDFBB (Dutch White) · accent #722F37 (Wine).
-     Every other value is a tint/shade of those three — nothing outside the family. */
-  --color-bg: oklch(0.145 0.006 40);
-  --color-surface: oklch(0.175 0.012 25);
-  --color-surface-2: oklch(0.215 0.018 22);
-  /* Wine at ~30% — the thin outline every content box wears instead of a fill */
-  --color-line: oklch(0.42 0.105 17 / 0.32);
-  --color-ink: oklch(0.905 0.048 92);
-  --color-muted: oklch(0.72 0.035 85);
-  --color-faint: oklch(0.55 0.028 70);
-  /* Wine #722F37 — CTAs and primary actions */
-  --color-primary: oklch(0.4 0.105 17);
-  --color-primary-bright: oklch(0.46 0.12 17);
-  --color-primary-deep: oklch(0.32 0.088 15);
-  /* Lifted rose-wine for text highlights that must read on near-black */
-  --color-accent: oklch(0.64 0.13 17);
-  --color-accent-dim: oklch(0.56 0.105 17);
-  /* Chart stroke: cream step, validated against the near-black surface */
-  --color-chart: oklch(0.76 0.06 88);
-  --color-accent-ink: oklch(0.17 0.03 20);
-  --color-ok: oklch(0.83 0.085 88);
-  --color-warn: oklch(0.7 0.095 55);
-  --color-bad: oklch(0.56 0.155 20);
+  /* ——— Orato semantic tokens ———
+     Every value points into the role/foundation variables in tokens.css.
+     Plain @theme (NOT inline) on purpose: utilities must reference the
+     semantic variable at point of use so scoped overrides keep working. */
+  --color-bg: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-surface-2: var(--bg-surface-raised);
+  --color-line: var(--border-hairline);
+  --color-ink: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-faint: var(--text-muted);
+  /* Claret — CTAs and primary actions */
+  --color-primary: var(--orato-claret);
+  --color-primary-bright: var(--orato-claret-light);
+  --color-primary-deep: var(--orato-wine);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--orato-bronze);
+  --color-chart: var(--orato-gold);
+  --color-accent-ink: var(--orato-obsidian);
+  --color-ok: var(--orato-verdigris);
+  --color-warn: var(--orato-ochre);
+  --color-bad: var(--orato-bole);
+
+  /* Foundation names for new components: bg-deep-wine, text-vellum, … */
+  --color-obsidian: var(--orato-obsidian);
+  --color-deep-wine: var(--orato-deep-wine);
+  --color-wine-shadow: var(--orato-wine-shadow);
+  --color-wine: var(--orato-wine);
+  --color-claret: var(--orato-claret);
+  --color-claret-light: var(--orato-claret-light);
+  --color-bronze: var(--orato-bronze);
+  --color-gold: var(--orato-gold);
+  --color-champagne: var(--orato-champagne);
+  --color-vellum: var(--orato-vellum);
+  --color-verdigris: var(--orato-verdigris);
+  --color-ochre: var(--orato-ochre);
+  --color-bole: var(--orato-bole);
+  --color-lapis: var(--orato-lapis);
+
+  /* Chip fill (streak / XP / language pills) */
+  --color-card: var(--bg-chip);
 
   --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
   --font-serif: "Newsreader Variable", Georgia, serif;
@@ -39,12 +57,12 @@
   --text-3xl: 2.25rem;
   --text-4xl: 2.75rem;
 
-  /* Wine & gold box palette — solid deep-wine fills with gold/tan line + type */
-  --color-gold: #c9a876;
-  --color-card: #4a1420;
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --radius-pill: 999px;
 
-  --radius-card: 22px;
-  --radius-control: 12px;
+  /* Hairline discipline: every border utility renders 0.5px */
+  --default-border-width: 0.5px;
 
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -95,8 +113,8 @@ p {
 }
 
 ::selection {
-  background: oklch(0.4 0.105 17);
-  color: oklch(0.905 0.048 92);
+  background: var(--orato-claret);
+  color: var(--orato-vellum);
 }
 
 /* The prompt gets the lectern treatment */
@@ -115,11 +133,14 @@ p {
   font-size: 1.05em;
 }
 
-/* Recording spotlight — state-driven glow (scaled via --level set from mic input) */
+/* Recording spotlight — state-driven glow (scaled via --level set from mic input).
+   Sanctioned: functional light driven by state, not depth. */
 .spotlight-glow {
   box-shadow:
-    0 0 0 calc(6px + 10px * var(--level, 0)) oklch(0.4 0.105 17 / 0.32),
-    0 0 calc(24px + 36px * var(--level, 0)) oklch(0.46 0.12 17 / 0.38);
+    0 0 0 calc(6px + 10px * var(--level, 0))
+      color-mix(in srgb, var(--orato-claret) 32%, transparent),
+    0 0 calc(24px + 36px * var(--level, 0))
+      color-mix(in srgb, var(--orato-claret-light) 38%, transparent);
   transition: box-shadow 120ms linear;
 }
 
@@ -127,10 +148,10 @@ p {
 @keyframes ringGlowIdeal {
   0%,
   100% {
-    filter: drop-shadow(0 0 2px oklch(0.905 0.048 92 / 0.15));
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--orato-verdigris) 15%, transparent));
   }
   50% {
-    filter: drop-shadow(0 0 12px oklch(0.905 0.048 92 / 0.4));
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--orato-verdigris) 40%, transparent));
   }
 }
 
@@ -141,10 +162,10 @@ p {
 @keyframes ringGlowOver {
   0%,
   100% {
-    filter: drop-shadow(0 0 3px oklch(0.56 0.155 20 / 0.2));
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--orato-bole) 20%, transparent));
   }
   50% {
-    filter: drop-shadow(0 0 14px oklch(0.56 0.155 20 / 0.5));
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--orato-bole) 50%, transparent));
   }
 }
 
@@ -157,61 +178,40 @@ p {
   border-color: var(--color-line);
 }
 
-/* ——— Wine & gold boxes ———
-   Every text box / card wears a solid deep-wine fill (#4A1420), a thin gold
-   outline, and gold type. Inside a box the semantic colour variables are
-   remapped, so existing text-ink / text-muted / border-line / bg-surface
-   utilities on children resolve into the gold-on-wine family automatically. */
+/* ——— Elevation discipline ———
+   Depth comes from the surface ramp, never from shadows. Cards sit on the
+   page in deep wine behind a hairline; emphasis cards step up to the raised
+   surface behind a bronze line. Text roles resolve globally (vellum primary,
+   gold secondary) — no per-box colour remapping, so score colours stay true
+   inside cards. */
 .box {
-  background: var(--box-fill, var(--color-card));
-  border: 1px solid var(--color-gold);
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-hairline);
   border-radius: var(--radius-card);
-  color: var(--color-gold);
-  --color-ink: var(--color-gold);
-  --color-muted: color-mix(in oklab, var(--color-gold) 80%, transparent);
-  --color-faint: color-mix(in oklab, var(--color-gold) 58%, transparent);
-  --color-accent: var(--color-gold);
-  --color-accent-dim: var(--color-gold);
-  --color-ok: var(--color-gold);
-  --color-warn: var(--color-gold);
-  --color-chart: var(--color-gold);
-  --color-line: color-mix(in oklab, var(--color-gold) 42%, transparent);
-  --color-surface: color-mix(in oklab, var(--box-fill, var(--color-card)) 80%, black);
-  --color-surface-2: color-mix(in oklab, var(--box-fill, var(--color-card)) 62%, black);
+  color: var(--text-primary);
+}
+
+/* Emphasis cards: Today hero, active challenge */
+.box-raised {
+  background: var(--bg-surface-raised);
+  border-color: var(--border-emphasis);
 }
 
 /* Inputs and other control-radius boxes */
 .box-control {
-  background: var(--color-card);
-  border: 1px solid color-mix(in oklab, var(--color-gold) 65%, transparent);
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-hairline);
   border-radius: var(--radius-control);
-  color: var(--color-gold);
+  color: var(--text-primary);
 }
 
 .box-control::placeholder {
-  color: color-mix(in oklab, var(--color-gold) 55%, transparent);
+  color: var(--text-muted);
 }
 
 .box-control:focus {
-  border-color: var(--color-gold);
+  border-color: var(--accent);
   outline: none;
-}
-
-/* Today-only shade rhythm: each box a slightly different wine, same gold line */
-.box-shade-a {
-  --box-fill: #4a1420;
-}
-
-.box-shade-b {
-  --box-fill: #5a1826;
-}
-
-.box-shade-c {
-  --box-fill: #3e1119;
-}
-
-.box-shade-d {
-  --box-fill: #52182a;
 }
 
 /* Wide-tracked uppercase section labels (STATS, VOCAL DELIVERY) */
