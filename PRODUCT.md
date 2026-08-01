@@ -28,8 +28,19 @@ Composed, candid, theatrical-in-restraint. Three words: **stage, craft, candor**
 1. **The stage, not the classroom.** Dark theater surfaces, one warm spotlight accent. The user's words are the show — prompts get the serif lectern treatment; chrome recedes.
 2. **Candor is the product.** Feedback screens privilege specifics: quoted phrases, rewrites, exact counts. Numbers earn trust by being deterministic where they can be.
 3. **Ritual over gamification.** The daily loop feels like a rehearsal ritual — streaks and scores are quiet instruments, not confetti.
-4. **Motion conveys state.** Score reveals, ring fills, and card swipes carry meaning; nothing pulses, floats, or shimmers idly.
+4. **Motion conveys state.** Score reveals, ring fills, and card swipes carry meaning; nothing animates idly. Earned-state flourishes (the XP sheen, the streak shimmer, the recording pulse) fire on state — a gain, an active recording — never on a loop for its own sake.
 5. **German is a first language.** Every string, prompt, filler-word list, and coaching template is authored per-language, not machine-translated.
+
+## Progress & Feedback Surfaces (2026-08 overhaul)
+
+- The Progress screen's speaking profile is an eight-axis radar (current session vs a
+  dashed ghost of the previous one) with a tap-to-reveal per-metric panel; it replaced the
+  eight-bar STATS list and the separate Focus Point card.
+- Every score-driven colour derives from one band function (`lib/scoreColor.ts`); letter
+  grades from one front-loaded scale (`lib/grade.ts`, A+ only at 100).
+- AI feedback generation shows cycling coach phrases with a hard 45-second ceiling; past
+  it, a retry card appears ("That took too long. Try again?"). A missing session shows a
+  recovery card instead of loading forever.
 
 ## Accessibility & Inclusion
 
