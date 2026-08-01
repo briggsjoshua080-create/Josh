@@ -7,6 +7,7 @@ import { requestReport, deliveryCoaching, wordOfDayUsed, CoachUnavailableError }
 import { METRIC_KEYS, type EightScores, type MetricKey, type Session } from "@/lib/types";
 import { computeEight, overallFromEight, xpForScore, levelForXp, WORD_OF_DAY_BONUS, type LevelState } from "@/lib/progression";
 import { METRIC_META, CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
+import { scoreColorVar } from "@/lib/scoreColor";
 import { PACE_BAND, wpmSeries } from "@/lib/metrics";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -471,7 +472,7 @@ function MetricRow({
         {score !== null && (
           <motion.div
             className="h-full rounded-full"
-            style={{ background: meta.tint }}
+            style={{ background: scoreColorVar(score) }}
             initial={reduced ? { width: `${score}%` } : { width: 0 }}
             animate={{ width: `${score}%` }}
             transition={{ type: "spring", stiffness: 90, damping: 20, delay }}

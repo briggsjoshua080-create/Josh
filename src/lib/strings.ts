@@ -197,6 +197,53 @@ export const strings = {
   metricWordPower: { en: "Word Power", de: "Wortkraft" },
   metricConciseness: { en: "Conciseness", de: "Prägnanz" },
   metricEngagement: { en: "Engagement", de: "Wirkung" },
+
+  // Short metric names — radar axis labels, must stay genuinely short
+  metricShortClarity: { en: "Clarity", de: "Klarheit" },
+  metricShortConfidence: { en: "Confidence", de: "Souverän" },
+  metricShortStructure: { en: "Structure", de: "Struktur" },
+  metricShortPace: { en: "Pace", de: "Tempo" },
+  metricShortFluency: { en: "Fluency", de: "Fluss" },
+  metricShortWordPower: { en: "Power", de: "Kraft" },
+  metricShortConciseness: { en: "Concise", de: "Prägnanz" },
+  metricShortEngagement: { en: "Engage", de: "Wirkung" },
+
+  // Speaking profile radar (Progress)
+  radarTitle: { en: "Speaking profile", de: "Sprechprofil" },
+  radarLegendCurrent: { en: "This session", de: "Diese Session" },
+  radarLegendPrev: { en: "Previous", de: "Davor" },
+  radarEmpty: {
+    en: "Record your first session to see your speaking profile",
+    de: "Nimm deine erste Session auf, um dein Sprechprofil zu sehen",
+  },
+  metricNoNote: {
+    en: "No feedback recorded for this metric.",
+    de: "Für diese Metrik ist kein Feedback gespeichert.",
+  },
+  metricDeltaVs: { en: "vs last session", de: "ggü. letzter Session" },
+  trendAvgLabel: { en: "avg", de: "Ø" },
+
+  // AI feedback loading + failure states
+  aiLoading1: { en: "Listening back…", de: "Ich höre alles noch einmal…" },
+  aiLoading2: { en: "Measuring your pace…", de: "Ich messe dein Tempo…" },
+  aiLoading3: { en: "Weighing your words…", de: "Ich wäge deine Worte…" },
+  aiLoading4: { en: "Scoring the eight metrics…", de: "Ich bewerte die acht Metriken…" },
+  coachTimeout: {
+    en: "That took too long. Try again?",
+    de: "Das hat zu lange gedauert. Noch einmal versuchen?",
+  },
+  sessionMissing: {
+    en: "Session not found — it may have been removed from this device.",
+    de: "Session nicht gefunden — sie wurde vielleicht von diesem Gerät entfernt.",
+  },
+
+  // Recording screen
+  recordingLabel: { en: "Recording", de: "Aufnahme" },
+  zoneWarmup: { en: "Warming up", de: "Warmlaufen" },
+  zoneBuilding: { en: "Building", de: "Im Aufbau" },
+  zoneIdeal: { en: "Ideal window", de: "Ideales Fenster" },
+  zoneWrapUp: { en: "Wrap up", de: "Zum Schluss kommen" },
+  zoneOver: { en: "Over time", de: "Überzogen" },
   expClarity: {
     en: "How easily a listener follows your ideas.",
     de: "Wie mühelos ein Zuhörer deinen Gedanken folgt.",

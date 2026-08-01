@@ -15,7 +15,7 @@ import { motion, useReducedMotion, type Transition } from "motion/react";
  * Under prefers-reduced-motion nothing animates: the finished state (full
  * emblem + wordmark) renders on the first frame and hands off quickly.
  */
-const GOLD = "#C9A876";
+const GOLD = "var(--orato-gold)";
 
 /** Timeline, in seconds. Kept here so the sequence stays readable. */
 const SWEEP_S = 1.35;
@@ -108,7 +108,8 @@ const styles: Record<"wrap" | "glow" | "mark" | "img" | "word", CSSProperties> =
   wrap: {
     position: "fixed",
     inset: 0,
-    background: "radial-gradient(72% 62% at 50% 42%, #4A1420 0%, #350D16 62%, #260810 100%)",
+    background:
+      "radial-gradient(72% 62% at 50% 42%, var(--orato-wine) 0%, color-mix(in srgb, var(--orato-wine) 55%, var(--orato-obsidian)) 62%, color-mix(in srgb, var(--orato-wine) 30%, var(--orato-obsidian)) 100%)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -116,7 +117,7 @@ const styles: Record<"wrap" | "glow" | "mark" | "img" | "word", CSSProperties> =
     zIndex: 9999,
   },
   glow: {
-    filter: "drop-shadow(0 0 34px rgb(201 168 118 / 0.28))",
+    filter: "drop-shadow(0 0 34px color-mix(in srgb, var(--orato-gold) 28%, transparent))",
     lineHeight: 0,
   },
   mark: {

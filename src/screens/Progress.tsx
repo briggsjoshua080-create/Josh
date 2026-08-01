@@ -6,6 +6,7 @@ import { allSessions, currentStreak, recomputeProgress } from "@/lib/db";
 import { METRIC_KEYS, type MetricKey, type Session } from "@/lib/types";
 import { levelForXp, type ProgressState } from "@/lib/progression";
 import { METRIC_META } from "@/lib/metricMeta";
+import { scoreColorVar } from "@/lib/scoreColor";
 import type { StringKey } from "@/lib/strings";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -286,7 +287,7 @@ function StatRow({
         {average !== null && (
           <motion.div
             className="h-full rounded-full"
-            style={{ background: meta.tint }}
+            style={{ background: scoreColorVar(average) }}
             initial={reduced ? { width: `${average}%` } : { width: 0 }}
             animate={{ width: `${average}%` }}
             transition={{ type: "spring", stiffness: 90, damping: 20, delay }}
