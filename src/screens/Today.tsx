@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { SnapSection } from "@/components/SnapSection";
 import { TodayHero } from "@/components/TodayHero";
+import { FlipCard } from "@/components/kokonut/FlipCard";
 import type { Session, WordEntry } from "@/lib/types";
 
 export function Today() {
@@ -184,40 +185,52 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
   }
 
   return (
-    <div className="box mt-3">
-      <button
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 p-5 text-left"
-        data-testid="word-of-day-toggle"
-      >
-        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
-          <span className="lectern text-2xl text-ink">{word.word}</span>
-          {/* Dictionary-style IPA, always visible next to the word */}
-          <span className="text-sm text-muted">{word.pronunciation}</span>
-        </span>
-        {done && (
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
-            <Icon name="check" size={13} />
+    <div className="mt-3">
+      <FlipCard
+        flipped={open}
+        onFlip={() => setOpen(!open)}
+        testId="word-of-day-toggle"
+        label={word.word}
+        front={
+          <span className="flex w-full items-center gap-3">
+            <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
+              <span className="lectern text-2xl text-ink" style={{ overflowWrap: "break-word" }}>
+                {word.word}
+              </span>
+              {/* Dictionary-style IPA, always visible next to the word */}
+              <span className="text-sm text-muted">{word.pronunciation}</span>
+            </span>
+            {done && (
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
+                <Icon name="check" size={13} />
+              </span>
+            )}
+            <span className="ml-auto shrink-0 text-xs text-faint">{t("wordRevealHint")}</span>
           </span>
-        )}
-        {!open && <span className="ml-auto text-xs text-faint">{t("wordRevealHint")}</span>}
-        <Icon
-          name="chevronDown"
-          size={16}
-          className={`shrink-0 text-faint transition-transform duration-150 ${open ? "ml-auto rotate-180" : ""}`}
-        />
-      </button>
+        }
+        back={
+          <span className="block">
+            <span className="flex items-baseline gap-2.5">
+              <span className="lectern text-xl text-ink" style={{ overflowWrap: "break-word" }}>
+                {word.word}
+              </span>
+              <span className="text-sm text-muted italic">{word.pos}</span>
+            </span>
+            <span className="mt-2 block text-base text-ink/90" style={{ overflowWrap: "break-word" }}>
+              {word.definition}
+            </span>
+            <span className="lectern mt-3 block text-base italic text-muted" style={{ overflowWrap: "break-word" }}>
+              “{word.example}”
+            </span>
+            <span className="mt-3 block text-sm text-accent-dim">{t("wordOfDayHint")}</span>
+          </span>
+        }
+      />
 
       {open && (
-        <div className="border-t hairline p-5 pt-4">
-          <span className="text-sm text-muted italic">{word.pos}</span>
-          <p className="mt-2 text-base text-ink/90">{word.definition}</p>
-          <p className="lectern mt-3 text-base italic text-muted">“{word.example}”</p>
-          <p className="mt-3 text-sm text-accent-dim">{t("wordOfDayHint")}</p>
-
+        <div className="mt-3">
           {done === false && (
-            <form onSubmit={submit} className="mt-5 border-t hairline pt-4">
+            <form onSubmit={submit} className="box box-border p-5">
               <label htmlFor="word-use-sentence" className="block text-sm font-medium text-ink">
                 {t("wordUsePrompt")}
               </label>
@@ -252,7 +265,7 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
           )}
 
           {done && (
-            <div className="mt-5 flex items-start gap-3 rounded-(--radius-card) border border-ok/40 bg-ok/10 p-4" role="status">
+            <div className="flex items-start gap-3 rounded-(--radius-card) border border-ok/40 bg-ok/10 p-4" role="status">
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/20 text-ok">
                 <Icon name="check" size={13} />
               </span>
