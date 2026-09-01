@@ -107,6 +107,21 @@ export function overallFromEight(scores: EightScores): number | null {
   return Math.round((values as number[]).reduce((a, b) => a + b, 0) / values.length);
 }
 
+/**
+ * Per-metric mean across every scored speech — the solid polygon on the
+ * Progress radar. A metric drops out of its own average when it wasn't
+ * scored rather than counting as zero (same rule as blendScores); a metric
+ * nobody ever scored stays null so the radar can show it as unknown.
+ */
+export function averageEight(history: EightScores[]): EightScores {
+  const averages = {} as EightScores;
+  for (const key of METRIC_KEYS) {
+    const values = history.map((h) => h[key]).filter((v): v is number => v !== null);
+    averages[key] = values.length === 0 ? null : Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  }
+  return averages;
+}
+
 export interface RollingStats {
   /** Rolling mean per metric over the last 10 scored speeches (or all, if fewer). */
   averages: Record<MetricKey, number | null>;

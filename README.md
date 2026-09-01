@@ -13,9 +13,11 @@ professionalism, scored honestly.
   indefinitely past day 66 via an advanced rotation. Includes a bilingual
   **Word of the Day** (definition, pronunciation, example) to work into each
   recording.
-- **70-scenario practice library** across 10 categories (pitches, interviews,
+- **170-scenario practice library** across 10 categories (pitches, interviews,
   toasts, difficult conversations, debate, crisis comms, TED-style, …) with
   category filters, "surprise me", and a swipeable card deck (spring physics).
+  100 of them are impromptu prompts, every title tagged "Impromptu" /
+  "Stegreif" so one search pulls the whole set.
 - **Recording loop**: Web Speech API live transcription (`de-DE` / `en-US`),
   pause detection, voice-level-driven recording glow, typed fallback for
   browsers without speech recognition.

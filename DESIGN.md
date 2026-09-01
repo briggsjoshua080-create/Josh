@@ -77,14 +77,22 @@ Pairing on a contrast axis: editorial serif for the spoken word, grotesque sans 
 Motion conveys state; nothing idles. `ease-out` expo (`cubic-bezier(0.16,1,0.30,1)`),
 durations from `--dur-fast/base/slow` (180/420/900ms). The sanctioned set pieces:
 
-1. **Score reveal** — spring count-up whose colour walks the score bands; one particle
-   burst on the XP pill; metric rows cascade (stagger 0.07, bars fill 1.1s).
+1. **Score reveal** — the overall score sits inside a ring that sweeps 0 → score on one
+   spring; the arc's colour and the count-up's colour walk the score bands together, off
+   the same spring, so they can never disagree mid-flight. One particle burst on the XP pill.
 2. **Card flip** — the word of the day turns over in 500ms (cross-fade under reduced motion).
 3. **Recording state** — the spotlight glow breathes with detected speech; the gauge arc
    steps zone colours over 600ms; the recording dot pulses 2s (state, not decoration).
 4. **Earned-state flourishes** — one champagne sheen across the XP pill per gain (never a
    loop); one champagne shimmer pass per 6s on a streak of 3+.
 5. **Charts** — radar expands from centre 900ms; the trend draws on left-to-right 900ms.
+6. **Coach reviewing the audio** — a still waveform of the recording with a gold read-head
+   crossing it on a 2.4s loop; bars warm bronze → gold as the head reaches them. Shown while
+   analysis is in flight, on the recording screen and the feedback screen alike. Transform
+   and colour only, never width.
+7. **Where you are** — a gold marker slides between tabs on route change (spring 380/32),
+   shared-layout, one namespace per surface so the rail and the tab bar never animate into
+   each other.
 
 Every animation short-circuits to its end state under `prefers-reduced-motion` — three
 layers enforce it: `<MotionConfig reducedMotion="user">`, per-component `useReducedMotion`
@@ -97,6 +105,17 @@ Consistent vocabulary across screens: one button shape, one form vocabulary, one
 disabled/loading/error. Skeletons for loading, teaching empty states, visible focus rings
 (`outline: 2px solid var(--accent); outline-offset: 2px`). Charts are Chart.js with tokens
 resolved through `src/lib/cssTokens.ts` (canvas cannot read `var()`).
+
+One radar serves both screens (`MetricRadar`), which is why its props name the drawing role
+rather than the data: `primary` is the solid polygon, `overlay` the dashed ghost. Feedback
+draws this session over the previous one; Progress draws the running average over the latest
+session. Its canvas is square and centred — a free aspect ratio lets unequal point-label
+widths drag the polygon's optical centre sideways.
+
+The feedback report is short on purpose: score, profile, one thing that worked, two things to
+work on. Everything else lives behind one disclosure. The cut is made in the coach prompt
+(`server/coach.ts`), not just hidden in the UI, and old reports are trimmed on render so
+history reads the same way.
 
 Text containment is a standing rule, not polish: text boxes use `border-box` +
 `overflow-wrap`; dynamic-text containers use `min-height`, never `height`; the flip card

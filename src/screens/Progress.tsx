@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
 import { allSessions, currentStreak, recomputeProgress } from "@/lib/db";
 import type { Session } from "@/lib/types";
-import { levelForXp, type ProgressState } from "@/lib/progression";
+import { averageEight, levelForXp, type ProgressState } from "@/lib/progression";
 import { scoreColorVar } from "@/lib/scoreColor";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -47,12 +47,15 @@ export function Progress() {
   const avgScore = Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length);
   const bestScore = Math.max(...allScores);
 
-  // Radar data: the last two sessions that carry per-metric scores.
+  // Radar data: the solid polygon is the average of every scored session, the
+  // dashed ghost is the latest one — so the profile reads as a standing shape
+  // with today drawn over it. With one session on record the two coincide, so
+  // the ghost is dropped rather than doubled.
   const scored = sessions
     .filter((s) => s.progress?.scores)
     .sort((a, b) => a.startedAt - b.startedAt);
   const latest = scored.length > 0 ? scored[scored.length - 1] : null;
-  const beforeLatest = scored.length > 1 ? scored[scored.length - 2] : null;
+  const average = scored.length > 0 ? averageEight(scored.map((s) => s.progress!.scores)) : null;
 
   return (
     <div className="pt-2 lg:pt-0">
@@ -95,8 +98,12 @@ export function Progress() {
         <h2 className="label-caps">{t("radarTitle")}</h2>
         <div className="mt-4">
           <MetricRadar
-            current={latest?.progress?.scores ?? null}
-            previous={beforeLatest?.progress?.scores ?? null}
+            primary={average}
+            overlay={scored.length > 1 ? (latest?.progress?.scores ?? null) : null}
+            primaryLabel={t("radarLegendAverage")}
+            overlayLabel={t("radarLegendLast")}
+            deltaLabel={t("metricDeltaVsAvg")}
+            deltaOf="overlay"
             oneLiners={latest?.report?.oneLiners}
           />
         </div>

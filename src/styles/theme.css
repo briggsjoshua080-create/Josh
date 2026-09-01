@@ -299,6 +299,70 @@ p {
   }
 }
 
+/* ——— Coach reviewing the audio ———
+   A still waveform of the recording with a gold read-head crossing it: each
+   bar lifts and warms to gold as the head reaches it, then settles back to
+   bronze. Transform + colour only (never width), so it composites cleanly.
+   Under reduced motion the kill switch at the bottom of this file freezes
+   both, leaving a legible static waveform. */
+.coach-bar {
+  transform-origin: center;
+  animation: coachBar 2.4s ease-in-out infinite;
+}
+
+@keyframes coachBar {
+  0%,
+  22%,
+  100% {
+    background-color: var(--orato-bronze);
+    transform: scaleY(0.55);
+  }
+  8% {
+    background-color: var(--orato-gold);
+    transform: scaleY(1);
+  }
+}
+
+/* Full-width rail: translateX percentages resolve against its own width, so
+   0% → 100% walks the read-head exactly one container across. */
+.coach-scanline {
+  animation: coachScan 2.4s ease-in-out infinite;
+}
+
+@keyframes coachScan {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Disclosure chevron: points down when closed, up when open, so the card
+   reads as openable rather than as an empty box. */
+.disclosure summary::-webkit-details-marker,
+.disclosure summary::marker {
+  display: none;
+  content: "";
+}
+
+.disclosure-chevron {
+  transition: transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.disclosure[open] .disclosure-chevron {
+  transform: rotate(180deg);
+}
+
 /* Wide-tracked uppercase section labels (STATS, VOCAL DELIVERY) */
 .label-caps {
   font-size: var(--text-xs);

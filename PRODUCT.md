@@ -10,7 +10,7 @@ Ambitious self-improvers training their speaking voice: aspiring leaders, profes
 
 ## Product Purpose
 
-Orato is a daily speech-training studio. Two tracks: a 66-day (and beyond) daily challenge path with escalating difficulty and a word-of-the-day eloquence builder, and a 70-scenario practice library (pitches, toasts, interviews, debates, difficult conversations). The user records themselves, the browser transcribes live, deterministic metrics (pace, fillers, disfluencies) are computed client-side, and Claude delivers candid, specific coaching in the user's spoken language. Success: the user comes back tomorrow because yesterday's feedback was too precise to ignore.
+Orato is a daily speech-training studio. Two tracks: a 66-day (and beyond) daily challenge path with escalating difficulty and a word-of-the-day eloquence builder, and a 170-scenario practice library (pitches, toasts, interviews, debates, difficult conversations, plus 100 impromptu prompts). The user records themselves, the browser transcribes live, deterministic metrics (pace, fillers, disfluencies) are computed client-side, and Claude delivers candid, specific coaching in the user's spoken language. Success: the user comes back tomorrow because yesterday's feedback was too precise to ignore.
 
 ## Brand Personality
 

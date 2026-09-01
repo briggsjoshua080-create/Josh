@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   RANKS,
   WORD_OF_DAY_BONUS,
+  averageEight,
   computeEight,
   levelForXp,
   overallFromEight,
@@ -144,6 +145,46 @@ describe("rollingStats", () => {
     const { averages, trends } = rollingStats([]);
     expect(averages.clarity).toBeNull();
     expect(trends.clarity).toBe(0);
+  });
+});
+
+describe("averageEight", () => {
+  const speech = (clarity: number | null, confidence: number | null = 70): EightScores => ({
+    clarity,
+    confidence,
+    structure: 70,
+    pace: 70,
+    fluency: 70,
+    wordPower: 70,
+    conciseness: 70,
+    engagement: 70,
+  });
+
+  it("averages every scored session, not just a window", () => {
+    // 12 sessions: rollingStats would only see the last 10.
+    const history = [speech(100), speech(100), ...Array.from({ length: 10 }, () => speech(50))];
+    expect(averageEight(history).clarity).toBe(Math.round((2 * 100 + 10 * 50) / 12));
+  });
+
+  it("returns the session itself when there is only one", () => {
+    expect(averageEight([speech(83)]).clarity).toBe(83);
+  });
+
+  it("drops unscored readings from that metric's mean instead of counting them as zero", () => {
+    const avg = averageEight([speech(80), speech(null), speech(60)]);
+    expect(avg.clarity).toBe(70); // (80 + 60) / 2, not (80 + 0 + 60) / 3
+    expect(avg.confidence).toBe(70);
+  });
+
+  it("leaves a metric null when nothing ever scored it", () => {
+    const avg = averageEight([speech(80, null), speech(60, null)]);
+    expect(avg.confidence).toBeNull();
+    expect(avg.clarity).toBe(70);
+  });
+
+  it("is all null with no history", () => {
+    const avg = averageEight([]);
+    for (const key of METRIC_KEYS) expect(avg[key]).toBeNull();
   });
 });
 
