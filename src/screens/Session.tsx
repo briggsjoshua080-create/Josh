@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { RecordRing, ringZone } from "@/components/RecordRing";
 import { Waveform } from "@/components/Waveform";
+import { CoachListening } from "@/components/CoachListening";
 
 type Phase = "idle" | "recording" | "analyzing";
 
@@ -320,8 +321,8 @@ export function Session() {
       )}
 
       {phase === "analyzing" && (
-        <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-surface-2 border-t-accent" />
+        <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+          <CoachListening />
           <p className="mt-6 text-lg text-ink">{t("analyzing")}</p>
         </div>
       )}

@@ -92,21 +92,59 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate(TAB_ORDER[next]);
   }
 
-  const navItems = NAV.map((item) => (
-    <NavLink
-      key={item.to}
-      to={item.to}
-      end={item.to === "/"}
-      className={({ isActive }) =>
-        `flex items-center gap-3 rounded-(--radius-control) px-3 py-2 transition-colors duration-150 ` +
-        `max-lg:flex-col max-lg:gap-1 max-lg:px-5 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
-        (isActive ? "text-gold" : "text-muted hover:text-ink")
-      }
-    >
-      <Icon name={item.icon} size={22} />
-      <span className="font-medium">{t(item.key)}</span>
-    </NavLink>
-  ));
+  /**
+   * The rail and the tab bar render the same four links, so each surface gets
+   * its own layoutId namespace — one shared id would make Motion animate the
+   * marker between the two copies instead of between tabs.
+   */
+  const navItems = (surface: "rail" | "tabs") =>
+    NAV.map((item) => (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.to === "/"}
+        className={({ isActive }) =>
+          `relative flex items-center gap-3 rounded-(--radius-control) px-3 py-2 transition-colors duration-150 ` +
+          `max-lg:flex-col max-lg:gap-1 max-lg:px-5 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
+          (isActive ? "text-gold" : "text-muted hover:text-ink")
+        }
+      >
+        {({ isActive }) => (
+          <>
+            {/* Which page you're on: a gold marker that slides between tabs.
+                It lives in a flex box rather than carrying its own transform,
+                because Motion cannot layout-animate a transformed element. */}
+            <span
+              aria-hidden="true"
+              className={
+                surface === "tabs"
+                  ? "pointer-events-none absolute inset-x-0 top-0 flex justify-center"
+                  : "pointer-events-none absolute inset-y-1 left-0 flex items-center"
+              }
+            >
+              {isActive && (
+                <motion.span
+                  layoutId={`${surface}-active`}
+                  className={
+                    surface === "tabs"
+                      ? "block h-[2px] w-8 rounded-full bg-accent"
+                      : "block h-5 w-[3px] rounded-full bg-accent"
+                  }
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                />
+              )}
+            </span>
+            <span
+              className="transition-transform duration-150"
+              style={{ transform: isActive ? "scale(1.06)" : "scale(1)" }}
+            >
+              <Icon name={item.icon} size={22} />
+            </span>
+            <span className="font-medium">{t(item.key)}</span>
+          </>
+        )}
+      </NavLink>
+    ));
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[220px_1fr]">
@@ -116,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Logo size={52} />
           <HeaderStats />
         </div>
-        {navItems}
+        {navItems("rail")}
         <div className="mt-auto flex flex-col gap-3">
           <NavLink
             to="/settings"
@@ -188,7 +226,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="lg:hidden fixed inset-x-0 bottom-0 flex justify-around border-t hairline bg-bg/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)] pt-1"
           style={{ zIndex: "var(--z-nav)" }}
         >
-          {navItems}
+          {navItems("tabs")}
         </nav>
       </div>
     </div>

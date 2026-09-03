@@ -11,11 +11,22 @@ import { resolveScoreColor, resolveToken } from "@/lib/charts";
 import { GradeLetter } from "@/components/GradeLetter";
 
 interface MetricRadarProps {
-  /** Latest scored session's eight scores; null renders the empty state. */
-  current: EightScores | null;
-  /** Session before it — the dashed ghost. Omitted with fewer than 2 sessions. */
-  previous?: EightScores | null;
-  /** Per-metric coach sentences from the latest session's report. */
+  /** The solid, filled polygon. null renders the empty state. */
+  primary: EightScores | null;
+  /** The dashed ghost drawn over it. Omitted when there is nothing to compare. */
+  overlay?: EightScores | null;
+  /** Legend text for each series. */
+  primaryLabel: string;
+  overlayLabel?: string;
+  /** Caption on the delta in the detail card, e.g. "vs last session". */
+  deltaLabel: string;
+  /**
+   * Which series the delta is measured *from*, so the sign always reads the way
+   * the screen means it: Feedback wants "this session − previous" (primary),
+   * Progress wants "latest − average" (overlay).
+   */
+  deltaOf?: "primary" | "overlay";
+  /** Per-metric coach sentences to show under the selected axis. */
   oneLiners?: Partial<Record<MetricKey, string>>;
 }
 
@@ -28,31 +39,40 @@ function withAlpha(hex: string, alpha: number): string {
 }
 
 /**
- * The Progress speaking profile: an eight-axis radar over the last session,
- * a dashed ghost of the one before, and a tap-to-reveal feedback panel.
- * Replaces the old eight-bar STATS list and the Focus Point card.
+ * The eight-axis speaking profile, shared by two screens: on Feedback it draws
+ * this session against the one before, on Progress it draws the running average
+ * against the latest session. Tap an axis (or a pill) for that metric's score,
+ * grade, movement and coach line.
  *
  * Chart.js limit, accepted per spec: pointLabels cannot style the two lines
- * of one label independently, so both lines render uniform 11px gold.
+ * of one label independently, so both lines render uniform gold.
  */
-export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) {
+export function MetricRadar({
+  primary,
+  overlay,
+  primaryLabel,
+  overlayLabel,
+  deltaLabel,
+  deltaOf = "primary",
+  oneLiners,
+}: MetricRadarProps) {
   const { t } = useI18n();
   const reduced = useReducedMotion();
   const chartRef = useRef<ChartJS<"radar"> | null>(null);
 
   const lowest = useMemo(() => {
-    if (!current) return METRIC_KEYS[0];
+    if (!primary) return METRIC_KEYS[0];
     let worst: MetricKey = METRIC_KEYS[0];
     let worstVal = Infinity;
     for (const key of METRIC_KEYS) {
-      const v = current[key];
+      const v = primary[key];
       if (v !== null && v < worstVal) {
         worstVal = v;
         worst = key;
       }
     }
     return worst;
-  }, [current]);
+  }, [primary]);
   const [selected, setSelected] = useState<MetricKey>(lowest);
 
   const colors = useMemo(
@@ -65,7 +85,7 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
     [],
   );
 
-  if (!current) {
+  if (!primary) {
     return (
       <p className="box-border py-8 text-center text-sm text-claret-light" style={{ overflowWrap: "break-word" }}>
         {t("radarEmpty")}
@@ -73,12 +93,12 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
     );
   }
 
-  const values = METRIC_KEYS.map((key) => current[key] ?? 0);
+  const values = METRIC_KEYS.map((key) => primary[key] ?? 0);
   const shortNames = METRIC_KEYS.map((key) => t(METRIC_META[key].shortKey));
 
   const datasets = [
     {
-      label: "current",
+      label: "primary",
       data: values,
       borderColor: colors.gold,
       borderWidth: 2,
@@ -86,16 +106,16 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
       backgroundColor: withAlpha(colors.gold, 0.16),
       pointRadius: 5,
       pointHoverRadius: 8,
-      pointBackgroundColor: METRIC_KEYS.map((key) => resolveScoreColor(current[key] ?? 0)),
+      pointBackgroundColor: METRIC_KEYS.map((key) => resolveScoreColor(primary[key] ?? 0)),
       pointBorderColor: colors.obsidian,
       pointBorderWidth: 2,
       order: 1,
     },
-    ...(previous
+    ...(overlay
       ? [
           {
-            label: "previous",
-            data: METRIC_KEYS.map((key) => previous[key] ?? 0),
+            label: "overlay",
+            data: METRIC_KEYS.map((key) => overlay[key] ?? 0),
             borderColor: colors.bronze,
             borderWidth: 1.5,
             borderDash: [4, 4],
@@ -111,7 +131,14 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
 
   const options: ChartOptions<"radar"> = {
     responsive: true,
-    maintainAspectRatio: false,
+    // A square canvas (the wrapper is aspect-square) keeps the polygon
+    // concentric; with a free aspect ratio, unequal label widths pull its
+    // optical centre sideways.
+    maintainAspectRatio: true,
+    aspectRatio: 1,
+    // Symmetric padding so the widest label ("Confidence") can't steal radius
+    // from one side only.
+    layout: { padding: { top: 6, bottom: 6, left: 14, right: 14 } },
     animation: reduced
       ? false
       : {
@@ -129,10 +156,10 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
         grid: { color: colors.wineShadow },
         angleLines: { color: colors.wineShadow },
         pointLabels: {
-          padding: 18,
+          padding: 10,
           color: colors.gold,
-          font: { size: 11 },
-          callback: (_label, index) => [shortNames[index], String(current[METRIC_KEYS[index]] ?? "–")],
+          font: { size: 10 },
+          callback: (_label, index) => [shortNames[index], String(primary[METRIC_KEYS[index]] ?? "–")],
         },
       },
     },
@@ -146,35 +173,34 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
     if (first) setSelected(METRIC_KEYS[first.index]);
   };
 
-  const detail = buildDetail(selected, current, previous, oneLiners);
+  const detail = buildDetail(selected, primary, overlay, oneLiners, deltaOf);
 
   return (
     <div className="box-border w-full">
       {/* Custom HTML legend — the built-in one is not registered */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
         <span className="flex items-center gap-1.5 text-[11px] text-muted">
           <span aria-hidden="true" className="inline-block h-[3px] w-2.5 rounded-full bg-gold" />
-          {t("radarLegendCurrent")}
+          {primaryLabel}
         </span>
-        {previous && (
+        {overlay && overlayLabel && (
           <span className="flex items-center gap-1.5 text-[11px] text-muted">
-            <span
-              aria-hidden="true"
-              className="inline-block h-0 w-2.5 border-t-2 border-dashed border-bronze"
-            />
-            {t("radarLegendPrev")}
+            <span aria-hidden="true" className="inline-block h-0 w-2.5 border-t-2 border-dashed border-bronze" />
+            {overlayLabel}
           </span>
         )}
       </div>
 
-      <div className="relative w-full p-6" style={{ height: 300, boxSizing: "content-box" }}>
-        <Radar ref={chartRef} data={{ labels: shortNames, datasets }} options={options} onClick={handleClick} />
+      <div className="mx-auto w-full max-w-[340px] py-4">
+        <div className="relative aspect-square w-full">
+          <Radar ref={chartRef} data={{ labels: shortNames, datasets }} options={options} onClick={handleClick} />
+        </div>
       </div>
 
       {/* Metric pills — wrap, never overflow horizontally */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         {METRIC_KEYS.map((key) => {
-          const score = current[key];
+          const score = primary[key];
           const color = score !== null ? scoreColorVar(score) : "var(--text-muted)";
           const active = selected === key;
           return (
@@ -213,10 +239,15 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
           {detail.delta !== null && (
             <span className={`tnum text-xs ${detail.delta >= 0 ? "text-verdigris" : "text-bole"}`}>
               {detail.delta >= 0 ? "+" : ""}
-              {detail.delta} {t("metricDeltaVs")}
+              {detail.delta} {deltaLabel}
             </span>
           )}
         </div>
+        {detail.overlayScore !== null && overlayLabel && (
+          <p className="tnum mt-1 text-xs text-claret-light">
+            {overlayLabel}: {detail.overlayScore}
+          </p>
+        )}
         <p
           className={`mt-2 text-[13px] ${detail.sentence ? "text-gold" : "text-claret-light"}`}
           style={{ lineHeight: 1.6, overflowWrap: "anywhere" }}
@@ -230,16 +261,19 @@ export function MetricRadar({ current, previous, oneLiners }: MetricRadarProps) 
 
 function buildDetail(
   key: MetricKey,
-  current: EightScores,
-  previous: EightScores | null | undefined,
+  primary: EightScores,
+  overlay: EightScores | null | undefined,
   oneLiners: Partial<Record<MetricKey, string>> | undefined,
+  deltaOf: "primary" | "overlay",
 ) {
-  const score = current[key];
-  const prevScore = previous?.[key] ?? null;
+  const score = primary[key];
+  const overlayScore = overlay?.[key] ?? null;
+  const comparable = score !== null && overlayScore !== null;
   return {
     score,
+    overlayScore,
     color: score !== null ? scoreColorVar(score) : "var(--text-muted)",
-    delta: score !== null && prevScore !== null ? score - prevScore : null,
+    delta: comparable ? (deltaOf === "primary" ? score - overlayScore : overlayScore - score) : null,
     sentence: oneLiners?.[key] || null,
   };
 }

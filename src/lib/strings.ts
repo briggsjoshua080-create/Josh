@@ -164,7 +164,7 @@ export const strings = {
     de: "Die Lautstärke wurde diese Session nicht gemessen — nimm mit Mikrofon auf, um sie zu bewerten.",
   },
   coachSummary: { en: "Coach's verdict", de: "Urteil des Coaches" },
-  whatWorked: { en: "What worked", de: "Was gut war" },
+  whatWorked: { en: "What you did well", de: "Was du gut gemacht hast" },
   sayItBetter: { en: "Say it better", de: "Sag es besser" },
   yourVersion: { en: "You said", de: "Du sagtest" },
   betterVersion: { en: "Stronger", de: "Stärker" },
@@ -210,8 +210,11 @@ export const strings = {
 
   // Speaking profile radar (Progress)
   radarTitle: { en: "Speaking profile", de: "Sprechprofil" },
+  radarTitleFeedback: { en: "This session's profile", de: "Profil dieser Session" },
   radarLegendCurrent: { en: "This session", de: "Diese Session" },
   radarLegendPrev: { en: "Previous", de: "Davor" },
+  radarLegendAverage: { en: "Your average", de: "Dein Durchschnitt" },
+  radarLegendLast: { en: "Last session", de: "Letzte Session" },
   radarEmpty: {
     en: "Record your first session to see your speaking profile",
     de: "Nimm deine erste Session auf, um dein Sprechprofil zu sehen",
@@ -221,9 +224,11 @@ export const strings = {
     de: "Für diese Metrik ist kein Feedback gespeichert.",
   },
   metricDeltaVs: { en: "vs last session", de: "ggü. letzter Session" },
+  metricDeltaVsAvg: { en: "vs your average", de: "ggü. deinem Durchschnitt" },
   trendAvgLabel: { en: "avg", de: "Ø" },
 
   // AI feedback loading + failure states
+  coachReviewing: { en: "Reviewing your recording", de: "Ich höre deine Aufnahme durch" },
   aiLoading1: { en: "Listening back…", de: "Ich höre alles noch einmal…" },
   aiLoading2: { en: "Measuring your pace…", de: "Ich messe dein Tempo…" },
   aiLoading3: { en: "Weighing your words…", de: "Ich wäge deine Worte…" },
@@ -278,7 +283,7 @@ export const strings = {
   },
 
   // Feedback (redesigned report)
-  metricsSection: { en: "The eight metrics", de: "Die acht Metriken" },
+  moreDetail: { en: "More detail", de: "Mehr Details" },
   wordBonusChip: { en: "+20 word of the day", de: "+20 Wort des Tages" },
   xpPendingChip: { en: "XP pending", de: "XP ausstehend" },
   xpPendingNote: {
@@ -291,8 +296,7 @@ export const strings = {
   },
   levelUpTitle: { en: "Level up", de: "Aufgestiegen" },
   viewStats: { en: "View Your Stats", de: "Deine Statistik ansehen" },
-  strongWordsTitle: { en: "Strong Words Used", de: "Starke Wörter im Einsatz" },
-  improveTitle: { en: "3 Things to Improve", de: "3 Dinge zum Verbessern" },
+  improveTitle: { en: "Two things to work on", de: "Zwei Dinge zum Üben" },
   stylisticTitle: { en: "Stylistic Devices", de: "Stilmittel" },
   vocalDeliveryTitle: { en: "Vocal Delivery", de: "Stimmlicher Vortrag" },
   articulationLabel: { en: "Articulation", de: "Artikulation" },

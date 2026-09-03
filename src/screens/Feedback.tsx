@@ -2,23 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
-import { db, getSession, getProgressState, recomputeProgress } from "@/lib/db";
+import { db, getSession, getProgressState, recomputeProgress, allSessions } from "@/lib/db";
 import { requestReport, deliveryCoaching, wordOfDayUsed, CoachUnavailableError } from "@/lib/feedback";
-import { METRIC_KEYS, type EightScores, type MetricKey, type Session } from "@/lib/types";
+import { type EightScores, type Session } from "@/lib/types";
 import { computeEight, overallFromEight, xpForScore, levelForXp, WORD_OF_DAY_BONUS, type LevelState } from "@/lib/progression";
-import { METRIC_META, CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
-import { scoreColorVar } from "@/lib/scoreColor";
+import { CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
 import { PACE_BAND, wpmSeries } from "@/lib/metrics";
-import { letterGrade } from "@/lib/grade";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { CountUp } from "@/components/CountUp";
 import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
-import { AnimatedScore } from "@/components/AnimatedScore";
-import { GradeLetter } from "@/components/GradeLetter";
-import { AiTextLoading } from "@/components/kokonut/AiTextLoading";
+import { ScoreRing } from "@/components/ScoreRing";
+import { CoachListening } from "@/components/CoachListening";
 import { ParticleBurst } from "@/components/kokonut/ParticleBurst";
+import { MetricRadar } from "@/components/progress/MetricRadar";
 
 /** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
 const PACE_DOMAIN: [number, number] = [60, 220];
@@ -36,11 +34,12 @@ export function Feedback() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const fresh = params.get("fresh") === "1";
-  const reduced = useReducedMotion();
 
   const [session, setSession] = useState<Session | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [earned, setEarned] = useState<Earned | null>(null);
+  /** The scored session immediately before this one — the radar's dashed ghost. */
+  const [previous, setPrevious] = useState<EightScores | null>(null);
   const inFlight = useRef(false);
 
   useEffect(() => {
@@ -52,6 +51,11 @@ export function Feedback() {
         return;
       }
       setSession(s);
+      const earlier = (await allSessions())
+        .filter((o) => o.id !== s.id && o.startedAt < s.startedAt && o.progress?.scores)
+        .sort((a, b) => a.startedAt - b.startedAt)
+        .pop();
+      setPrevious(earlier?.progress?.scores ?? null);
       if (s.report) setPhase("ready");
       else await fetchReport(s);
     })();
@@ -135,12 +139,13 @@ export function Feedback() {
   const offline = phase === "offline" && !report;
   const delivery = deliveryCoaching(m, session.lang);
 
-  /** The single coach sentence per metric row. */
-  const oneLiner = (key: MetricKey): string | undefined => {
-    if (report) return report.oneLiners[key] || undefined;
-    if (key === "pace") return delivery.pace.improve;
-    if (key === "fluency") return delivery.fluency.improve;
-    return undefined;
+  /**
+   * The coach line per metric, shown under the selected radar axis. Offline we
+   * only have the two deterministic ones.
+   */
+  const oneLiners = report?.oneLiners ?? {
+    pace: delivery.pace.improve,
+    fluency: delivery.fluency.improve,
   };
 
   const band = PACE_BAND[session.lang];
@@ -149,80 +154,71 @@ export function Feedback() {
   const cleanSec = m.cleanSpeechSec ?? report?.cleanSpeechSeconds ?? 0;
   const paceFrac = (wpm: number) => (wpm - PACE_DOMAIN[0]) / (PACE_DOMAIN[1] - PACE_DOMAIN[0]);
 
+  // The report is deliberately short: one win, two fixes. Older sessions were
+  // stored with more, so they are trimmed here too rather than left long.
+  const win = report?.whatWorked?.[0];
+  const fixes = report?.improvements?.slice(0, 2) ?? [];
+
   return (
     <div className="pt-2 lg:pt-0">
       <section className="snap-section">
-      <p className="text-sm text-muted">{session.promptTitle}</p>
+        <p className="text-sm text-muted">{session.promptTitle}</p>
 
-      {/* ——— Hero: overall score, grade, XP moment ——— */}
-      <div className="mt-6 flex flex-col items-center text-center">
-        {phase === "loading" ? (
-          <div className="w-full max-w-sm">
-            <AiTextLoading phrases={[t("aiLoading1"), t("aiLoading2"), t("aiLoading3"), t("aiLoading4")]} />
-          </div>
-        ) : (
-          <>
-            <div className="flex items-baseline gap-3">
-              <span className="lectern tnum text-[4.5rem] leading-none font-semibold">
-                {overall !== null ? (
-                  <AnimatedScore value={overall} active={fresh || earned !== null} />
-                ) : (
-                  <span className="text-ink">—</span>
+        {/* ——— Hero: the score in its ring, then the XP moment ——— */}
+        <div className="mt-6 flex flex-col items-center text-center">
+          {phase === "loading" ? (
+            <CoachListening />
+          ) : (
+            <>
+              {overall !== null ? (
+                <ScoreRing value={overall} active={fresh || earned !== null} />
+              ) : (
+                <span className="lectern text-[4rem] leading-none font-semibold text-ink">—</span>
+              )}
+
+              {/* XP chips */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {session.progress?.xpPending === false && session.progress.xpEarned > 0 && (
+                  <ParticleBurst key={earned ? "burst" : "static"} count={earned ? 14 : 0}>
+                    <span className="tnum rounded-full bg-accent/12 px-3.5 py-1 text-sm font-semibold text-accent">
+                      {earned ? <CountUp value={earned.xp} prefix="+" suffix=" XP" delay={0.4} /> : `+${session.progress.xpEarned} XP`}
+                    </span>
+                  </ParticleBurst>
                 )}
-              </span>
-              {overall !== null && (
-                <GradeLetter
-                  grade={letterGrade(overall)}
-                  color={scoreColorVar(overall)}
-                  className="lectern text-2xl"
-                />
-              )}
-            </div>
-
-            {/* XP chips */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {session.progress?.xpPending === false && session.progress.xpEarned > 0 && (
-                <ParticleBurst key={earned ? "burst" : "static"} count={earned ? 14 : 0}>
-                  <span className="tnum rounded-full bg-accent/12 px-3.5 py-1 text-sm font-semibold text-accent">
-                    {earned ? <CountUp value={earned.xp} prefix="+" suffix=" XP" delay={0.4} /> : `+${session.progress.xpEarned} XP`}
+                {session.progress?.wordOfDayUsed && session.progress.xpPending === false && (
+                  <span className="rounded-full border border-line px-3 py-1 text-xs text-accent-dim">
+                    {t("wordBonusChip")}
                   </span>
-                </ParticleBurst>
-              )}
-              {session.progress?.wordOfDayUsed && session.progress.xpPending === false && (
-                <span className="rounded-full border border-line px-3 py-1 text-xs text-accent-dim">
-                  {t("wordBonusChip")}
-                </span>
-              )}
-              {(offline || session.progress?.xpPending !== false) && (
-                <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
-                  {t("xpPendingChip")}
-                </span>
-              )}
-            </div>
+                )}
+                {(offline || session.progress?.xpPending !== false) && (
+                  <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
+                    {t("xpPendingChip")}
+                  </span>
+                )}
+              </div>
 
-            {earned?.levelUp && <LevelUpFlourish state={earned.levelUp} lang={lang} title={t("levelUpTitle")} />}
-          </>
-        )}
+              {earned?.levelUp && <LevelUpFlourish state={earned.levelUp} lang={lang} title={t("levelUpTitle")} />}
+            </>
+          )}
 
-        {/* Delivery stats */}
-        <div className="tnum mt-6 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted">
-          <span>
-            <b className="font-semibold text-ink">{m.wpm}</b> {t("wpmUnit")}
-          </span>
-          <span>
-            <b className="font-semibold text-ink">{m.wordCount}</b> {t("wordsUnit")}
-          </span>
-          <span>
-            <b className="font-semibold text-ink">
-              {Math.floor(m.durationSec / 60)}:{String(m.durationSec % 60).padStart(2, "0")}
-            </b>
-          </span>
-          <span>
-            <b className="font-semibold text-ink">{m.fillers.total}</b> {t("fillersDetected")}
-          </span>
+          {/* Delivery stats — pace, length and the filler count, always visible */}
+          <div className="tnum mt-6 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted">
+            <span>
+              <b className="font-semibold text-ink">{m.wpm}</b> {t("wpmUnit")}
+            </span>
+            <span>
+              <b className="font-semibold text-ink">{m.wordCount}</b> {t("wordsUnit")}
+            </span>
+            <span>
+              <b className="font-semibold text-ink">
+                {Math.floor(m.durationSec / 60)}:{String(m.durationSec % 60).padStart(2, "0")}
+              </b>
+            </span>
+            <span>
+              <b className="font-semibold text-ink">{m.fillers.total}</b> {t("fillersDetected")}
+            </span>
+          </div>
         </div>
-      </div>
-
       </section>
 
       {/* Failed / timed-out analysis — the 45s ceiling lives in lib/feedback.ts */}
@@ -242,81 +238,50 @@ export function Feedback() {
         </div>
       )}
 
-      {/* ——— The eight metrics ——— */}
+      {/* ——— The eight metrics, as one shape ——— */}
       <section className="snap-section mt-10">
-        <h2 className="label-caps">{t("metricsSection")}</h2>
+        <h2 className="label-caps">{t("radarTitleFeedback")}</h2>
         {phase === "loading" ? (
-          <div className="mt-3 flex flex-col gap-2.5">
-            {METRIC_KEYS.map((key) => (
-              <div key={key} className="skeleton h-[76px]" />
-            ))}
-          </div>
+          <div className="skeleton mt-4 h-[420px]" />
         ) : (
-          <motion.div
-            className="mt-3 flex flex-col gap-2.5"
-            variants={metricListContainer}
-            initial={reduced ? "show" : "hidden"}
-            whileInView="show"
-            viewport={{ once: true }}
-          >
-            {METRIC_KEYS.map((key) => (
-              <MetricRow
-                key={key}
-                metric={key}
-                label={t(METRIC_META[key].nameKey)}
-                score={eight[key]}
-                sentence={oneLiner(key)}
-              />
-            ))}
-          </motion.div>
+          <div className="mt-4">
+            <MetricRadar
+              primary={eight}
+              overlay={previous}
+              primaryLabel={t("radarLegendCurrent")}
+              overlayLabel={t("radarLegendPrev")}
+              deltaLabel={t("metricDeltaVs")}
+              oneLiners={oneLiners}
+            />
+          </div>
         )}
         {offline && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
       </section>
 
-      {/* ——— Scroll-down detail ——— */}
       {report && phase === "ready" && (
         <>
-          {/* What worked — the speaker's confirmed strengths */}
-          {(report.whatWorked?.length ?? 0) > 0 && (
+          {/* One thing that worked */}
+          {win && (
             <section className="snap-section mt-6 box p-5">
               <h2 className="label-caps">{t("whatWorked")}</h2>
-              <ul className="mt-3 flex flex-col gap-3">
-                {report.whatWorked!.map((w) => (
-                  <li key={w.point} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
-                      <Icon name="check" size={13} />
-                    </span>
-                    <span>
-                      <span className="text-base font-medium text-ink">{w.point}</span>
-                      <span className="mt-0.5 block text-sm leading-relaxed text-muted">{w.detail}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-3 flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
+                  <Icon name="check" size={13} />
+                </span>
+                <span>
+                  <span className="text-base font-medium text-ink">{win.point}</span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-muted">{win.detail}</span>
+                </span>
+              </div>
             </section>
           )}
 
-          {/* Strong words the speaker actually used */}
-          {(report.strongWords?.length ?? 0) > 0 && (
-            <section className="snap-section mt-6 box p-5">
-              <h2 className="label-caps">{t("strongWordsTitle")}</h2>
-              <ul className="mt-3 flex flex-col gap-2.5">
-                {report.strongWords!.slice(0, 6).map((w) => (
-                  <li key={w.word} className="flex items-baseline gap-3">
-                    <span className="quoted-phrase shrink-0 text-accent">“{w.word}”</span>
-                    <span className="text-sm leading-relaxed text-muted">{w.note}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* 3 things to improve — plain ranked list, no scores, no animation */}
-          {(report.improvements?.length ?? 0) > 0 && (
+          {/* Two things to work on */}
+          {fixes.length > 0 && (
             <section className="snap-section mt-6 box p-5">
               <h2 className="label-caps">{t("improveTitle")}</h2>
               <ol className="mt-3 flex flex-col gap-3">
-                {report.improvements!.slice(0, 3).map((item, i) => (
+                {fixes.map((item, i) => (
                   <li key={item.issue} className="flex items-start gap-3">
                     <span className="tnum shrink-0 text-base font-semibold text-accent-dim">{i + 1}.</span>
                     <span className="text-sm leading-relaxed">
@@ -328,118 +293,124 @@ export function Feedback() {
               </ol>
             </section>
           )}
+        </>
+      )}
 
-          {/* Stylistic devices found in the transcript */}
-          {(report.stylisticDevices?.length ?? 0) > 0 && (
-            <section className="snap-section mt-6 box p-5">
-              <h2 className="label-caps">{t("stylisticTitle")}</h2>
-              <ul className="mt-3 flex flex-col gap-2.5">
-                {report.stylisticDevices!.map((d) => (
-                  <li key={d.device} className="flex items-baseline gap-3">
-                    <span className="shrink-0 text-base font-medium text-ink">{d.device}</span>
-                    <span className="text-sm leading-relaxed text-muted">{d.note}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+      {/* ——— Everything else, folded away ——— */}
+      <details className="disclosure snap-section mt-6 box px-5 py-2" data-testid="more-detail">
+        <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm font-medium text-muted hover:text-ink">
+          {t("moreDetail")}
+          <Icon name="chevronDown" size={16} className="disclosure-chevron shrink-0" />
+        </summary>
 
-          {report.tighten.quote && (
-            <section className="snap-section mt-6 box p-5">
-              <h2 className="label-caps">{t("sayItBetter")}</h2>
-              <p className="mt-3 text-sm text-muted">
-                {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
-              </p>
-              <p className="mt-2 text-sm text-muted">
-                {t("betterVersion")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
-              </p>
-            </section>
-          )}
-
-          <section className="snap-section mt-6 box p-5">
-            <h2 className="label-caps">{t("vocalDeliveryTitle")}</h2>
-            {wpmValues.length >= 2 && (
-              <div className="mt-4">
-                <Sparkline
-                  values={wpmValues}
-                  band={band}
-                  bandLabel={t("easyBandLabel")}
-                  unit={t("wpmUnit")}
-                  ariaLabel={`${t("vocalDeliveryTitle")}: ${m.wpm} ${t("wpmUnit")}`}
-                />
+        {report && phase === "ready" && (
+          <>
+            {report.tighten.quote && (
+              <div className="mt-5 border-t hairline pt-5">
+                <h3 className="label-caps">{t("sayItBetter")}</h3>
+                <p className="mt-3 text-sm text-muted">
+                  {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
+                </p>
+                <p className="mt-2 text-sm text-muted">
+                  {t("betterVersion")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
+                </p>
               </div>
             )}
-            <div className="mt-5 flex flex-col gap-3">
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-muted">{t("articulationLabel")}</span>
-                <span className="lectern tnum text-lg text-ink">
-                  {report.articulation}
-                  <span className="text-sm text-faint">/100</span>
-                </span>
-              </div>
-              {cleanSec > 0 && (
-                <p className="text-sm text-muted">{t("cleanSpeechLabel", { n: cleanSec })}</p>
-              )}
-              {report.hardToCatch.length > 0 && (
-                <div>
-                  <span className="text-sm text-muted">{t("hardToCatchLabel")}</span>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {report.hardToCatch.map((w) => (
-                      <WordChip key={w} word={w} />
-                    ))}
-                  </div>
+
+            <div className="mt-5 border-t hairline pt-5">
+              <h3 className="label-caps">{t("vocalDeliveryTitle")}</h3>
+              {wpmValues.length >= 2 && (
+                <div className="mt-4">
+                  <Sparkline
+                    values={wpmValues}
+                    band={band}
+                    bandLabel={t("easyBandLabel")}
+                    unit={t("wpmUnit")}
+                    ariaLabel={`${t("vocalDeliveryTitle")}: ${m.wpm} ${t("wpmUnit")}`}
+                  />
                 </div>
               )}
+              <div className="mt-5 flex flex-col gap-3">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted">{t("articulationLabel")}</span>
+                  <span className="lectern tnum text-lg text-ink">
+                    {report.articulation}
+                    <span className="text-sm text-faint">/100</span>
+                  </span>
+                </div>
+                {cleanSec > 0 && <p className="text-sm text-muted">{t("cleanSpeechLabel", { n: cleanSec })}</p>}
+                {report.hardToCatch.length > 0 && (
+                  <div>
+                    <span className="text-sm text-muted">{t("hardToCatchLabel")}</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {report.hardToCatch.map((w) => (
+                        <WordChip key={w} word={w} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
 
-          {eight.confidence !== null && (
-            <section className="snap-section mt-6 box p-5">
+            {eight.confidence !== null && (
+              <div className="mt-5 border-t hairline pt-5">
+                <div className="flex items-baseline justify-between">
+                  <h3 className="label-caps">{t("confidenceTitle")}</h3>
+                  <span className="text-sm font-medium text-accent-dim">
+                    {t(CONFIDENCE_LABEL_KEY[report.confidenceLabel] ?? "confLabelSteady")}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <Meter
+                    value={eight.confidence / 100}
+                    leftLabel={t("meterTentative")}
+                    rightLabel={t("meterCommanding")}
+                    ariaLabel={`${t("confidenceTitle")}: ${eight.confidence}/100`}
+                  />
+                </div>
+                {report.confidenceNote && <p className="mt-3 text-sm text-muted">{report.confidenceNote}</p>}
+              </div>
+            )}
+
+            <div className="mt-5 border-t hairline pt-5">
               <div className="flex items-baseline justify-between">
-                <h2 className="label-caps">{t("confidenceTitle")}</h2>
-                <span className="text-sm font-medium text-accent-dim">
-                  {t(CONFIDENCE_LABEL_KEY[report.confidenceLabel] ?? "confLabelSteady")}
+                <h3 className="label-caps">{t("paceSectionTitle")}</h3>
+                <span className="tnum text-sm font-medium text-ink">
+                  {m.wpm} {t("wpmUnit")}
                 </span>
               </div>
               <div className="mt-4">
                 <Meter
-                  value={eight.confidence / 100}
-                  leftLabel={t("meterTentative")}
-                  rightLabel={t("meterCommanding")}
-                  ariaLabel={`${t("confidenceTitle")}: ${eight.confidence}/100`}
+                  value={paceFrac(m.wpm)}
+                  band={[paceFrac(band[0]), paceFrac(band[1])]}
+                  leftLabel={t("meterSlow")}
+                  rightLabel={t("meterFast")}
+                  ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
                 />
               </div>
-              {report.confidenceNote && <p className="mt-3 text-sm text-muted">{report.confidenceNote}</p>}
-            </section>
-          )}
-
-          <section className="snap-section mt-6 box p-5">
-            <div className="flex items-baseline justify-between">
-              <h2 className="label-caps">{t("paceSectionTitle")}</h2>
-              <span className="tnum text-sm font-medium text-ink">
-                {m.wpm} {t("wpmUnit")}
-              </span>
+              {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
             </div>
-            <div className="mt-4">
-              <Meter
-                value={paceFrac(m.wpm)}
-                band={[paceFrac(band[0]), paceFrac(band[1])]}
-                leftLabel={t("meterSlow")}
-                rightLabel={t("meterFast")}
-                ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
-              />
-            </div>
-            {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
-          </section>
-        </>
-      )}
 
-      {/* Transcript */}
-      <details className="snap-section mt-6 box p-5">
-        <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">
-          {t("transcriptTitle")}
-        </summary>
-        <p className="lectern mt-4 text-base leading-relaxed text-ink/80">{session.transcript}</p>
+            {(report.stylisticDevices?.length ?? 0) > 0 && (
+              <div className="mt-5 border-t hairline pt-5">
+                <h3 className="label-caps">{t("stylisticTitle")}</h3>
+                <ul className="mt-3 flex flex-col gap-2.5">
+                  {report.stylisticDevices!.slice(0, 2).map((d) => (
+                    <li key={d.device} className="flex items-baseline gap-3">
+                      <span className="shrink-0 text-base font-medium text-ink">{d.device}</span>
+                      <span className="text-sm leading-relaxed text-muted">{d.note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="mt-5 border-t hairline pb-3 pt-5">
+          <h3 className="label-caps">{t("transcriptTitle")}</h3>
+          <p className="lectern mt-3 text-base leading-relaxed text-ink/80">{session.transcript}</p>
+        </div>
       </details>
 
       <div className="snap-end mt-10 flex flex-col gap-3 pb-6">
@@ -482,69 +453,6 @@ function LevelUpFlourish({ state, lang, title }: { state: LevelState; lang: "en"
   );
 }
 
-/** T6 cascade: rows stagger in; each bar fills 200ms after its row lands. */
-const metricListContainer = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.25 } },
-};
-const metricRowVariant = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
-};
-
-function MetricRow({
-  metric,
-  label,
-  score,
-  sentence,
-}: {
-  metric: MetricKey;
-  label: string;
-  score: number | null;
-  sentence?: string;
-}) {
-  const reduced = useReducedMotion();
-  const meta = METRIC_META[metric];
-  const barVariant = {
-    hidden: { width: reduced ? `${score ?? 0}%` : 0 },
-    show: {
-      width: `${score ?? 0}%`,
-      transition: { duration: 1.1, ease: [0.16, 1, 0.3, 1] as const, delay: 0.2 },
-    },
-  };
-
-  return (
-    <motion.div className="box box-border p-4" variants={metricRowVariant}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <Icon name={meta.icon} size={17} className="shrink-0 text-muted" />
-          <span className="text-base font-medium text-ink">{label}</span>
-        </div>
-        <span className="tnum whitespace-nowrap text-sm text-faint">
-          <b className="lectern text-lg font-semibold" style={{ color: score !== null ? scoreColorVar(score) : undefined }}>
-            {score ?? "—"}
-          </b>
-          {score !== null && "/100"}
-        </span>
-      </div>
-      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-surface-2">
-        {score !== null && (
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: scoreColorVar(score) }}
-            variants={barVariant}
-          />
-        )}
-      </div>
-      {sentence && (
-        <p className="mt-2.5 text-sm leading-relaxed text-ink/85" style={{ overflowWrap: "break-word" }}>
-          {sentence}
-        </p>
-      )}
-    </motion.div>
-  );
-}
-
 function WordChip({ word, count, strong }: { word: string; count?: number; strong?: boolean }) {
   return (
     <span
@@ -561,14 +469,10 @@ function FeedbackSkeleton() {
     <div className="pt-2 lg:pt-0">
       <div className="skeleton h-4 w-40" />
       <div className="mx-auto mt-8 flex flex-col items-center gap-4">
-        <div className="skeleton h-24 w-40" />
+        <div className="skeleton h-52 w-52 rounded-full" />
         <div className="skeleton h-6 w-56" />
       </div>
-      <div className="mt-10 flex flex-col gap-2.5">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="skeleton h-[76px]" />
-        ))}
-      </div>
+      <div className="skeleton mt-10 h-[420px]" />
     </div>
   );
 }
