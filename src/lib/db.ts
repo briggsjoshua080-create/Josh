@@ -1,7 +1,14 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { DailyPick, Session, WordBonus } from "./types";
-import { progressFromSessions, WORD_USE_BONUS, type ProgressState } from "./progression";
-import { DAILY_WORD_COUNT, RECENT_WORD_MEMORY, pickWordIndex } from "./daily";
+import type { DailyPick, DailyScenarioPick, Session } from "./types";
+import { progressFromSessions, type ProgressState } from "./progression";
+import {
+  DAILY_WORD_COUNT,
+  RECENT_WORD_MEMORY,
+  RECENT_DAILY_MEMORY,
+  pickWordIndex,
+  pickScenario,
+  dailyPoolFor,
+} from "./daily";
 
 /**
  * All user data lives here, on-device. No accounts, no server-side storage.
@@ -10,8 +17,8 @@ import { DAILY_WORD_COUNT, RECENT_WORD_MEMORY, pickWordIndex } from "./daily";
 const db = new Dexie("orato") as Dexie & {
   sessions: EntityTable<Session, "id">;
   progress: EntityTable<ProgressState, "id">;
-  wordBonuses: EntityTable<WordBonus, "dateISO">;
   dailyPicks: EntityTable<DailyPick, "dateISO">;
+  dailyScenarioPicks: EntityTable<DailyScenarioPick, "dateISO">;
 };
 
 db.version(1).stores({
@@ -26,6 +33,7 @@ db.version(2).stores({
 });
 
 // v3: "use the daily word in a sentence" bonuses, one row per calendar day.
+// Removed in v5 — the feature was retired.
 db.version(3).stores({
   sessions: "++id, dateISO, kind, startedAt, day",
   progress: "id",
@@ -39,6 +47,17 @@ db.version(4).stores({
   progress: "id",
   wordBonuses: "dateISO",
   dailyPicks: "dateISO",
+});
+
+// v5: drops wordBonuses (the "use it in a sentence" flow was removed) and
+// adds dailyScenarioPicks — the randomly drawn daily-challenge scenario,
+// one row per calendar day, mirroring dailyPicks' pattern.
+db.version(5).stores({
+  sessions: "++id, dateISO, kind, startedAt, day",
+  progress: "id",
+  wordBonuses: null,
+  dailyPicks: "dateISO",
+  dailyScenarioPicks: "dateISO",
 });
 
 export { db };
@@ -68,32 +87,10 @@ export async function allSessions(): Promise<Session[]> {
  * retry or a re-opened report can never double-award.
  */
 export async function recomputeProgress(): Promise<ProgressState> {
-  const [sessions, bonuses] = await Promise.all([db.sessions.toArray(), db.wordBonuses.toArray()]);
-  const bonusXp = bonuses.reduce((sum, b) => sum + b.xp, 0);
-  const state = progressFromSessions(sessions, bonusXp);
+  const sessions = await db.sessions.toArray();
+  const state = progressFromSessions(sessions);
   await db.progress.put(state);
   return state;
-}
-
-/** The word-use bonus already earned for a local date, if any. */
-export async function getWordBonus(dateISO: string): Promise<WordBonus | undefined> {
-  return db.wordBonuses.get(dateISO);
-}
-
-/**
- * Award the +100 XP "used the daily word in a sentence" bonus. Keyed by
- * today's date, so awarding twice on one day overwrites instead of stacking —
- * resubmitting can never farm XP.
- */
-export async function awardWordUseBonus(day: number, word: string): Promise<ProgressState> {
-  await db.wordBonuses.put({
-    dateISO: todayISO(),
-    day,
-    word,
-    xp: WORD_USE_BONUS,
-    awardedAt: Date.now(),
-  });
-  return recomputeProgress();
 }
 
 /**
@@ -129,22 +126,54 @@ export async function dailyWordIndex(dateISO = todayISO()): Promise<number> {
 }
 
 /**
+ * The daily-challenge scenario drawn for a local date, drawing and persisting
+ * one the first time that date is asked for — mirrors dailyWordIndex above,
+ * so Today.tsx and Session.tsx always agree on the same scenario for the
+ * same calendar date. `accountDay` (from dailyPathState()) picks which tier
+ * pool the draw comes from (see dailyPoolFor in lib/daily.ts).
+ */
+export async function dailyScenarioId(accountDay: number, dateISO = todayISO()): Promise<string> {
+  return db.transaction("rw", db.dailyScenarioPicks, async () => {
+    const existing = await db.dailyScenarioPicks.get(dateISO);
+    if (existing) return existing.scenarioId;
+
+    const recent = await db.dailyScenarioPicks
+      .where("dateISO")
+      .below(dateISO)
+      .reverse()
+      .limit(RECENT_DAILY_MEMORY)
+      .toArray();
+
+    const pick = pickScenario(
+      dailyPoolFor(accountDay),
+      recent.map((p) => p.scenarioId),
+    );
+    await db.dailyScenarioPicks.put({ dateISO, scenarioId: pick.id, pickedAt: Date.now() });
+    return pick.id;
+  });
+}
+
+/**
  * Wipe every trace of the user from this device: the whole IndexedDB database
- * (sessions, transcripts, XP/progress, word bonuses) plus all orato.*
- * localStorage keys (settings/preferences). Callers should hard-reload
- * afterwards so the app boots into its first-launch state on empty stores.
+ * (sessions, transcripts, XP/progress) plus all orato.* localStorage keys
+ * (settings/preferences). Callers should hard-reload afterwards so the app
+ * boots into its first-launch state on empty stores.
  *
- * The daily word picks are deliberately carried across the wipe. They are not
- * user progress — they are a calendar-keyed random draw — and restoring them
- * is what guarantees a reset can never rewind the word list to "day one" or
- * change the word out from under the user mid-day.
+ * The daily word and scenario picks are deliberately carried across the wipe.
+ * They are not user progress — they are calendar-keyed random draws — and
+ * restoring them is what guarantees a reset can never rewind either draw to
+ * "day one" or change the pick out from under the user mid-day.
  */
 export async function resetAllData(): Promise<void> {
-  let picks: DailyPick[] = [];
+  let wordPicks: DailyPick[] = [];
+  let scenarioPicks: DailyScenarioPick[] = [];
   try {
-    picks = await db.dailyPicks.toArray();
+    [wordPicks, scenarioPicks] = await Promise.all([
+      db.dailyPicks.toArray(),
+      db.dailyScenarioPicks.toArray(),
+    ]);
   } catch {
-    // Nothing drawn yet, or the store predates v4 — nothing to carry over.
+    // Nothing drawn yet, or the store predates these versions — nothing to carry over.
   }
 
   await db.delete();
@@ -152,9 +181,10 @@ export async function resetAllData(): Promise<void> {
     if (key.startsWith("orato.")) localStorage.removeItem(key);
   }
 
-  if (picks.length > 0) {
+  if (wordPicks.length > 0 || scenarioPicks.length > 0) {
     await db.open();
-    await db.dailyPicks.bulkPut(picks);
+    if (wordPicks.length > 0) await db.dailyPicks.bulkPut(wordPicks);
+    if (scenarioPicks.length > 0) await db.dailyScenarioPicks.bulkPut(scenarioPicks);
   }
 }
 

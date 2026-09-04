@@ -8,12 +8,14 @@ professionalism, scored honestly.
 
 ## What's inside
 
-- **66-day Daily Challenge Path** in six escalating acts (foundations →
-  structure → story → persuasion → pressure → mastery), continuing
-  indefinitely past day 66 via an advanced rotation. Includes a bilingual
+- **Daily Challenge**, a random pick each day from the scenario library
+  rather than a fixed sequence — different for every account. Tiered by how
+  many daily-practice days the account has logged: impromptu/debate prompts
+  only for the first three weeks (difficulty rising each week), then the
+  full library is in play from day 21 on. Includes a bilingual
   **Word of the Day** (definition, pronunciation, example) to work into each
   recording.
-- **170-scenario practice library** across 10 categories (pitches, interviews,
+- **248-scenario practice library** across 10 categories (pitches, interviews,
   toasts, difficult conversations, debate, crisis comms, TED-style, …) with
   category filters, "surprise me", and a swipeable card deck (spring physics).
   100 of them are impromptu prompts, every title tagged "Impromptu" /

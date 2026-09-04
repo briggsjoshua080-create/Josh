@@ -7,8 +7,8 @@ import { CATEGORIES } from "@/data/categories";
 const IMPROMPTU = [...SCENARIOS_3, ...SCENARIOS_4];
 
 describe("scenario library", () => {
-  it("holds 170 scenarios, 100 of them impromptu", () => {
-    expect(SCENARIOS).toHaveLength(170);
+  it("holds 248 scenarios, 100 of them impromptu", () => {
+    expect(SCENARIOS).toHaveLength(248);
     expect(IMPROMPTU).toHaveLength(100);
   });
 
@@ -63,9 +63,11 @@ describe("scenario library", () => {
       expect(en, `${s.id} missing from the EN search`).toContain(s.id);
       expect(de, `${s.id} missing from the DE search`).toContain(s.id);
     }
-    // deb-one-minute-topics predates this set and calls itself an impromptu
-    // drill in its prompt, so it rides along in both languages.
-    expect(en).toHaveLength(101);
-    expect(de).toHaveLength(101);
+    // Two non-imp- scenarios call themselves impromptu drills in their own
+    // prompt text and ride along in both languages: deb-one-minute-topics
+    // (original library) and deb-no-notes-no-mercy (migrated from the old
+    // daily-challenge path).
+    expect(en).toHaveLength(102);
+    expect(de).toHaveLength(102);
   });
 });

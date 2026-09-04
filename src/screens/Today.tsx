@@ -1,32 +1,38 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
-import { challengeForDay, wordAtIndex, isBeyondCore } from "@/lib/daily";
+import { wordAtIndex } from "@/lib/daily";
 import { tipsForToday } from "@/data/tips";
-import { dailyPathState, dailyWordIndex, db, todayISO, getWordBonus, awardWordUseBonus } from "@/lib/db";
-import { requestWordCheck, type WordCheckResult } from "@/lib/feedback";
-import { WORD_USE_BONUS } from "@/lib/progression";
+import { dailyPathState, dailyWordIndex, dailyScenarioId, db } from "@/lib/db";
+import { SCENARIOS } from "@/data/scenarios";
+import { DIFFICULTY_LABEL } from "@/data/categories";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { SnapSection } from "@/components/SnapSection";
 import { TodayHero } from "@/components/TodayHero";
 import { FlipCard } from "@/components/kokonut/FlipCard";
-import type { Session, WordEntry } from "@/lib/types";
+import type { Scenario, Session, WordEntry } from "@/lib/types";
 
 export function Today() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
   // wordIndex is the randomly drawn slot for today's calendar date, persisted
   // in IndexedDB — independent of `day`, so a progress reset can't rewind it.
-  const [state, setState] = useState<{ day: number; doneToday: boolean; wordIndex: number } | null>(
-    null,
-  );
+  // `scenario` is today's random daily-challenge pick, resolved the same way.
+  const [state, setState] = useState<{
+    day: number;
+    doneToday: boolean;
+    wordIndex: number;
+    scenario: Scenario;
+  } | null>(null);
   const [todaySession, setTodaySession] = useState<Session | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ day, doneToday }, wordIndex] = await Promise.all([dailyPathState(), dailyWordIndex()]);
-      setState({ day, doneToday, wordIndex });
+      const { day, doneToday } = await dailyPathState();
+      const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(), dailyScenarioId(day)]);
+      const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
+      setState({ day, doneToday, wordIndex, scenario });
       if (doneToday) {
         const sessions = await db.sessions.where("day").equals(day).toArray();
         setTodaySession(sessions[sessions.length - 1] ?? null);
@@ -36,7 +42,7 @@ export function Today() {
 
   if (!state) return <ScreenSkeleton />;
 
-  const challenge = challengeForDay(state.day);
+  const { scenario: challenge } = state;
   const word = wordAtIndex(state.wordIndex, lang);
   const mins = (s: number) => (s >= 60 ? `${Math.round(s / 60)} ${t("minutes")}` : `${s} ${t("seconds")}`);
 
@@ -48,9 +54,7 @@ export function Today() {
       <SnapSection>
         <TodayHero />
         <h1 className="mt-4 text-2xl font-semibold text-ink">{t("dayLabel", { n: state.day })}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {isBeyondCore(state.day) ? t("dayBeyondCore") : t("dayOfPath", { n: state.day })}
-        </p>
+        <p className="mt-1 text-sm text-muted">{t("dayOfPath", { n: state.day })}</p>
       </SnapSection>
 
       {/* Word of the day — definition hidden until tapped */}
@@ -59,7 +63,7 @@ export function Today() {
           <Icon name="sparkle" size={16} />
           {t("wordOfDay")}
         </h2>
-        <WordOfDay key={`${state.wordIndex}:${lang}`} word={word} day={state.day} />
+        <WordOfDay key={`${state.wordIndex}:${lang}`} word={word} />
       </SnapSection>
 
       {/* Challenge */}
@@ -92,22 +96,14 @@ export function Today() {
             <div className="box box-raised mt-3 p-5">
               <h3 className="lectern text-2xl lg:text-3xl text-ink">{challenge.title[lang]}</h3>
               <p className="lectern mt-4 text-lg leading-relaxed text-ink/90">{challenge.prompt[lang]}</p>
-              <p className="mt-5 text-sm text-muted">
-                <span className="text-accent-dim">{t("coachFocus")}:</span> {challenge.focus[lang]}
-              </p>
             </div>
             <div className="mt-4 flex items-center gap-4 text-sm text-muted">
               <span className="flex items-center gap-1.5">
                 <Icon name="clock" size={15} />
                 {t("targetLength", { a: mins(challenge.targetSec[0]), b: mins(challenge.targetSec[1]) })}
               </span>
-              <span className="flex items-center gap-1">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <span
-                    key={i}
-                    className={`h-1.5 w-1.5 rounded-full ${i < challenge.difficulty ? "bg-accent-dim" : "bg-surface-2"}`}
-                  />
-                ))}
+              <span className="rounded-full border border-line px-2 py-0.5 text-xs font-medium">
+                {t(DIFFICULTY_LABEL[challenge.difficulty])}
               </span>
             </div>
             <Button
@@ -144,45 +140,14 @@ export function Today() {
 }
 
 /**
- * The daily word card. Collapsed it shows only the word; tapping expands it
- * in place to reveal the definition plus the "use it in a sentence" bonus:
- * the sentence goes to the same coach backend as speech feedback, and a
- * confirmed correct use earns +100 XP — once per daily word (persisted, so
- * resubmitting or reloading can't farm it).
+ * The daily word card. Collapsed it shows only the word; tapping flips it in
+ * place to reveal the pronunciation, definition and an example sentence.
+ * Purely informational — using the word during a recording still earns its
+ * own bonus (see wordOfDayUsed / WORD_OF_DAY_BONUS), tracked separately.
  */
-function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
-  const { t, lang } = useI18n();
+function WordOfDay({ word }: { word: WordEntry }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  /** null while IndexedDB answers whether today's bonus was already earned. */
-  const [done, setDone] = useState<boolean | null>(null);
-  const [sentence, setSentence] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [verdict, setVerdict] = useState<WordCheckResult | null>(null);
-  const [offline, setOffline] = useState(false);
-
-  useEffect(() => {
-    getWordBonus(todayISO()).then((b) => setDone(b !== undefined));
-  }, []);
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    const s = sentence.trim();
-    if (!s || checking || done !== false) return;
-    setOffline(false);
-    setVerdict(null);
-    setChecking(true);
-    try {
-      const result = await requestWordCheck({ lang, word: word.word, definition: word.definition, sentence: s });
-      if (result.correct) {
-        await awardWordUseBonus(day, word.word);
-        setDone(true);
-      }
-      setVerdict(result);
-    } catch {
-      setOffline(true);
-    }
-    setChecking(false);
-  }
 
   return (
     <div className="mt-3">
@@ -200,11 +165,6 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
               {/* Dictionary-style IPA, always visible next to the word */}
               <span className="text-sm text-muted">{word.pronunciation}</span>
             </span>
-            {done && (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
-                <Icon name="check" size={13} />
-              </span>
-            )}
             <span className="ml-auto shrink-0 text-xs text-faint">{t("wordRevealHint")}</span>
           </span>
         }
@@ -226,61 +186,6 @@ function WordOfDay({ word, day }: { word: WordEntry; day: number }) {
           </span>
         }
       />
-
-      {open && (
-        <div className="mt-3">
-          {done === false && (
-            <form onSubmit={submit} className="box box-border p-5">
-              <label htmlFor="word-use-sentence" className="block text-sm font-medium text-ink">
-                {t("wordUsePrompt")}
-              </label>
-              <p className="mt-1 text-xs text-muted">{t("wordUseBonusHint", { n: WORD_USE_BONUS })}</p>
-              <textarea
-                id="word-use-sentence"
-                rows={2}
-                value={sentence}
-                onChange={(e) => setSentence(e.target.value)}
-                placeholder={t("wordUsePlaceholder")}
-                maxLength={500}
-                className="mt-3 w-full resize-none rounded-(--radius-control) border border-line bg-surface-2 px-4 py-3 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none"
-              />
-              <Button
-                type="submit"
-                className="mt-3 w-full"
-                disabled={checking || sentence.trim().length === 0}
-              >
-                {checking ? t("wordUseChecking") : t("wordUseSubmit")}
-              </Button>
-              {verdict && !verdict.correct && (
-                <p className="mt-3 text-sm leading-relaxed text-warn" role="status">
-                  {verdict.feedback} {t("wordUseTryAgain")}
-                </p>
-              )}
-              {offline && (
-                <p className="mt-3 text-sm leading-relaxed text-muted" role="status">
-                  {t("wordUseOffline")}
-                </p>
-              )}
-            </form>
-          )}
-
-          {done && (
-            <div className="flex items-start gap-3 rounded-(--radius-card) border border-ok/40 bg-ok/10 p-4" role="status">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/20 text-ok">
-                <Icon name="check" size={13} />
-              </span>
-              <span>
-                <span className="tnum block text-sm font-semibold text-ok">
-                  {t("wordUseEarned", { n: WORD_USE_BONUS })}
-                </span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-ink/85">
-                  {verdict?.correct ? verdict.feedback : t("wordUseDone")}
-                </span>
-              </span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

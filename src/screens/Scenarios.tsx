@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { allSessions } from "@/lib/db";
 import { SCENARIOS } from "@/data/scenarios";
-import { CATEGORIES } from "@/data/categories";
+import { CATEGORIES, DIFFICULTY_LABEL } from "@/data/categories";
 import { SKILLS, type SkillDimension } from "@/data/skills";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/Button";
@@ -25,12 +25,6 @@ const DIMENSION_LABEL: Record<SkillDimension, StringKey> = {
   logic: "scoreLogic",
   phrasing: "scorePhrasing",
   professionalism: "scoreProfessionalism",
-};
-
-const DIFFICULTY_LABEL: Record<Scenario["difficulty"], StringKey> = {
-  1: "difficultyBeginner",
-  2: "difficultyIntermediate",
-  3: "difficultyAdvanced",
 };
 
 /** Rounded-up rehearsal length in minutes from the scenario's target range. */

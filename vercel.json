@@ -3,6 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|icons/|manifest\\.webmanifest|favicon-\\d+\\.png|sw\\.js|workbox-).*)", "destination": "/index.html" }
   ]
 }

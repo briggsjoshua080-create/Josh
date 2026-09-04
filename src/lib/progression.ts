@@ -28,9 +28,6 @@ export const RANKS: readonly Rank[] = [
 
 export const WORD_OF_DAY_BONUS = 20;
 
-/** "Use it in a sentence" bonus on the Today screen — once per daily word. */
-export const WORD_USE_BONUS = 100;
-
 /** Per-speech XP: quadratic so great speeches feel earned (100→1000, 80→640, 40→160). */
 export function xpForScore(overallScore: number): number {
   return Math.round((overallScore * overallScore) / 10);
@@ -164,12 +161,11 @@ export interface ProgressState {
   updatedAt: number;
 }
 
-export function progressFromSessions(sessions: Session[], bonusXp = 0): ProgressState {
+export function progressFromSessions(sessions: Session[]): ProgressState {
   const scored = sessions
     .filter((s) => s.progress && !s.progress.xpPending)
     .sort((a, b) => a.startedAt - b.startedAt);
-  const cumulativeXp =
-    scored.reduce((sum, s) => sum + (s.progress?.xpEarned ?? 0), 0) + Math.max(0, bonusXp);
+  const cumulativeXp = scored.reduce((sum, s) => sum + (s.progress?.xpEarned ?? 0), 0);
   const { averages, trends } = rollingStats(scored.map((s) => s.progress!.scores));
   return {
     id: "main",

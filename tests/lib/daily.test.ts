@@ -2,10 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   DAILY_WORD_COUNT,
   RECENT_WORD_MEMORY,
+  RECENT_DAILY_MEMORY,
   pickWordIndex,
   wordAtIndex,
-  challengeForDay,
+  dailyPoolFor,
+  pickScenario,
 } from "@/lib/daily";
+import { SCENARIOS } from "@/data/scenarios";
 
 /** Deterministic stand-in for Math.random, cycling through fixed draws. */
 function seededRng(values: number[]): () => number {
@@ -78,11 +81,61 @@ describe("wordAtIndex", () => {
   });
 });
 
-describe("challengeForDay", () => {
-  it("still walks the path in order — only the word is randomised", () => {
-    expect(challengeForDay(1).day).toBe(1);
-    expect(challengeForDay(2).day).toBe(2);
-    expect(challengeForDay(66).day).toBe(66);
-    expect(challengeForDay(67).day).toBe(67);
+describe("dailyPoolFor", () => {
+  it("restricts days 1-6 to difficulty-1 impromptu/debate prompts", () => {
+    const pool = dailyPoolFor(6);
+    expect(pool.length).toBeGreaterThan(0);
+    for (const s of pool) {
+      expect(s.difficulty).toBe(1);
+      expect(s.category === "debate" || s.id.startsWith("imp-")).toBe(true);
+    }
+  });
+
+  it("widens the difficulty ceiling at day 7 and day 14, same category filter", () => {
+    const week2 = dailyPoolFor(10);
+    const week3 = dailyPoolFor(17);
+    for (const s of week2) {
+      expect(s.difficulty).toBeLessThanOrEqual(2);
+      expect(s.category === "debate" || s.id.startsWith("imp-")).toBe(true);
+    }
+    for (const s of week3) {
+      expect(s.category === "debate" || s.id.startsWith("imp-")).toBe(true);
+    }
+    // Widening should only ever add candidates, never remove any.
+    expect(week3.length).toBeGreaterThanOrEqual(week2.length);
+  });
+
+  it("opens up to the entire library from day 21", () => {
+    const pool = dailyPoolFor(21);
+    expect(pool).toBe(SCENARIOS);
+    expect(pool.some((s) => s.category !== "debate" && !s.id.startsWith("imp-"))).toBe(true);
+  });
+});
+
+describe("pickScenario", () => {
+  it("stays inside the pool", () => {
+    const pool = dailyPoolFor(1);
+    for (const r of [0, 0.25, 0.5, 0.999999]) {
+      const pick = pickScenario(pool, [], () => r);
+      expect(pool).toContain(pick);
+    }
+  });
+
+  it("never returns a recently used id unless that would empty the pool", () => {
+    const pool = dailyPoolFor(21);
+    const recent = pool.slice(0, 5).map((s) => s.id);
+    for (let r = 0; r < 1; r += 0.05) {
+      expect(recent).not.toContain(pickScenario(pool, recent, () => r).id);
+    }
+  });
+
+  it("falls back to the full pool once the block list covers everything", () => {
+    const pool = dailyPoolFor(1).slice(0, 3);
+    const pick = pickScenario(pool, pool.map((s) => s.id), () => 0.5);
+    expect(pool).toContain(pick);
+  });
+
+  it("RECENT_DAILY_MEMORY matches the word picker's convention", () => {
+    expect(RECENT_DAILY_MEMORY).toBe(14);
   });
 });

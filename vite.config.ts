@@ -12,7 +12,7 @@ function devApi(): Plugin {
   return {
     name: "orato-dev-api",
     configureServer(server) {
-      const mount = (route: string, handlerName: "handleFeedback" | "handleWordCheck") => {
+      const mount = (route: string, handlerName: "handleFeedback") => {
         server.middlewares.use(route, async (req, res) => {
           if (req.method !== "POST") {
             res.statusCode = 405;
@@ -36,7 +36,6 @@ function devApi(): Plugin {
         });
       };
       mount("/api/feedback", "handleFeedback");
-      mount("/api/word-check", "handleWordCheck");
     },
   };
 }

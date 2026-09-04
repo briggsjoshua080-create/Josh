@@ -1,4 +1,5 @@
-import type { Bilingual, CategoryId } from "@/lib/types";
+import type { Bilingual, CategoryId, Scenario } from "@/lib/types";
+import type { StringKey } from "@/lib/strings";
 
 export interface Category {
   id: CategoryId;
@@ -6,6 +7,13 @@ export interface Category {
   /** Icon name from src/components/Icon.tsx */
   icon: string;
 }
+
+/** Shared by every screen that shows a scenario's difficulty (Scenarios, Today). */
+export const DIFFICULTY_LABEL: Record<Scenario["difficulty"], StringKey> = {
+  1: "difficultyBeginner",
+  2: "difficultyIntermediate",
+  3: "difficultyAdvanced",
+};
 
 export const CATEGORIES: Category[] = [
   { id: "business", label: { en: "Business & Pitches", de: "Business & Pitches" }, icon: "briefcase" },

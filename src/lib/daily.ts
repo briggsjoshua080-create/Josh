@@ -1,18 +1,41 @@
-import type { Challenge, WordEntry, Lang } from "./types";
-import { CHALLENGES, ADVANCED_ROTATION } from "@/data/challenges";
+import type { Scenario, WordEntry, Lang } from "./types";
+import { SCENARIOS } from "@/data/scenarios";
 import { WORDS_EN, WORDS_DE } from "@/data/words";
 
 /**
- * The core program is 66 days; the path continues indefinitely afterwards.
- * Days 67+ draw deterministically from an advanced rotation with an
- * escalating framing, so "Day 67, 68, …" always resolves to real content.
+ * The candidate pool for a given account-age day (the count of daily-practice
+ * days logged, from dailyPathState()). Impromptu/debate prompts only through
+ * day 20, with the difficulty ceiling rising each week; day 21+ opens up to
+ * the entire scenario library, any category, any difficulty.
  */
-export function challengeForDay(day: number): Challenge {
-  if (day <= CHALLENGES.length) return CHALLENGES[day - 1];
-  const idx = (day - CHALLENGES.length - 1) % ADVANCED_ROTATION.length;
-  const base = ADVANCED_ROTATION[idx];
-  return { ...base, day };
+export function dailyPoolFor(accountDay: number): Scenario[] {
+  const warmup = SCENARIOS.filter((s) => s.category === "debate" || s.id.startsWith("imp-"));
+  if (accountDay <= 6) return warmup.filter((s) => s.difficulty === 1);
+  if (accountDay <= 13) return warmup.filter((s) => s.difficulty <= 2);
+  if (accountDay <= 20) return warmup;
+  return SCENARIOS;
 }
+
+/**
+ * Random pick from `pool`, excluding anything in `recentIds` unless that
+ * would empty the pool out — same fallback rule as pickWordIndex below.
+ * Structurally parallel to it, but keyed on scenario ids rather than a flat
+ * integer range, since the candidate pool's contents change by tier day to
+ * day, not just its size.
+ */
+export function pickScenario(
+  pool: Scenario[],
+  recentIds: readonly string[] = [],
+  rng: () => number = Math.random,
+): Scenario {
+  const blocked = new Set(recentIds);
+  const eligible = pool.filter((s) => !blocked.has(s.id));
+  const from = eligible.length > 0 ? eligible : pool;
+  return from[Math.min(from.length - 1, Math.floor(rng() * from.length))];
+}
+
+/** How far back a scenario is held out of the random daily draw once shown. */
+export const RECENT_DAILY_MEMORY = 14;
 
 /** How many word slots there are. EN and DE are index-aligned translations. */
 export const DAILY_WORD_COUNT = WORDS_EN.length;
@@ -49,6 +72,3 @@ export function wordAtIndex(index: number, lang: Lang): WordEntry {
   return list[((index % list.length) + list.length) % list.length];
 }
 
-export function isBeyondCore(day: number): boolean {
-  return day > CHALLENGES.length;
-}

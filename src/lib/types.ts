@@ -198,19 +198,6 @@ export interface Session {
 }
 
 /**
- * One earned "use the daily word in a sentence" bonus. Keyed by local date —
- * there is exactly one daily word per day, so the key doubles as the
- * once-per-word guard against resubmitting for more XP.
- */
-export interface WordBonus {
-  dateISO: string;
-  day: number;
-  word: string;
-  xp: number;
-  awardedAt: number;
-}
-
-/**
  * The word of the day, drawn at random and pinned to a calendar date. Stores
  * the slot index rather than the word itself so the pick survives a language
  * switch — EN and DE are index-aligned.
@@ -221,14 +208,15 @@ export interface DailyPick {
   pickedAt: number;
 }
 
-export interface Challenge {
-  day: number;
-  title: Bilingual;
-  prompt: Bilingual;
-  /** What the coach is listening for today. */
-  focus: Bilingual;
-  difficulty: 1 | 2 | 3 | 4 | 5;
-  targetSec: [number, number];
+/**
+ * The daily-challenge scenario drawn at random and pinned to a calendar date,
+ * mirroring DailyPick. Keeps Today.tsx and Session.tsx in agreement on the
+ * same scenario for the same date (reload, relaunch, language switch).
+ */
+export interface DailyScenarioPick {
+  dateISO: string;
+  scenarioId: string;
+  pickedAt: number;
 }
 
 export type CategoryId =

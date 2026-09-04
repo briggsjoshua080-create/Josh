@@ -9,7 +9,7 @@ import { Icon } from "./Icon";
  * The slim streak + XP row that sits directly under the header logo, on every
  * screen. Same numbers the Today pin and the Progress screen show — read live
  * from the same IndexedDB tables via Dexie's useLiveQuery, so finishing a
- * session or earning a word bonus updates them without a reload.
+ * session updates them without a reload.
  *
  * XP is recomputed from source here rather than read out of the `progress`
  * row: `recomputeProgress()` writes, and a write inside useLiveQuery would
@@ -20,14 +20,7 @@ export function HeaderStats() {
   const { t } = useI18n();
 
   const streak = useLiveQuery(() => currentStreak(), [], null);
-  const xp = useLiveQuery(async () => {
-    const [sessions, bonuses] = await Promise.all([
-      db.sessions.toArray(),
-      db.wordBonuses.toArray(),
-    ]);
-    const bonusXp = bonuses.reduce((sum, b) => sum + b.xp, 0);
-    return progressFromSessions(sessions, bonusXp).cumulativeXp;
-  }, []);
+  const xp = useLiveQuery(async () => progressFromSessions(await db.sessions.toArray()).cumulativeXp, []);
 
   // One champagne sheen sweep when XP increases — never on a loop. The pill
   // is re-keyed so the one-shot CSS animation restarts per gain.

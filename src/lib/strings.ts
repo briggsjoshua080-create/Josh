@@ -24,30 +24,6 @@ export const strings = {
     de: "Baue es in deine heutige Aufnahme ein.",
   },
   wordRevealHint: { en: "Tap to reveal", de: "Zum Aufdecken tippen" },
-  wordUsePrompt: {
-    en: "Use today's word in a sentence",
-    de: "Verwende das heutige Wort in einem Satz",
-  },
-  wordUseBonusHint: {
-    en: "Used correctly, it earns +{n} XP — once per daily word.",
-    de: "Richtig verwendet gibt es +{n} XP — einmal pro Tageswort.",
-  },
-  wordUsePlaceholder: {
-    en: "Write your sentence here…",
-    de: "Schreib deinen Satz hierhin…",
-  },
-  wordUseSubmit: { en: "Check my sentence", de: "Satz prüfen" },
-  wordUseChecking: { en: "Your coach is reading…", de: "Dein Coach liest…" },
-  wordUseTryAgain: { en: "Edit your sentence and try again.", de: "Überarbeite deinen Satz und versuch es erneut." },
-  wordUseOffline: {
-    en: "Couldn't reach your coach — check your connection and try again. Nothing was lost.",
-    de: "Dein Coach war nicht erreichbar — prüfe deine Verbindung und versuch es erneut. Nichts ist verloren.",
-  },
-  wordUseEarned: { en: "+{n} XP earned", de: "+{n} XP verdient" },
-  wordUseDone: {
-    en: "Bonus earned — you used today's word correctly.",
-    de: "Bonus verdient — du hast das heutige Wort richtig verwendet.",
-  },
   beginSession: { en: "Take the stage", de: "Auf die Bühne" },
   doneToday: { en: "Day {n} complete", de: "Tag {n} geschafft" },
   doneTodaySub: {
@@ -58,14 +34,13 @@ export const strings = {
   practiceScenario: { en: "Practice a scenario", de: "Ein Szenario üben" },
   difficulty: { en: "Difficulty", de: "Schwierigkeit" },
   targetLength: { en: "Aim for {a}–{b}", de: "Ziel: {a}–{b}" },
-  coachFocus: { en: "Coach's focus", de: "Fokus des Coaches" },
   dailyTipsTitle: { en: "Today's communication insights", de: "Kommunikations-Impulse des Tages" },
 
   // Library (speaking & communication techniques)
   tipsTitle: { en: "Library", de: "Bibliothek" },
   tipsSub: {
-    en: "{n} speaking & communication techniques — yours from day one, no unlocks.",
-    de: "{n} Sprech- und Kommunikationstechniken — ab Tag eins frei, nichts gesperrt.",
+    en: "{n} speaking & communication techniques.",
+    de: "{n} Sprech- und Kommunikationstechniken.",
   },
   searchTips: { en: "Search techniques…", de: "Techniken durchsuchen…" },
   tipsContextFilter: { en: "Context", de: "Kontext" },
@@ -76,8 +51,8 @@ export const strings = {
   // Scenarios
   libraryTitle: { en: "Scenario library", de: "Szenario-Bibliothek" },
   librarySub: {
-    en: "{n} rehearsal rooms. Pick one or let fate decide.",
-    de: "{n} Übungsräume. Such dir einen aus – oder lass den Zufall wählen.",
+    en: "{n} scenarios to practice.",
+    de: "{n} Szenarien zum Üben.",
   },
   allCategories: { en: "All", de: "Alle" },
   surpriseMe: { en: "Surprise me", de: "Überrasch mich" },
@@ -419,10 +394,6 @@ export const strings = {
   seconds: { en: "s", de: "s" },
   languageToggle: { en: "Sprache: Deutsch", de: "Language: English" },
   loading: { en: "Setting the stage…", de: "Die Bühne wird bereitet…" },
-  dayBeyondCore: {
-    en: "Beyond the core program — you're in mastery territory.",
-    de: "Jenseits des Kernprogramms — du bist im Meisterschafts-Modus.",
-  },
 } as const;
 
 export type StringKey = keyof typeof strings;

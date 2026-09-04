@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
-import { challengeForDay, wordAtIndex } from "@/lib/daily";
+import { wordAtIndex } from "@/lib/daily";
 import { SCENARIOS } from "@/data/scenarios";
 import { SpeechSession, speechSupported } from "@/lib/speech";
 import { computeMetrics } from "@/lib/metrics";
-import { blendScores } from "@/lib/types";
+import { blendScores, type Scenario } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
-import { dailyWordIndex, saveSession, todayISO } from "@/lib/db";
+import { dailyWordIndex, dailyScenarioId, saveSession, todayISO } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { RecordRing, ringZone } from "@/components/RecordRing";
@@ -30,7 +30,20 @@ export function Session() {
   const day = Number(params.get("day") ?? 1);
   const scenarioId = params.get("id");
   const scenario = kind === "scenario" ? SCENARIOS.find((s) => s.id === scenarioId) : undefined;
-  const challenge = kind === "daily" ? challengeForDay(day) : undefined;
+
+  // The daily challenge is a random pick persisted per calendar date — the
+  // same lookup Today.tsx uses, so both screens agree on today's scenario.
+  const [dailyScenario, setDailyScenario] = useState<Scenario | null>(null);
+  useEffect(() => {
+    if (kind !== "daily") return;
+    let live = true;
+    dailyScenarioId(day).then((id) => {
+      if (live) setDailyScenario(SCENARIOS.find((s) => s.id === id) ?? null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [kind, day]);
 
   // Today's word is a persisted random draw, so it has to come from IndexedDB
   // rather than from `day` — same row the Today screen reads, same word.
@@ -45,9 +58,10 @@ export function Session() {
   }, [kind]);
   const word = wordIndex === null ? undefined : wordAtIndex(wordIndex, lang);
 
-  const promptTitle = (scenario?.title ?? challenge!.title)[lang];
-  const promptText = (scenario?.prompt ?? challenge!.prompt)[lang];
-  const targetSec = scenario?.targetSec ?? challenge!.targetSec;
+  const active = scenario ?? dailyScenario;
+  const promptTitle = active?.title[lang] ?? "";
+  const promptText = active?.prompt[lang] ?? "";
+  const targetSec = active?.targetSec ?? [45, 90];
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [finalText, setFinalText] = useState("");
@@ -82,6 +96,21 @@ export function Session() {
     },
     [],
   );
+
+  // The daily scenario resolves from IndexedDB (same draw Today.tsx made) —
+  // usually near-instant, but the recording UI must wait for the real prompt
+  // and target window rather than flash a placeholder one.
+  if (kind === "daily" && !dailyScenario) {
+    return (
+      <div className="pt-2 lg:pt-0">
+        <div className="skeleton h-4 w-40" />
+        <div className="skeleton mt-3 h-24" />
+        <div className="mt-10 flex flex-1 flex-col items-center justify-center py-10">
+          <div className="skeleton h-24 w-24 rounded-full" />
+        </div>
+      </div>
+    );
+  }
 
   async function start() {
     setError(supported ? null : "unsupported");
@@ -144,7 +173,7 @@ export function Session() {
 
     const id = await saveSession({
       kind,
-      refId: kind === "daily" ? `day-${day}` : scenarioId!,
+      refId: kind === "daily" ? dailyScenario!.id : scenarioId!,
       day: kind === "daily" ? day : undefined,
       lang,
       dateISO: todayISO(),
