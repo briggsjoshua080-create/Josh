@@ -4,6 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import "@fontsource-variable/instrument-sans";
 import "@fontsource-variable/newsreader";
 import "@fontsource-variable/newsreader/wght-italic.css";
+// Logotype face for the launch wordmark only (see --font-logotype in theme.css).
+import "@fontsource-variable/bodoni-moda";
 import "./styles/theme.css";
 import App from "./App";
 import { LanguageProvider } from "./lib/i18n";

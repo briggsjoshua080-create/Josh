@@ -1,8 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
+  CHALLENGE_POOL_SIZE,
   DAILY_WORD_COUNT,
   RECENT_WORD_MEMORY,
+  challengeAtIndex,
+  pickChallengeIndex,
   pickWordIndex,
+  poolIndexForDay,
   wordAtIndex,
   challengeForDay,
 } from "@/lib/daily";
@@ -84,5 +88,64 @@ describe("challengeForDay", () => {
     expect(challengeForDay(2).day).toBe(2);
     expect(challengeForDay(66).day).toBe(66);
     expect(challengeForDay(67).day).toBe(67);
+  });
+});
+
+describe("the challenge pool", () => {
+  it("resolves every slot to a real challenge", () => {
+    for (let i = 0; i < CHALLENGE_POOL_SIZE; i++) {
+      const c = challengeAtIndex(i, 5);
+      expect(c.title.en).toBeTruthy();
+      expect(c.title.de).toBeTruthy();
+      expect(c.prompt.en).toBeTruthy();
+      expect(c.targetSec).toHaveLength(2);
+    }
+  });
+
+  it("stamps the day it is shown on, not the day it came from", () => {
+    expect(challengeAtIndex(40, 3).day).toBe(3);
+    expect(challengeAtIndex(0, 99).day).toBe(99);
+  });
+
+  it("wraps out-of-range slots instead of returning undefined", () => {
+    expect(challengeAtIndex(CHALLENGE_POOL_SIZE, 1)).toEqual(challengeAtIndex(0, 1));
+    expect(challengeAtIndex(-1, 1).title.en).toBeTruthy();
+  });
+
+  it("poolIndexForDay round-trips the day's own challenge", () => {
+    for (const day of [1, 2, 33, 66, 67, 78, 200]) {
+      expect(challengeAtIndex(poolIndexForDay(day), day)).toEqual(challengeForDay(day));
+    }
+  });
+});
+
+describe("pickChallengeIndex", () => {
+  it("stays inside the pool", () => {
+    for (const r of [0, 0.25, 0.5, 0.999999, 1]) {
+      const i = pickChallengeIndex([], () => r);
+      expect(i).toBeGreaterThanOrEqual(0);
+      expect(i).toBeLessThan(CHALLENGE_POOL_SIZE);
+    }
+  });
+
+  it("never hands back a slot it was told to avoid", () => {
+    const avoid = [poolIndexForDay(7), 12];
+    for (let r = 0; r < 1; r += 0.01) {
+      expect(avoid).not.toContain(pickChallengeIndex(avoid, () => r));
+    }
+  });
+
+  it("keeps turning up something new across repeated rerolls", () => {
+    // Each reroll avoids the day's own challenge and the one on screen, which
+    // is what makes the card always turn over to a different prompt.
+    const rng = seededRng([0.73, 0.18, 0.44, 0.91, 0.06, 0.57, 0.29, 0.82]);
+    const day = 7;
+    let current = poolIndexForDay(day);
+    for (let n = 0; n < 8; n++) {
+      const next = pickChallengeIndex([poolIndexForDay(day), current], rng);
+      expect(next).not.toBe(current);
+      expect(next).not.toBe(poolIndexForDay(day));
+      current = next;
+    }
   });
 });

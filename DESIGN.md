@@ -54,6 +54,12 @@ Pairing on a contrast axis: editorial serif for the spoken word, grotesque sans 
 - **Display / prompts**: Newsreader (variable, opsz; italics for quoted user phrases).
   Speaking prompts render like a lectern card: serif, generous size, `text-wrap: balance`.
 - **UI**: Instrument Sans (variable) for nav, labels, buttons, body, data.
+- **Logotype, and nowhere else**: Bodoni Moda (variable), on the launch wordmark only
+  (`--font-logotype`). The pairing above is still two fonts; this is a third face used as
+  artwork, the way a logo is. A Didone earns its place there because thick/thin contrast is
+  what makes ORATO read as a mark rather than as a heading — Newsreader's moderate contrast
+  reads as a title. It falls back to Newsreader, so the splash can never render invisible
+  while it loads. If it ever appears in a label, button, or heading, that is a bug.
 - **Data**: Instrument Sans with `font-variant-numeric: tabular-nums` everywhere numbers align.
   Exception, deliberate: the two hero numbers (overall score, recording timer) render in the
   serif — they are the performance, not the chrome.
@@ -80,7 +86,8 @@ durations from `--dur-fast/base/slow` (180/420/900ms). The sanctioned set pieces
 1. **Score reveal** — the overall score sits inside a ring that sweeps 0 → score on one
    spring; the arc's colour and the count-up's colour walk the score bands together, off
    the same spring, so they can never disagree mid-flight. One particle burst on the XP pill.
-2. **Card flip** — the word of the day turns over in 500ms (cross-fade under reduced motion).
+2. **Card flip** — the word of the day, and the daily challenge when the user asks for a
+   different one, turn over in 500ms (cross-fade under reduced motion).
 3. **Recording state** — the spotlight glow breathes with detected speech; the gauge arc
    steps zone colours over 600ms; the recording dot pulses 2s (state, not decoration).
 4. **Earned-state flourishes** — one champagne sheen across the XP pill per gain (never a
@@ -93,6 +100,14 @@ durations from `--dur-fast/base/slow` (180/420/900ms). The sanctioned set pieces
 7. **Where you are** — a gold marker slides between tabs on route change (spring 380/32),
    shared-layout, one namespace per surface so the rail and the tab bar never animate into
    each other.
+8. **The launch sequence** — the one orchestrated load in the app, and the only place the
+   "no page-load choreography" rule is deliberately spent. Two steps over 3.4s: the mark
+   draws itself stroke by stroke (20 paths, 10 groups, 85ms apart), then shrinks and rises
+   to a crest while ORATO lands letter by letter out of a champagne spark and one sheen
+   travels across it, and `speak · review · improve` follows in wide gold. The app boots
+   underneath the whole time, so the sequence costs no time the user would otherwise spend
+   in the product. Colour is token-only: the ground is deep-wine → obsidian, never the
+   neutral black of the references it was drawn from.
 
 Every animation short-circuits to its end state under `prefers-reduced-motion` — three
 layers enforce it: `<MotionConfig reducedMotion="user">`, per-component `useReducedMotion`

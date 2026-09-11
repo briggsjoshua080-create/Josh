@@ -59,7 +59,7 @@ export function Progress() {
 
   return (
     <div className="pt-2 lg:pt-0">
-      {/* â€”â€”â€” Level hero â€”â€”â€” */}
+      {/* ——— Level hero ——— */}
       <section className="snap-section">
       <div className="mt-2 flex items-start justify-between gap-4">
         <div>
@@ -85,7 +85,7 @@ export function Progress() {
       </div>
       </section>
 
-      {/* â€”â€”â€” Headline aggregates across all sessions â€”â€”â€” */}
+      {/* ——— Headline aggregates across all sessions ——— */}
       <section className="snap-section mt-8 grid grid-cols-4 gap-2" data-testid="progress-stats">
         <StatTile label={t("sessionsCount")} value={sessions.length} />
         <StatTile label={t("avgScore")} value={avgScore} />
@@ -93,7 +93,7 @@ export function Progress() {
         <StatTile label={t("statStreak")} value={streak} />
       </section>
 
-      {/* â€”â€”â€” Speaking profile radar (replaces the eight-bar list + Focus Point) â€”â€”â€” */}
+      {/* ——— Speaking profile radar (replaces the eight-bar list + Focus Point) ——— */}
       <section className="snap-section mt-10">
         <h2 className="label-caps">{t("radarTitle")}</h2>
         <div className="mt-4">
@@ -142,10 +142,10 @@ export function Progress() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base text-ink">{s.promptTitle}</span>
                   <span className="text-xs text-muted">
-                    {s.kind === "daily" ? `${t("dayLabel", { n: s.day ?? 0 })} Â· ` : ""}
+                    {s.kind === "daily" ? `${t("dayLabel", { n: s.day ?? 0 })} · ` : ""}
                     {s.dateISO}
                     {s.progress && s.progress.xpPending === false && (
-                      <span className="tnum text-faint"> Â· +{s.progress.xpEarned} XP</span>
+                      <span className="tnum text-faint"> · +{s.progress.xpEarned} XP</span>
                     )}
                   </span>
                 </span>
