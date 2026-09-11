@@ -224,9 +224,18 @@ export function MetricRadar({
         })}
       </div>
 
-      {/* Detail card */}
+      {/* Detail card, and its own snap point.
+          The radar section (label + legend + chart + pills + this card) runs
+          ~677px. On a notched phone the safe-area insets take the usable height
+          below that — 585px on a 390×740 test viewport — so the section is
+          taller than the screen. Snapping only ever rests at a section's *top*,
+          which put this card 24px above the fold with no way to stop on it: you
+          had to hold a finger down to read it. Its own snap point is what makes
+          the scroll below the chart land here flush instead.
+          (A `proximity` root scroller was tried first and measured as a no-op —
+          Chrome's proximity threshold snaps just as hard at these distances.) */}
       <div
-        className="mt-3 box-border rounded-(--radius-control) border border-wine bg-deep-wine p-4"
+        className="snap-section mt-3 box-border rounded-(--radius-control) border border-wine bg-deep-wine p-4"
         style={{ minHeight: 96 }}
       >
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

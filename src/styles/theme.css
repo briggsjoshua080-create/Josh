@@ -46,6 +46,11 @@
 
   --font-sans: "Instrument Sans Variable", system-ui, sans-serif;
   --font-serif: "Newsreader Variable", Georgia, serif;
+  /* Logotype only — the launch wordmark, nowhere else. A Didone's thick/thin
+     contrast is what makes the name read as a mark rather than as a heading;
+     Newsreader is the fallback so the splash can never render invisible while
+     Bodoni loads. See DESIGN.md § Typography. */
+  --font-logotype: "Bodoni Moda Variable", "Newsreader Variable", Georgia, serif;
 
   /* Fixed rem scale, ratio ≈ 1.2 (product register) */
   --text-xs: 0.75rem;
@@ -296,6 +301,143 @@ p {
   30%,
   100% {
     background-position: 0% 0;
+  }
+}
+
+/* ——— Launch sequence ———
+   Step one draws the mark, step two sets the name. These rules describe the
+   shapes only; every delay is owned by OratoSplash.tsx and arrives as a custom
+   property, so the whole timeline reads top-to-bottom in one file.
+   OratoSplash and OratoMark both drop these classes entirely under
+   prefers-reduced-motion — the kill switch at the bottom of this file zeroes
+   durations but not delays, which would otherwise leave the mark invisible for
+   most of a second. */
+
+.orato-mark-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: oratoDraw 700ms var(--ease-out-quint) both;
+  animation-delay: calc(var(--i, 0) * 85ms);
+}
+
+@keyframes oratoDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Each capital carries its own metal, so the highlight travels letter by
+   letter across the word instead of one band crossing a single block. Both
+   ends of the sweep rest on vellum — the gold core only exists mid-pass. */
+.orato-letter {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    var(--orato-vellum) 0%,
+    var(--orato-vellum) 38%,
+    var(--orato-champagne) 46%,
+    var(--orato-gold) 50%,
+    var(--orato-champagne) 54%,
+    var(--orato-vellum) 62%,
+    var(--orato-vellum) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation:
+    oratoLetterLand 340ms var(--ease-out-quint) both,
+    oratoSheen 420ms linear both;
+  animation-delay: var(--land, 0ms), var(--sheen, 0ms);
+}
+
+/* shimmerPass holds from 30% on, which is what puts the gap between passes of
+   the 6s streak loop. A single pass needs the travel spread over the whole
+   duration instead, so the sheen gets its own keyframe on the same mechanism. */
+@keyframes oratoSheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes oratoLetterLand {
+  from {
+    opacity: 0;
+    transform: translateY(0.16em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The spark that resolves into the letter. A real box, not a text-shadow:
+   under -webkit-background-clip:text a shadow gets clipped away. */
+.orato-letter::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 0.5em;
+  height: 0.5em;
+  margin: -0.25em 0 0 -0.25em;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle, var(--orato-champagne) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: oratoGlint 420ms var(--ease-out-quint) both;
+  animation-delay: var(--land, 0ms);
+}
+
+@keyframes oratoGlint {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  35% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* The three words: gold, wide, and a softer pass of the same sheen. */
+.orato-tagline {
+  background: linear-gradient(
+    90deg,
+    var(--orato-gold) 0%,
+    var(--orato-gold) 40%,
+    var(--orato-champagne) 50%,
+    var(--orato-gold) 60%,
+    var(--orato-gold) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation:
+    oratoTaglineIn 350ms var(--ease-out-quint) both,
+    oratoSheen 450ms linear both;
+  animation-delay: var(--in, 0ms), var(--sheen, 0ms);
+}
+
+@keyframes oratoTaglineIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

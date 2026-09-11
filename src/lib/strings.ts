@@ -11,6 +11,12 @@ export const strings = {
   navSettings: { en: "Settings", de: "Einstellungen" },
   appName: { en: "Orato", de: "Orato" },
 
+  // Launch sequence — the three words under the mark. Rendered uppercase by
+  // the splash; authored sentence case, like every other label.
+  splashSpeak: { en: "speak", de: "sprechen" },
+  splashReview: { en: "review", de: "auswerten" },
+  splashImprove: { en: "improve", de: "verbessern" },
+
   // Today screen
   dayLabel: { en: "Day {n}", de: "Tag {n}" },
   dayOfPath: { en: "Day {n} of your speaking journey", de: "Tag {n} deiner Rede-Reise" },
