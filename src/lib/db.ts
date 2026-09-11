@@ -1,7 +1,15 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { DailyPick, Session, WordBonus } from "./types";
+import type { Challenge, DailyPick, Session, WordBonus } from "./types";
 import { progressFromSessions, WORD_USE_BONUS, type ProgressState } from "./progression";
-import { DAILY_WORD_COUNT, RECENT_WORD_MEMORY, pickWordIndex } from "./daily";
+import {
+  challengeAtIndex,
+  challengeForDay,
+  DAILY_WORD_COUNT,
+  pickChallengeIndex,
+  poolIndexForDay,
+  RECENT_WORD_MEMORY,
+  pickWordIndex,
+} from "./daily";
 
 /**
  * All user data lives here, on-device. No accounts, no server-side storage.
@@ -125,6 +133,50 @@ export async function dailyWordIndex(dateISO = todayISO()): Promise<number> {
     );
     await db.dailyPicks.put({ dateISO, wordIndex, pickedAt: Date.now() });
     return wordIndex;
+  });
+}
+
+/**
+ * The challenge to show for a path day: the day's own, unless the user has
+ * asked for a different one today. Both the Today card and the recording
+ * screen resolve through here, so a swap can never leave them disagreeing
+ * about what the user is being asked to say.
+ */
+export async function dailyChallenge(day: number, dateISO = todayISO()): Promise<Challenge> {
+  const pick = await db.dailyPicks.get(dateISO);
+  return pick?.challengeIndex === undefined
+    ? challengeForDay(day)
+    : challengeAtIndex(pick.challengeIndex, day);
+}
+
+/**
+ * Swap today's challenge for a different one and return it. Steers away from
+ * both the path day's own challenge and whatever is on screen now, so the card
+ * always turns over to something the user hasn't just refused.
+ *
+ * The day number is untouched: it is derived from completed session dates, so
+ * no amount of rerolling can move the path or the streak.
+ */
+export async function rerollDailyChallenge(
+  day: number,
+  dateISO = todayISO(),
+): Promise<Challenge> {
+  // dailyWordIndex owns creating the row; normally Today has already done this
+  // on mount, but a reroll must not depend on that ordering.
+  const wordIndex = await dailyWordIndex(dateISO);
+  return db.transaction("rw", db.dailyPicks, async () => {
+    const existing = await db.dailyPicks.get(dateISO);
+    const avoid = [poolIndexForDay(day)];
+    if (existing?.challengeIndex !== undefined) avoid.push(existing.challengeIndex);
+
+    const challengeIndex = pickChallengeIndex(avoid);
+    await db.dailyPicks.put({
+      dateISO,
+      wordIndex: existing?.wordIndex ?? wordIndex,
+      pickedAt: existing?.pickedAt ?? Date.now(),
+      challengeIndex,
+    });
+    return challengeAtIndex(challengeIndex, day);
   });
 }
 

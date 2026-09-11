@@ -14,6 +14,38 @@ export function challengeForDay(day: number): Challenge {
   return { ...base, day };
 }
 
+/**
+ * Every challenge the app can offer, as one flat pool: the 66-day core program
+ * followed by the advanced rotation. Asking for a different challenge draws a
+ * slot here rather than a day, so it can reach the whole catalogue without
+ * moving the user along the path.
+ */
+export const CHALLENGE_POOL_SIZE = CHALLENGES.length + ADVANCED_ROTATION.length;
+
+/** Resolve a pool slot, stamped with the day it is being shown on. */
+export function challengeAtIndex(index: number, day: number): Challenge {
+  const i = ((index % CHALLENGE_POOL_SIZE) + CHALLENGE_POOL_SIZE) % CHALLENGE_POOL_SIZE;
+  const base = i < CHALLENGES.length ? CHALLENGES[i] : ADVANCED_ROTATION[i - CHALLENGES.length];
+  return { ...base, day };
+}
+
+/** The pool slot the path day points at, so a reroll can steer away from it. */
+export function poolIndexForDay(day: number): number {
+  if (day <= CHALLENGES.length) return day - 1;
+  return CHALLENGES.length + ((day - CHALLENGES.length - 1) % ADVANCED_ROTATION.length);
+}
+
+/**
+ * A challenge slot that isn't one of `avoid`. Reuses the word draw below — it
+ * is a general "pick an index that isn't one of these", not word-specific.
+ */
+export function pickChallengeIndex(
+  avoid: readonly number[] = [],
+  rng: () => number = Math.random,
+): number {
+  return pickWordIndex(CHALLENGE_POOL_SIZE, avoid, rng);
+}
+
 /** How many word slots there are. EN and DE are index-aligned translations. */
 export const DAILY_WORD_COUNT = WORDS_EN.length;
 

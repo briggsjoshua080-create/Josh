@@ -8,7 +8,7 @@ import { computeMetrics } from "@/lib/metrics";
 import { blendScores } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
-import { dailyWordIndex, saveSession, todayISO } from "@/lib/db";
+import { dailyChallenge, dailyWordIndex, saveSession, todayISO } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { RecordRing, ringZone } from "@/components/RecordRing";
@@ -30,7 +30,21 @@ export function Session() {
   const day = Number(params.get("day") ?? 1);
   const scenarioId = params.get("id");
   const scenario = kind === "scenario" ? SCENARIOS.find((s) => s.id === scenarioId) : undefined;
-  const challenge = kind === "daily" ? challengeForDay(day) : undefined;
+
+  // The path day's challenge is the right answer unless the user swapped today's
+  // for another one, which only IndexedDB knows. Start from the day so the
+  // prompt paints immediately, then correct from the same row Today wrote.
+  const [challenge, setChallenge] = useState(
+    kind === "daily" ? challengeForDay(day) : undefined,
+  );
+  useEffect(() => {
+    if (kind !== "daily") return;
+    let live = true;
+    dailyChallenge(day).then((c) => live && setChallenge(c));
+    return () => {
+      live = false;
+    };
+  }, [kind, day]);
 
   // Today's word is a persisted random draw, so it has to come from IndexedDB
   // rather than from `day` — same row the Today screen reads, same word.

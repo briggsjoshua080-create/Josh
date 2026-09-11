@@ -219,6 +219,14 @@ export interface DailyPick {
   dateISO: string;
   wordIndex: number;
   pickedAt: number;
+  /**
+   * Set only once the user has asked for a different challenge today: the slot
+   * in the full challenge pool to show instead of the one the path day would
+   * give. Absent means "whatever challengeForDay(day) says". Keyed by date like
+   * the word, so it clears itself when the calendar rolls over, and it never
+   * touches the day number — the streak counts completed days, not prompts.
+   */
+  challengeIndex?: number;
 }
 
 export interface Challenge {
