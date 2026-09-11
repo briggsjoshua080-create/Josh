@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
 import { tipsForToday } from "@/data/tips";
-import { dailyPathState, dailyWordIndex, dailyScenarioId, db } from "@/lib/db";
+import { dailyPathState, dailyWordIndex, dailyScenarioId, rerollDailyScenario, db } from "@/lib/db";
 import { SCENARIOS } from "@/data/scenarios";
 import { DIFFICULTY_LABEL } from "@/data/categories";
 import { Button } from "@/components/Button";
@@ -92,29 +92,11 @@ export function Today() {
             </div>
           </div>
         ) : (
-          <>
-            <div className="box box-raised mt-3 p-5">
-              <h3 className="lectern text-2xl lg:text-3xl text-ink">{challenge.title[lang]}</h3>
-              <p className="lectern mt-4 text-lg leading-relaxed text-ink/90">{challenge.prompt[lang]}</p>
-            </div>
-            <div className="mt-4 flex items-center gap-4 text-sm text-muted">
-              <span className="flex items-center gap-1.5">
-                <Icon name="clock" size={15} />
-                {t("targetLength", { a: mins(challenge.targetSec[0]), b: mins(challenge.targetSec[1]) })}
-              </span>
-              <span className="rounded-full border border-line px-2 py-0.5 text-xs font-medium">
-                {t(DIFFICULTY_LABEL[challenge.difficulty])}
-              </span>
-            </div>
-            <Button
-              size="lg"
-              className="mt-6 w-full"
-              onClick={() => navigate(`/session?kind=daily&day=${state.day}`)}
-            >
-              <Icon name="mic" size={20} />
-              {t("beginSession")}
-            </Button>
-          </>
+          <ChallengeCard
+            scenario={challenge}
+            mins={mins}
+            onBegin={() => navigate(`/session?kind=daily&day=${state.day}`)}
+          />
         )}
       </SnapSection>
 
@@ -136,6 +118,73 @@ export function Today() {
         </div>
       </SnapSection>
     </div>
+  );
+}
+
+function ChallengeCard({
+  scenario,
+  mins,
+  onBegin,
+}: {
+  scenario: Scenario;
+  mins: (s: number) => string;
+  onBegin: () => void;
+}) {
+  const { t, lang } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const timers = useRef<number[]>([]);
+
+  useEffect(
+    () => () => {
+      timers.current.forEach(clearTimeout);
+    },
+    [],
+  );
+
+  async function reroll() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { day: accountDay } = await dailyPathState();
+      const newScenarioId = await rerollDailyScenario(accountDay);
+      const newScenario = SCENARIOS.find((s) => s.id === newScenarioId);
+      if (newScenario) {
+        window.location.reload();
+      }
+    } catch {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="box box-raised mt-3 p-5">
+        <h3 className="lectern text-2xl lg:text-3xl text-ink">{scenario.title[lang]}</h3>
+        <p className="lectern mt-4 text-lg leading-relaxed text-ink/90">{scenario.prompt[lang]}</p>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
+        <span className="flex items-center gap-1.5">
+          <Icon name="clock" size={15} />
+          {t("targetLength", { a: mins(scenario.targetSec[0]), b: mins(scenario.targetSec[1]) })}
+        </span>
+        <span className="rounded-full border border-line px-2 py-0.5 text-xs font-medium">
+          {t(DIFFICULTY_LABEL[scenario.difficulty])}
+        </span>
+        <button
+          type="button"
+          onClick={reroll}
+          disabled={busy}
+          className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-(--radius-pill) px-2 py-1 text-sm text-muted transition-colors hover:text-ink disabled:opacity-50"
+        >
+          <Icon name="refresh" size={15} className="text-gold/70" />
+          {t("newChallenge")}
+        </button>
+      </div>
+      <Button size="lg" className="mt-6 w-full" onClick={onBegin}>
+        <Icon name="mic" size={20} />
+        {t("beginSession")}
+      </Button>
+    </>
   );
 }
 

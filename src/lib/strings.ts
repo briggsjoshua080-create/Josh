@@ -32,6 +32,7 @@ export const strings = {
   },
   reviewFeedback: { en: "Review today's feedback", de: "Heutiges Feedback ansehen" },
   practiceScenario: { en: "Practice a scenario", de: "Ein Szenario üben" },
+  newChallenge: { en: "New challenge", de: "Neue Challenge" },
   difficulty: { en: "Difficulty", de: "Schwierigkeit" },
   targetLength: { en: "Aim for {a}–{b}", de: "Ziel: {a}–{b}" },
   dailyTipsTitle: { en: "Today's communication insights", de: "Kommunikations-Impulse des Tages" },

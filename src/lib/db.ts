@@ -153,6 +153,29 @@ export async function dailyScenarioId(accountDay: number, dateISO = todayISO()):
   });
 }
 
+/** Pick a different daily scenario, excluding the one currently on screen and recent ones. */
+export async function rerollDailyScenario(accountDay: number, dateISO = todayISO()): Promise<string> {
+  return db.transaction("rw", db.dailyScenarioPicks, async () => {
+    const recent = await db.dailyScenarioPicks
+      .where("dateISO")
+      .below(dateISO)
+      .reverse()
+      .limit(RECENT_DAILY_MEMORY)
+      .toArray();
+
+    const current = await db.dailyScenarioPicks.get(dateISO);
+    const avoid = current ? [current.scenarioId] : [];
+    const recentIds = recent.map((p) => p.scenarioId);
+
+    const pick = pickScenario(
+      dailyPoolFor(accountDay),
+      [...avoid, ...recentIds],
+    );
+    await db.dailyScenarioPicks.put({ dateISO, scenarioId: pick.id, pickedAt: Date.now() });
+    return pick.id;
+  });
+}
+
 /**
  * Wipe every trace of the user from this device: the whole IndexedDB database
  * (sessions, transcripts, XP/progress) plus all orato.* localStorage keys
