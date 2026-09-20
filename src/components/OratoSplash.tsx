@@ -84,8 +84,11 @@ export default function OratoSplash({ onDone }: { onDone?: () => void }) {
       animate={reduced ? { opacity: 1 } : { opacity: 0 }}
       transition={reduced ? { duration: 0 } : overlay}
       /* Decorative: the app underneath is the real content and its header
-         already carries the name. Nothing here is focusable, so no trap. */
+         already carries the name. Nothing here is focusable, so no trap.
+         A tap ends it early — first-launch novelty shouldn't hold up
+         someone who's already used to the app (e.g. after a reinstall). */
       aria-hidden="true"
+      onClick={() => onDone?.()}
     >
       <motion.div
         style={styles.markGlow}

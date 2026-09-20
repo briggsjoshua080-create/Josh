@@ -47,7 +47,7 @@ export interface RecorderResult {
   pauses: PauseEvent[];
   durationSec: number;
   /** Loudness stats over the speaking portions, or null if the meter never ran. */
-  volume: { mean: number; std: number } | null;
+  volume: { mean: number; std: number; count: number } | null;
 }
 
 /** Frames quieter than this are treated as silence and excluded from loudness. */
@@ -256,7 +256,7 @@ export class SpeechSession {
     if (this.levelCount >= 60) {
       const mean = this.levelSum / this.levelCount;
       const variance = Math.max(0, this.levelSqSum / this.levelCount - mean * mean);
-      volume = { mean: +mean.toFixed(3), std: +Math.sqrt(variance).toFixed(3) };
+      volume = { mean: +mean.toFixed(3), std: +Math.sqrt(variance).toFixed(3), count: this.levelCount };
     }
 
     return {

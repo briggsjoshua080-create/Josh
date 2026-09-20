@@ -171,6 +171,32 @@ export function stripFences(text: string): string {
   return fenced ? fenced[1] : trimmed;
 }
 
+/**
+ * Best-effort per-IP rate limit: this is a public, unauthenticated endpoint
+ * that calls a paid API, so a naive script hammering it shouldn't be able to
+ * run up the bill unchecked. In-memory, so it only limits requests landing on
+ * the same warm serverless instance — not a substitute for a real
+ * distributed limiter (Vercel KV/Upstash) if abuse becomes a real problem,
+ * but it stops the trivial case for free.
+ */
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = 8;
+const requestLog = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (requestLog.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  recent.push(now);
+  requestLog.set(ip, recent);
+  // Keep the map from growing unbounded over a long-lived instance.
+  if (requestLog.size > 5000) {
+    for (const [key, times] of requestLog) {
+      if (times.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) requestLog.delete(key);
+    }
+  }
+  return recent.length > RATE_LIMIT_MAX;
+}
+
 function validate(body: unknown): FeedbackRequest | null {
   if (typeof body !== "object" || body === null) return null;
   const b = body as Record<string, unknown>;
@@ -185,7 +211,12 @@ function validate(body: unknown): FeedbackRequest | null {
 export async function handleFeedback(
   bodyText: string,
   env: Record<string, string | undefined>,
+  ip = "unknown",
 ): Promise<{ status: number; body: string }> {
+  if (isRateLimited(ip)) {
+    return { status: 429, body: JSON.stringify({ error: "rate_limited_client" }) };
+  }
+
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { status: 503, body: JSON.stringify({ error: "no_key" }) };
