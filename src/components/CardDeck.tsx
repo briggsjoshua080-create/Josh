@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+import { useI18n } from "@/lib/i18n";
 
 interface CardDeckProps<T> {
   items: T[];
@@ -18,6 +19,7 @@ interface CardDeckProps<T> {
  * which doubles as the reduced-motion/keyboard fallback.
  */
 export function CardDeck<T>({ items, keyOf, renderCard, renderAction }: CardDeckProps<T>) {
+  const { t } = useI18n();
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -64,22 +66,32 @@ export function CardDeck<T>({ items, keyOf, renderCard, renderAction }: CardDeck
 
       {/* Non-gesture navigation + position */}
       <div className="mt-4 flex items-center justify-center gap-6">
-        <DeckArrow dir="up" onClick={() => go(-1)} disabled={index === 0} />
+        <DeckArrow dir="up" label={t("deckPrev")} onClick={() => go(-1)} disabled={index === 0} />
         <span className="tnum text-sm text-muted">
           {index + 1} / {n}
         </span>
-        <DeckArrow dir="down" onClick={() => go(1)} disabled={index === n - 1} />
+        <DeckArrow dir="down" label={t("deckNext")} onClick={() => go(1)} disabled={index === n - 1} />
       </div>
     </div>
   );
 }
 
-function DeckArrow({ dir, onClick, disabled }: { dir: "up" | "down"; onClick: () => void; disabled: boolean }) {
+function DeckArrow({
+  dir,
+  label,
+  onClick,
+  disabled,
+}: {
+  dir: "up" | "down";
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+}) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      aria-label={dir === "up" ? "Previous" : "Next"}
+      aria-label={label}
       className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 text-gold/70 transition-colors hover:text-gold hover:bg-card disabled:opacity-35"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

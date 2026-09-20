@@ -23,8 +23,13 @@ function devApi(): Plugin {
           for await (const chunk of req) chunks.push(chunk as Buffer);
           const bodyText = Buffer.concat(chunks).toString("utf8");
           try {
+            const forwardedFor = req.headers["x-forwarded-for"];
+            const ip =
+              (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(",")[0])?.trim() ||
+              req.socket?.remoteAddress ||
+              "dev";
             const mod = await server.ssrLoadModule("/server/coach.ts");
-            const out = await mod[handlerName](bodyText, process.env);
+            const out = await mod[handlerName](bodyText, process.env, ip);
             res.statusCode = out.status;
             res.setHeader("content-type", "application/json");
             res.end(out.body);

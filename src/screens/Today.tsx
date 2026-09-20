@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
@@ -96,6 +96,7 @@ export function Today() {
             scenario={challenge}
             mins={mins}
             onBegin={() => navigate(`/session?kind=daily&day=${state.day}`)}
+            onRerolled={(scenario) => setState((s) => (s ? { ...s, scenario } : s))}
           />
         )}
       </SnapSection>
@@ -125,21 +126,15 @@ function ChallengeCard({
   scenario,
   mins,
   onBegin,
+  onRerolled,
 }: {
   scenario: Scenario;
   mins: (s: number) => string;
   onBegin: () => void;
+  onRerolled: (scenario: Scenario) => void;
 }) {
   const { t, lang } = useI18n();
   const [busy, setBusy] = useState(false);
-  const timers = useRef<number[]>([]);
-
-  useEffect(
-    () => () => {
-      timers.current.forEach(clearTimeout);
-    },
-    [],
-  );
 
   async function reroll() {
     if (busy) return;
@@ -148,10 +143,8 @@ function ChallengeCard({
       const { day: accountDay } = await dailyPathState();
       const newScenarioId = await rerollDailyScenario(accountDay);
       const newScenario = SCENARIOS.find((s) => s.id === newScenarioId);
-      if (newScenario) {
-        window.location.reload();
-      }
-    } catch {
+      if (newScenario) onRerolled(newScenario);
+    } finally {
       setBusy(false);
     }
   }

@@ -3,19 +3,66 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
 import { SCENARIOS } from "@/data/scenarios";
-import { SpeechSession, speechSupported } from "@/lib/speech";
+import { SpeechSession, speechSupported, type RecorderResult } from "@/lib/speech";
 import { computeMetrics } from "@/lib/metrics";
-import { blendScores, type Scenario } from "@/lib/types";
+import { blendScores, type PauseEvent, type Scenario, type SpeechSegment } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
 import { dailyWordIndex, dailyScenarioId, saveSession, todayISO } from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RecordRing, ringZone } from "@/components/RecordRing";
 import { Waveform } from "@/components/Waveform";
 import { CoachListening } from "@/components/CoachListening";
 
-type Phase = "idle" | "recording" | "analyzing";
+type Phase = "idle" | "recording" | "paused" | "analyzing";
+
+/** One completed recording segment — recording runs across one or more legs
+ *  (a leg ends on pause, or on a "too short" retry), and their segments/pauses/
+ *  volume are merged, with timestamps offset, into a single result at Finish. */
+interface Leg {
+  segments: SpeechSegment[];
+  pauses: PauseEvent[];
+  durationSec: number;
+  volume: RecorderResult["volume"];
+}
+
+function mergeLegs(legs: Leg[]): {
+  segments: SpeechSegment[];
+  pauses: PauseEvent[];
+  durationSec: number;
+  volume: { mean: number; std: number } | null;
+} {
+  let offsetMs = 0;
+  const segments: SpeechSegment[] = [];
+  const pauses: PauseEvent[] = [];
+  let durationSec = 0;
+  let weightedMean = 0;
+  let weightedSq = 0;
+  let count = 0;
+  for (const leg of legs) {
+    for (const s of leg.segments) segments.push({ ...s, t: s.t + offsetMs });
+    for (const p of leg.pauses) pauses.push({ ...p, atMs: p.atMs + offsetMs });
+    offsetMs += leg.durationSec * 1000;
+    durationSec += leg.durationSec;
+    if (leg.volume) {
+      // Pooled mean/variance across legs, weighted by each leg's sample count.
+      weightedMean += leg.volume.mean * leg.volume.count;
+      weightedSq += (leg.volume.std ** 2 + leg.volume.mean ** 2) * leg.volume.count;
+      count += leg.volume.count;
+    }
+  }
+  const volume =
+    count > 0
+      ? (() => {
+          const mean = weightedMean / count;
+          const variance = Math.max(0, weightedSq / count - mean * mean);
+          return { mean: +mean.toFixed(3), std: +Math.sqrt(variance).toFixed(3) };
+        })()
+      : null;
+  return { segments, pauses, durationSec, volume };
+}
 
 function fmtTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(Math.round(sec) % 60).padStart(2, "0")}`;
@@ -70,11 +117,15 @@ export function Session() {
   const [error, setError] = useState<"mic" | "unsupported" | "tooShort" | null>(null);
   const [typed, setTyped] = useState("");
   const [showType, setShowType] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
   const speechRef = useRef<SpeechSession | null>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const levelRef = useRef(0);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  /** Completed legs of this recording — a new leg starts each time a pause or
+   *  a "too short" retry ends the previous one; Finish merges them all. */
+  const legsRef = useRef<Leg[]>([]);
   const supported = speechSupported();
 
   /** Ring is full at 1.5× the target ceiling (at least +60s) — the hard "wrap it up" line. */
@@ -112,14 +163,20 @@ export function Session() {
     );
   }
 
-  async function start() {
+  async function start(resume = false) {
     setError(supported ? null : "unsupported");
-    setFinalText("");
-    setInterim("");
-    setElapsed(0);
+    if (!resume) {
+      legsRef.current = [];
+      setFinalText("");
+      setInterim("");
+      setElapsed(0);
+    }
+    // Resuming from a pause (or a "too short" retry) picks the transcript up
+    // where the previous leg left off, so the words already said aren't lost.
+    const prefix = resume ? legsRef.current.flatMap((l) => l.segments.map((s) => s.text)).join(" ") : "";
     const session = new SpeechSession(lang, {
       onTranscript: (final, inter) => {
-        setFinalText(final);
+        setFinalText(prefix ? `${prefix} ${final}`.trim() : final);
         setInterim(inter);
       },
       onLevel: (level) => {
@@ -140,35 +197,56 @@ export function Session() {
     await session.start();
   }
 
-  function discard() {
+  /** Stops the live recognizer (if any) and folds its result into legsRef. */
+  function stopLeg() {
+    const rec = speechRef.current;
+    if (rec) {
+      const result = rec.stop();
+      speechRef.current = null;
+      legsRef.current = [
+        ...legsRef.current,
+        { segments: result.segments, pauses: result.pauses, durationSec: result.durationSec, volume: result.volume },
+      ];
+    }
+    return mergeLegs(legsRef.current);
+  }
+
+  function pause() {
+    if (!speechRef.current) return;
+    stopLeg();
+    setPhase("paused");
+  }
+
+  function discardNow() {
     speechRef.current?.stop();
     speechRef.current = null;
+    legsRef.current = [];
+    setConfirmingDiscard(false);
     setPhase("idle");
+    setError(null);
     setFinalText("");
     setInterim("");
     setElapsed(0);
   }
 
   async function finish() {
-    const rec = speechRef.current;
-    if (!rec) return;
-    const result = rec.stop();
-    speechRef.current = null;
-
-    const transcript = result.segments.map((s) => s.text).join(" ");
+    const merged = stopLeg();
+    const transcript = merged.segments.map((s) => s.text).join(" ");
     if (transcript.trim().split(/\s+/).filter(Boolean).length < 10) {
+      // Don't throw the recording away — pick the mic back up so what's
+      // already been said keeps counting toward the ten-word minimum.
+      await start(true);
       setError("tooShort");
-      setPhase("idle");
       return;
     }
 
     setPhase("analyzing");
     const metrics = computeMetrics({
-      segments: result.segments,
-      pauses: result.pauses,
-      durationSec: result.durationSec,
+      segments: merged.segments,
+      pauses: merged.pauses,
+      durationSec: merged.durationSec,
       lang,
-      volume: result.volume,
+      volume: merged.volume,
     });
 
     const id = await saveSession({
@@ -177,10 +255,10 @@ export function Session() {
       day: kind === "daily" ? day : undefined,
       lang,
       dateISO: todayISO(),
-      startedAt: Date.now() - Math.round(result.durationSec * 1000),
-      durationSec: Math.round(result.durationSec),
+      startedAt: Date.now() - Math.round(merged.durationSec * 1000),
+      durationSec: Math.round(merged.durationSec),
       transcript,
-      segments: result.segments,
+      segments: merged.segments,
       metrics,
       ai: null,
       scores: blendScores(metrics, null),
@@ -237,7 +315,7 @@ export function Session() {
           <p className="text-xl font-medium text-ink">{t("ready")}</p>
           <p className="mt-2 max-w-xs text-sm text-muted">{t("micHint")}</p>
           <button
-            onClick={start}
+            onClick={() => start()}
             aria-label={t("startRecording")}
             className="mt-10 flex h-24 w-24 items-center justify-center rounded-full bg-primary text-white transition-colors duration-150 hover:bg-primary-bright active:bg-primary-deep"
           >
@@ -330,13 +408,22 @@ export function Session() {
           )}
 
           <div className="mt-6 flex flex-col items-center gap-3">
-            <button
-              onClick={discard}
-              className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
-            >
-              <Icon name="x" size={14} />
-              {t("discard")}
-            </button>
+            <div className="flex items-center gap-6">
+              <button
+                onClick={pause}
+                className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
+              >
+                <Icon name="pause" size={14} />
+                {t("pauseRecording")}
+              </button>
+              <button
+                onClick={() => setConfirmingDiscard(true)}
+                className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
+              >
+                <Icon name="x" size={14} />
+                {t("discard")}
+              </button>
+            </div>
             <button
               onClick={finish}
               aria-label={t("stopRecording")}
@@ -349,12 +436,51 @@ export function Session() {
         </div>
       )}
 
+      {phase === "paused" && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+          <p className="tnum text-lg text-muted">{fmtTime(elapsed)}</p>
+          <p className="text-base font-medium text-ink">{t("pausedLabel")}</p>
+          <Button size="lg" className="w-full" onClick={() => start(true)}>
+            <Icon name="mic" size={18} />
+            {t("resumeRecording")}
+          </Button>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setConfirmingDiscard(true)}
+              className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
+            >
+              <Icon name="x" size={14} />
+              {t("discard")}
+            </button>
+            <button
+              onClick={finish}
+              data-testid="finish-recording"
+              className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
+            >
+              <Icon name="check" size={14} />
+              {t("stopRecording")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {phase === "analyzing" && (
         <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
           <CoachListening />
           <p className="mt-6 text-lg text-ink">{t("analyzing")}</p>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingDiscard}
+        title={t("discardConfirmTitle")}
+        confirmLabel={t("discardConfirmYes")}
+        cancelLabel={t("discardConfirmCancel")}
+        onCancel={() => setConfirmingDiscard(false)}
+        onConfirm={discardNow}
+      >
+        {t("discardConfirmBody")}
+      </ConfirmDialog>
     </div>
   );
 }

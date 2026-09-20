@@ -125,6 +125,18 @@ export const strings = {
   maxTime: { en: "Max: {t}", de: "Max.: {t}" },
   overMaxHint: { en: "Over the max — bring it home", de: "Über dem Maximum — komm zum Schluss" },
   waitingForSpeech: { en: "Listening — waiting for speech…", de: "Ich höre zu — warte auf deine Stimme…" },
+  pauseRecording: { en: "Pause", de: "Pause" },
+  resumeRecording: { en: "Resume", de: "Fortsetzen" },
+  pausedLabel: { en: "Recording paused", de: "Aufnahme pausiert" },
+  discardConfirmTitle: { en: "Discard this recording?", de: "Diese Aufnahme verwerfen?" },
+  discardConfirmBody: {
+    en: "What you've said so far will be lost. This can't be undone.",
+    de: "Das bisher Gesagte geht verloren. Das kann nicht rückgängig gemacht werden.",
+  },
+  discardConfirmYes: { en: "Yes, discard", de: "Ja, verwerfen" },
+  discardConfirmCancel: { en: "Keep recording", de: "Weiter aufnehmen" },
+  deckPrev: { en: "Previous", de: "Zurück" },
+  deckNext: { en: "Next", de: "Weiter" },
 
   // Feedback
   overall: { en: "Overall", de: "Gesamt" },

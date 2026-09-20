@@ -27,10 +27,20 @@ export default async function handler(req: IncomingMessage & { body?: string }, 
       req.on("end", () => resolve(data));
     });
 
-    const out = await handleFeedback(bodyText, {
-      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-      ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
-    });
+    const forwardedFor = req.headers["x-forwarded-for"];
+    const ip =
+      (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(",")[0])?.trim() ||
+      req.socket?.remoteAddress ||
+      "unknown";
+
+    const out = await handleFeedback(
+      bodyText,
+      {
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
+      },
+      ip,
+    );
 
     res.statusCode = out.status;
     res.setHeader?.("content-type", "application/json");
