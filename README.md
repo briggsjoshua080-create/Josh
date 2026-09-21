@@ -36,7 +36,7 @@ professionalism, scored honestly.
 ## Stack
 
 React 19 + Vite 8 · Tailwind CSS 4 · Motion (motion.dev) · Dexie ·
-vite-plugin-pwa · one Vercel edge function (`api/feedback.ts`) proxying the
+vite-plugin-pwa · one Vercel Node function (`api/feedback.ts`) proxying the
 Anthropic Messages API with structured outputs.
 
 ## Development
@@ -56,9 +56,26 @@ The Vite dev server mirrors the production `/api/feedback` function
    (`vercel.json` sets the build output and SPA rewrites).
 2. Add the environment variable **`ANTHROPIC_API_KEY`** (server-side only;
    the browser never sees it). Optional: `ANTHROPIC_MODEL` to override the
-   default `claude-opus-4-8`.
-3. Deploy. `api/feedback.ts` runs on the edge runtime; everything else is
-   static.
+   default `claude-sonnet-5`.
+3. Deploy. `api/feedback.ts` runs on the **Node** runtime — it depends on it
+   (`IncomingMessage`, `req.on("data")`, `req.socket`), so switching it to the
+   edge runtime breaks the endpoint. Everything else is static.
+
+### Protecting the API budget
+
+`/api/feedback` is public and unauthenticated by design (the app has no
+accounts), and it spends real money per request. The code caps request size,
+rejects cross-origin calls, and rate-limits per IP — but that limiter lives in
+one serverless instance's memory, so it cannot survive scale-out. Two controls
+outside the code do the actual work, and both are worth setting before the app
+takes public traffic:
+
+1. **A spend cap on the API key.** Give Orato its own Anthropic workspace with a
+   monthly budget. This is the only control that bounds the damage regardless of
+   what gets past the code.
+2. **A platform rate limit.** A Vercel WAF/firewall rule on `/api/feedback`
+   runs at the edge before the function boots, with state shared across
+   instances — the thing the in-memory limiter cannot be.
 
 ## Design
 

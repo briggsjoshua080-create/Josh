@@ -38,11 +38,14 @@ const METRIC_KEYS = [
   "engagement",
 ] as const;
 
+/** 0–100, enforced by constrained decoding rather than hoped for in the prompt. */
+const SCORE_FIELD = { type: "integer", minimum: 0, maximum: 100 } as const;
+
 const SCORES = {
   type: "object",
   additionalProperties: false,
   required: [...METRIC_KEYS],
-  properties: Object.fromEntries(METRIC_KEYS.map((k) => [k, { type: "integer" }])),
+  properties: Object.fromEntries(METRIC_KEYS.map((k) => [k, SCORE_FIELD])),
 } as const;
 
 const ONE_LINERS = {
@@ -95,8 +98,8 @@ const REPORT_SCHEMA = {
       properties: { quote: { type: "string" }, rewrite: { type: "string" } },
     },
     hardToCatch: { type: "array", items: { type: "string" } },
-    cleanSpeechSeconds: { type: "integer" },
-    articulation: { type: "integer" },
+    cleanSpeechSeconds: { type: "integer", minimum: 0, maximum: 3600 },
+    articulation: SCORE_FIELD,
     confidenceLabel: { type: "string" },
     confidenceNote: { type: "string" },
     wpmOverTime: { type: "array", items: { type: "number" } },
@@ -180,7 +183,13 @@ export function stripFences(text: string): string {
  * but it stops the trivial case for free.
  */
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const RATE_LIMIT_MAX = 8;
+/**
+ * Deliberately generous: carrier-grade NAT and corporate networks put many
+ * real users behind one address, and a per-IP window is the wrong place to be
+ * stingy when each request is already size-capped. This limits accidental
+ * hammering, not a determined attacker — see the note above isRateLimited.
+ */
+const RATE_LIMIT_MAX = 20;
 const requestLog = new Map<string, number[]>();
 
 let lastSweep = 0;
@@ -302,7 +311,10 @@ export async function handleFeedback(
   const client = new Anthropic({ apiKey });
   try {
     const response = await client.messages.create({
-      model: env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
+      // Sonnet 5 costs roughly 40% of Opus per token and is well suited to
+      // grading a short transcript against a fixed rubric. Override with
+      // ANTHROPIC_MODEL to try a different tier without a code change.
+      model: env.ANTHROPIC_MODEL ?? "claude-sonnet-5",
       // Thinking tokens count against this ceiling, so 4096 could be spent
       // reasoning before the ~1k-token report started — truncating it into
       // invalid JSON that we had already paid for. This is a ceiling, not a

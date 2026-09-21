@@ -22,7 +22,7 @@ import { MetricRadar } from "@/components/progress/MetricRadar";
 /** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
 const PACE_DOMAIN: [number, number] = [60, 220];
 
-type Phase = "loading" | "ready" | "offline" | "missing" | "failed";
+type Phase = "loading" | "ready" | "offline" | "busy" | "missing" | "failed";
 
 interface Earned {
   xp: number;
@@ -143,7 +143,9 @@ export function Feedback() {
     } catch (err) {
       if (!(err instanceof CoachUnavailableError)) console.error(err);
       if (!isAlive()) return;
-      setPhase("offline");
+      // A rate-limited user is not offline, and retrying immediately is the one
+      // thing that cannot help — say so instead of sending them to check wifi.
+      setPhase(err instanceof CoachUnavailableError && err.message === "429" ? "busy" : "offline");
     }
     inFlight.current = false;
   }
@@ -187,6 +189,9 @@ export function Feedback() {
     : computeEight(m, report ?? null);
   const overall = session.progress?.overallScore ?? overallFromEight(eight);
   const offline = phase === "offline" && !report;
+  const busy = phase === "busy" && !report;
+  /** Either failure leaves the report unfetched, so the radar degrades the same way. */
+  const unanalysed = offline || busy;
   const delivery = deliveryCoaching(m, session.lang);
 
   /**
@@ -240,7 +245,7 @@ export function Feedback() {
                     {t("wordBonusChip")}
                   </span>
                 )}
-                {(offline || session.progress?.xpPending !== false) && (
+                {(unanalysed || session.progress?.xpPending !== false) && (
                   <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
                     {t("xpPendingChip")}
                   </span>
@@ -270,6 +275,19 @@ export function Feedback() {
           </div>
         </div>
       </section>
+
+      {/* Rate-limited: saved, but retrying now is the one thing that can't help. */}
+      {busy && (
+        <div className="box mt-8 flex flex-col gap-3 p-5">
+          <div className="flex items-center gap-2.5">
+            <Icon name="clock" size={18} className="shrink-0 text-warn" />
+            <p className="text-base font-medium text-ink">{t("coachBusyTitle")}</p>
+          </div>
+          <p className="text-sm text-muted" style={{ overflowWrap: "break-word" }}>
+            {t("coachBusyBody")}
+          </p>
+        </div>
+      )}
 
       {/* Failed / timed-out analysis — the 45s ceiling lives in lib/feedback.ts */}
       {offline && (
@@ -305,7 +323,7 @@ export function Feedback() {
             />
           </div>
         )}
-        {offline && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
+        {unanalysed && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
       </section>
 
       {report && phase === "ready" && (

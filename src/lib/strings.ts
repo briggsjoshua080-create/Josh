@@ -418,6 +418,11 @@ export const strings = {
     de: "Dein Übungsverlauf liegt auf diesem Gerät und wurde nicht gelöscht — die App konnte nur nicht darauf zugreifen. Schließe andere offene Tabs und versuch es erneut.",
   },
   retry: { en: "Try again", de: "Erneut versuchen" },
+  coachBusyTitle: { en: "Too many requests", de: "Zu viele Anfragen" },
+  coachBusyBody: {
+    en: "The coach is rate-limited right now. Your recording and score are saved — wait a few minutes, then fetch the full feedback.",
+    de: "Der Coach ist gerade ausgebremst. Deine Aufnahme und dein Score sind gespeichert — warte ein paar Minuten und hol dann das vollständige Feedback.",
+  },
   saveFailedTitle: { en: "Couldn't save this recording", de: "Aufnahme konnte nicht gespeichert werden" },
   saveFailedBody: {
     en: "Your words are still here. This device may be out of storage space — free some up, then try again.",
