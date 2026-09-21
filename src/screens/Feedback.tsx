@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
-import { useI18n } from "@/lib/i18n";
+import { quoted, useI18n } from "@/lib/i18n";
 import { db, getSession, getProgressState, recomputeProgress, allSessions } from "@/lib/db";
 import { requestReport, deliveryCoaching, wordOfDayUsed, CoachUnavailableError } from "@/lib/feedback";
 import { type EightScores, type Session } from "@/lib/types";
@@ -15,13 +15,14 @@ import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
 import { ScoreRing } from "@/components/ScoreRing";
 import { CoachListening } from "@/components/CoachListening";
+import { LoadError } from "@/components/LoadError";
 import { ParticleBurst } from "@/components/kokonut/ParticleBurst";
-import { MetricRadar } from "@/components/progress/MetricRadar";
+import { MetricRadar, MetricRadarSkeleton } from "@/components/progress/MetricRadar";
 
 /** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
 const PACE_DOMAIN: [number, number] = [60, 220];
 
-type Phase = "loading" | "ready" | "offline" | "missing";
+type Phase = "loading" | "ready" | "offline" | "busy" | "missing" | "failed";
 
 interface Earned {
   xp: number;
@@ -38,31 +39,75 @@ export function Feedback() {
   const [session, setSession] = useState<Session | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [earned, setEarned] = useState<Earned | null>(null);
+  /** Why the last analysis failed, so the card can say the true thing. */
+  const [coachError, setCoachError] = useState<string | null>(null);
   /** The scored session immediately before this one — the radar's dashed ghost. */
   const [previous, setPrevious] = useState<EightScores | null>(null);
   const inFlight = useRef(false);
 
+  // The coach can take the better part of a minute. CoachListening announces
+  // the start of that wait and nothing announced the end of it, so a
+  // screen-reader user was left waiting on a spinner that had already stopped.
+  const [doneMessage, setDoneMessage] = useState("");
+  const prevPhase = useRef<Phase>("loading");
   useEffect(() => {
+    const was = prevPhase.current;
+    prevPhase.current = phase;
+    if (was !== "loading" || phase === "loading" || phase === "missing") return;
+    setDoneMessage(phase === "ready" ? t("analysisReady") : t("analysisFailed"));
+    // `t` is re-created each render; the phase transition is the real input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  useEffect(() => {
+    // Reset per id: without this, switching sessions would render the old
+    // score, XP chip and radar under the new session's URL.
+    let alive = true;
+    setSession(null);
+    setPrevious(null);
+    setEarned(null);
+    setCoachError(null);
+    setPhase("loading");
+    inFlight.current = false;
+
     (async () => {
-      const s = await getSession(Number(id));
-      if (!s) {
-        // Bad deep link or wiped store: without this the skeleton never resolves.
-        setPhase("missing");
-        return;
+      try {
+        const s = await getSession(Number(id));
+        if (!alive) return;
+        if (!s) {
+          // Bad deep link or wiped store: without this the skeleton never resolves.
+          setPhase("missing");
+          return;
+        }
+        setSession(s);
+        const earlier = (await allSessions())
+          .filter((o) => o.id !== s.id && o.startedAt < s.startedAt && o.progress?.scores)
+          .sort((a, b) => a.startedAt - b.startedAt)
+          .pop();
+        if (!alive) return;
+        setPrevious(earlier?.progress?.scores ?? null);
+        if (s.report) setPhase("ready");
+        else await fetchReport(s, () => alive);
+      } catch (err) {
+        console.error("Feedback: failed to load session", err);
+        if (alive) setPhase("failed");
       }
-      setSession(s);
-      const earlier = (await allSessions())
-        .filter((o) => o.id !== s.id && o.startedAt < s.startedAt && o.progress?.scores)
-        .sort((a, b) => a.startedAt - b.startedAt)
-        .pop();
-      setPrevious(earlier?.progress?.scores ?? null);
-      if (s.report) setPhase("ready");
-      else await fetchReport(s);
     })();
+
+    return () => {
+      // Stops an in-flight analysis from writing to a screen the user left —
+      // and from racing a second request to the database.
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function fetchReport(s: Session) {
+  /**
+   * `isAlive` lets an analysis that outlived its screen finish quietly: the
+   * report is still worth persisting (the user paid for it), but it must not
+   * touch React state or race a newer request's write.
+   */
+  async function fetchReport(s: Session, isAlive: () => boolean = () => true) {
     if (inFlight.current) return;
     inFlight.current = true;
     setPhase("loading");
@@ -93,10 +138,22 @@ export function Feedback() {
         wpm: s.metrics.wpm,
         xpPending: false,
       };
-      await db.sessions.update(s.id!, { report, progress });
+      // Keep the legacy `scores.overall` in step with the 8-metric score.
+      // It was written once at save time from delivery signals only and never
+      // updated, so Progress — which falls back to it — mixed two
+      // incompatible scales: an unanalysed session could out-rank an analysed
+      // one purely by having decent pace.
+      const legacyScores = { ...s.scores, overall: overallScore };
+      await db.sessions.update(s.id!, { report, progress, scores: legacyScores });
       const after = await recomputeProgress();
 
-      if (wasPending) {
+      // The report is saved either way; the screen is only updated if it is
+      // still the one the user is looking at.
+      if (!isAlive()) return;
+
+      // The XP flourish celebrates a gain, so it only fires on a fresh
+      // analysis — not when browsing an old session out of history.
+      if (wasPending && fresh) {
         const levelNow = levelForXp(after.cumulativeXp);
         setEarned({
           xp: xpEarned,
@@ -104,13 +161,33 @@ export function Feedback() {
           levelUp: levelNow.level > levelForXp(xpBefore).level ? levelNow : null,
         });
       }
-      setSession({ ...s, report, progress });
+      setSession({ ...s, report, progress, scores: legacyScores });
       setPhase("ready");
     } catch (err) {
       if (!(err instanceof CoachUnavailableError)) console.error(err);
-      setPhase("offline");
+      if (!isAlive()) return;
+      // A rate-limited user is not offline, and retrying immediately is the one
+      // thing that cannot help — say so instead of sending them to check wifi.
+      const reason = err instanceof CoachUnavailableError ? err.message : "network";
+      setCoachError(reason);
+      setPhase(reason === "429" ? "busy" : "offline");
     }
     inFlight.current = false;
+  }
+
+  if (phase === "failed") {
+    return (
+      <LoadError
+        onRetry={() => {
+          setPhase("loading");
+          setSession(null);
+          // Re-mounting the effect by touching the key it depends on isn't
+          // available here, so a reload is the honest retry for a store that
+          // would not open at all.
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   if (phase === "missing") {
@@ -137,6 +214,9 @@ export function Feedback() {
     : computeEight(m, report ?? null);
   const overall = session.progress?.overallScore ?? overallFromEight(eight);
   const offline = phase === "offline" && !report;
+  const busy = phase === "busy" && !report;
+  /** Either failure leaves the report unfetched, so the radar degrades the same way. */
+  const unanalysed = offline || busy;
   const delivery = deliveryCoaching(m, session.lang);
 
   /**
@@ -161,6 +241,9 @@ export function Feedback() {
 
   return (
     <div className="pt-2 lg:pt-0">
+      <span role="status" aria-live="polite" className="sr-only">
+        {doneMessage}
+      </span>
       <section className="snap-section">
         <p className="text-sm text-muted">{session.promptTitle}</p>
 
@@ -190,7 +273,7 @@ export function Feedback() {
                     {t("wordBonusChip")}
                   </span>
                 )}
-                {(offline || session.progress?.xpPending !== false) && (
+                {(unanalysed || session.progress?.xpPending !== false) && (
                   <span className="rounded-full border border-line px-3 py-1 text-xs text-muted">
                     {t("xpPendingChip")}
                   </span>
@@ -203,9 +286,13 @@ export function Feedback() {
 
           {/* Delivery stats — pace, length and the filler count, always visible */}
           <div className="tnum mt-6 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted">
-            <span>
-              <b className="font-semibold text-ink">{m.wpm}</b> {t("wpmUnit")}
-            </span>
+            {/* A typed transcript has no speaking tempo; showing typing speed
+                as "wpm" would be a made-up number. */}
+            {!m.typed && (
+              <span>
+                <b className="font-semibold text-ink">{m.wpm}</b> {t("wpmUnit")}
+              </span>
+            )}
             <span>
               <b className="font-semibold text-ink">{m.wordCount}</b> {t("wordsUnit")}
             </span>
@@ -221,15 +308,30 @@ export function Feedback() {
         </div>
       </section>
 
+      {/* Rate-limited: saved, but retrying now is the one thing that can't help. */}
+      {busy && (
+        <div className="box mt-8 flex flex-col gap-3 p-5">
+          <div className="flex items-center gap-2.5">
+            <Icon name="clock" size={18} className="shrink-0 text-warn" />
+            <p className="text-base font-medium text-ink">{t("coachBusyTitle")}</p>
+          </div>
+          <p className="text-sm text-muted" style={{ overflowWrap: "break-word" }}>
+            {t("coachBusyBody")}
+          </p>
+        </div>
+      )}
+
       {/* Failed / timed-out analysis — the 45s ceiling lives in lib/feedback.ts */}
       {offline && (
         <div className="box mt-8 flex flex-col gap-3 p-5">
           <div className="flex items-center gap-2.5">
             <Icon name="clock" size={18} className="shrink-0 text-bad" />
-            <p className="text-base font-medium text-ink">{t("coachTimeout")}</p>
+            <p className="text-base font-medium text-ink">
+              {coachError === "timeout" ? t("coachTimeout") : t("coachOfflineTitle")}
+            </p>
           </div>
           <p className="text-sm text-muted" style={{ overflowWrap: "break-word" }}>
-            {t("coachFailed")} {t("xpPendingNote")}
+            {coachError === "timeout" ? t("coachTimeoutBody") : t("coachFailed")} {t("xpPendingNote")}
           </p>
           <Button variant="gold" onClick={() => fetchReport(session)}>
             <Icon name="refresh" size={16} />
@@ -242,7 +344,7 @@ export function Feedback() {
       <section className="snap-section mt-10">
         <h2 className="label-caps">{t("radarTitleFeedback")}</h2>
         {phase === "loading" ? (
-          <div className="skeleton mt-4 h-[420px]" />
+          <div className="mt-4"><MetricRadarSkeleton /></div>
         ) : (
           <div className="mt-4">
             <MetricRadar
@@ -255,7 +357,7 @@ export function Feedback() {
             />
           </div>
         )}
-        {offline && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
+        {unanalysed && <p className="mt-3 text-sm text-muted">{t("reconnectNote")}</p>}
       </section>
 
       {report && phase === "ready" && (
@@ -309,10 +411,10 @@ export function Feedback() {
               <div className="mt-5 border-t hairline pt-5">
                 <h3 className="label-caps">{t("sayItBetter")}</h3>
                 <p className="mt-3 text-sm text-muted">
-                  {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
+                  {t("yourVersion")}: <span className="quoted-phrase text-ink/70">{quoted(report.tighten.quote, lang)}</span>
                 </p>
                 <p className="mt-2 text-sm text-muted">
-                  {t("betterVersion")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
+                  {t("betterVersion")}: <span className="quoted-phrase text-accent">{quoted(report.tighten.rewrite, lang)}</span>
                 </p>
               </div>
             )}
@@ -372,24 +474,26 @@ export function Feedback() {
               </div>
             )}
 
-            <div className="mt-5 border-t hairline pt-5">
-              <div className="flex items-baseline justify-between">
-                <h3 className="label-caps">{t("paceSectionTitle")}</h3>
-                <span className="tnum text-sm font-medium text-ink">
-                  {m.wpm} {t("wpmUnit")}
-                </span>
+            {!m.typed && (
+              <div className="mt-5 border-t hairline pt-5">
+                <div className="flex items-baseline justify-between">
+                  <h3 className="label-caps">{t("paceSectionTitle")}</h3>
+                  <span className="tnum text-sm font-medium text-ink">
+                    {m.wpm} {t("wpmUnit")}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <Meter
+                    value={paceFrac(m.wpm)}
+                    band={[paceFrac(band[0]), paceFrac(band[1])]}
+                    leftLabel={t("meterSlow")}
+                    rightLabel={t("meterFast")}
+                    ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
+                  />
+                </div>
+                {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
               </div>
-              <div className="mt-4">
-                <Meter
-                  value={paceFrac(m.wpm)}
-                  band={[paceFrac(band[0]), paceFrac(band[1])]}
-                  leftLabel={t("meterSlow")}
-                  rightLabel={t("meterFast")}
-                  ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
-                />
-              </div>
-              {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
-            </div>
+            )}
 
             {(report.stylisticDevices?.length ?? 0) > 0 && (
               <div className="mt-5 border-t hairline pt-5">
@@ -472,7 +576,7 @@ function FeedbackSkeleton() {
         <div className="skeleton h-52 w-52 rounded-full" />
         <div className="skeleton h-6 w-56" />
       </div>
-      <div className="skeleton mt-10 h-[420px]" />
+      <div className="mt-10"><MetricRadarSkeleton /></div>
     </div>
   );
 }

@@ -52,39 +52,89 @@ export function countFillers(segments: SpeechSegment[], lang: Lang) {
     counts[w] = (counts[w] ?? 0) + 1;
   };
 
-  for (const seg of segments) {
-    const words = tokenize(seg.text);
-    const joined = words.join(" ");
+  // Count over the whole transcript, not per recognition segment. Segments are
+  // an artifact of how the engine happened to chunk the audio — Chrome emits
+  // long multi-sentence ones, iOS Safari one per utterance — so anything keyed
+  // to a segment boundary made the same speech score differently by browser,
+  // and filler score feeds fluency and therefore XP.
+  const words = tokenize(segments.map((s) => s.text).join(" "));
+  const joined = words.join(" ");
 
-    for (const phrase of cfg.multi) {
-      let idx = 0;
-      while ((idx = joined.indexOf(phrase, idx)) !== -1) {
-        // Whole-word boundary check on both sides of the phrase.
-        const before = idx === 0 || joined[idx - 1] === " ";
-        const after = idx + phrase.length === joined.length || joined[idx + phrase.length] === " ";
-        if (before && after) bump(phrase);
-        idx += phrase.length;
-      }
+  for (const phrase of cfg.multi) {
+    let idx = 0;
+    while ((idx = joined.indexOf(phrase, idx)) !== -1) {
+      // Whole-word boundary check on both sides of the phrase.
+      const before = idx === 0 || joined[idx - 1] === " ";
+      const after = idx + phrase.length === joined.length || joined[idx + phrase.length] === " ";
+      if (before && after) bump(phrase);
+      idx += phrase.length;
     }
-
-    words.forEach((w, i) => {
-      if (cfg.single.includes(w)) {
-        bump(w);
-        return;
-      }
-      if (i === 0 && cfg.segmentInitial.includes(w) && w !== "like") {
-        bump(w);
-        return;
-      }
-      if (lang === "en" && w === "like") {
-        const prev = words[i - 1];
-        if (i > 0 && !LIKE_VERB_PRECEDERS.has(prev ?? "")) bump("like");
-      }
-    });
   }
+
+  words.forEach((w, i) => {
+    if (cfg.single.includes(w)) {
+      bump(w);
+      return;
+    }
+    // Discourse markers ("so", "well" / "also", "ja") only read as filler at
+    // the start of a thought. Approximated by clause position: the first word
+    // overall, or one following a clause-ending word.
+    if (cfg.segmentInitial.includes(w) && w !== "like" && startsClause(words, i)) {
+      bump(w);
+      return;
+    }
+    if (lang === "en" && w === "like") {
+      if (isFillerLike(words, i)) bump("like");
+    }
+  });
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   return { total, counts };
+}
+
+/**
+ * Whether the word at `i` opens a clause. Punctuation is gone by this point
+ * (the recognizer rarely supplies it anyway), so this leans on conjunctions and
+ * the sentence start rather than pretending to parse.
+ */
+const CLAUSE_BREAKERS = new Set([
+  "and", "but", "or", "because", "so", "then", "however",
+  "und", "aber", "oder", "denn", "weil", "dann", "also",
+]);
+
+function startsClause(words: string[], i: number): boolean {
+  if (i === 0) return true;
+  return CLAUSE_BREAKERS.has(words[i - 1]);
+}
+
+/**
+ * Filler "like" versus its legitimate senses.
+ *
+ * The old rule only excluded the verb ("I like"), so every comparative use —
+ * "looks like", "feels like", "something like that" — was scored as a
+ * disfluency, while the most recognisable filler use of all, a clause-initial
+ * "Like, I was thinking…", was excluded outright. This inverts it: decide from
+ * the word BEFORE being a comparative/verb trigger, which is what actually
+ * distinguishes them.
+ */
+const LIKE_LEGITIMATE_PRECEDERS = new Set([
+  ...LIKE_VERB_PRECEDERS,
+  "looks", "look", "looked", "looking",
+  "feels", "feel", "felt", "feeling",
+  "sounds", "sound", "sounded",
+  "seems", "seem", "seemed",
+  "tastes", "taste", "smells", "smell",
+  "something", "anything", "nothing", "somebody", "someone",
+  "just", "more", "much", "exactly", "almost", "kind", "sort",
+  "acts", "act", "acting", "behaves", "behave",
+  "is", "was", "are", "were", "be", "been", "being",
+]);
+
+function isFillerLike(words: string[], i: number): boolean {
+  const prev = words[i - 1];
+  if (i === 0) return true; // clause-initial "Like, …"
+  if (LIKE_LEGITIMATE_PRECEDERS.has(prev ?? "")) return false;
+  return true;
 }
 
 export function countHedges(segments: SpeechSegment[], lang: Lang) {
@@ -121,7 +171,10 @@ export function countHedges(segments: SpeechSegment[], lang: Lang) {
  */
 export function wpmSeries(segments: SpeechSegment[], durationSec: number): number[] {
   if (durationSec < 20 || segments.length < 2) return [];
-  const bins = Math.max(3, Math.min(12, Math.round(durationSec / 20)));
+  // Floor of 2, not 3: forcing 3 bins on a 20-second recording gave 6.7s
+  // windows, where a single recognition burst reads as a pace spike and the
+  // 3-point smoothing has nothing to smooth. Keeps buckets >=10s throughout.
+  const bins = Math.max(2, Math.min(12, Math.round(durationSec / 20)));
   const binMs = (durationSec * 1000) / bins;
   const counts = new Array(bins).fill(0) as number[];
   for (const seg of segments) {
@@ -164,9 +217,13 @@ export function countRepetitions(text: string) {
   }
   // Immediate bigram stutters: "I went I went"
   for (let i = 3; i < words.length; i++) {
+    // A run of one repeated word ("that that that that") already counted above;
+    // matching it here too inflated the rate for the single worst stutter.
+    if (words[i] === words[i - 1]) continue;
     if (words[i] === words[i - 2] && words[i - 1] === words[i - 3]) {
       count++;
       if (examples.length < 4) examples.push(`${words[i - 3]} ${words[i - 2]} ${words[i - 3]} ${words[i - 2]}`);
+      // Step 2 in total so "A B A B A B" counts as 2 repeats, not 3.
       i += 1;
     }
   }
@@ -212,6 +269,8 @@ export function computeMetrics(input: {
   durationSec: number;
   lang: Lang;
   volume?: { mean: number; std: number } | null;
+  /** Set when any of the transcript was typed rather than spoken. */
+  typed?: boolean;
 }): Metrics {
   const { segments, pauses, durationSec, lang } = input;
   const transcript = segments.map((s) => s.text).join(" ");
@@ -252,6 +311,7 @@ export function computeMetrics(input: {
     },
     volume,
     hedges: { total: hedges.total, perMin: +(hedges.total / minutes).toFixed(1), counts: hedges.counts },
+    ...(input.typed ? { typed: true } : {}),
     paceScore: wordCount > 0 ? paceScore(wpm, lang) : 0,
     fillerScore: wordCount > 0 ? fillerScore(perMin) : 0,
     fluencyScore: wordCount > 0 ? fluencyScore(repsPer100) : 0,

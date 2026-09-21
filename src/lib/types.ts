@@ -55,6 +55,13 @@ export interface Metrics {
    * progression system existed.
    */
   hedges?: { total: number; perMin: number; counts: Record<string, number> };
+  /**
+   * True when the transcript came (even partly) from the typed fallback rather
+   * than from speech. Pace is meaningless then — typing forty words takes about
+   * a minute, which reads as ~40 wpm and floors the pace score — so it must not
+   * be scored or averaged into the speaking profile.
+   */
+  typed?: boolean;
   /** Deterministic 0–100 scores computed client-side. */
   paceScore: number;
   fillerScore: number;
@@ -159,7 +166,8 @@ export interface AiFeedback {
 }
 
 export interface Scores {
-  pace: number;
+  /** null for a typed session, which has no speaking tempo (see Metrics.typed). */
+  pace: number | null;
   volume: number | null;
   fillers: number;
   fluency: number;
@@ -262,8 +270,10 @@ function mean(xs: number[]): number {
  */
 export function blendScores(m: Metrics, ai: AiFeedback | null): Scores {
   const volume = m.volume?.score ?? null;
+  // Typed sessions have no pace to report (see Metrics.typed).
+  const pace = m.typed ? null : m.paceScore;
   const base = {
-    pace: m.paceScore,
+    pace,
     volume,
     fillers: m.fillerScore,
     fluency: m.fluencyScore,
@@ -271,7 +281,12 @@ export function blendScores(m: Metrics, ai: AiFeedback | null): Scores {
 
   if (!ai || ai.source === "offline") {
     // Without AI coaching, grade on the deterministic delivery signals only.
-    const overall = mean([m.paceScore, m.fillerScore, m.fluencyScore, ...(volume !== null ? [volume] : [])]);
+    const overall = mean([
+      ...(pace !== null ? [pace] : []),
+      m.fillerScore,
+      m.fluencyScore,
+      ...(volume !== null ? [volume] : []),
+    ]);
     return {
       ...base,
       eloquence: null,
@@ -286,7 +301,7 @@ export function blendScores(m: Metrics, ai: AiFeedback | null): Scores {
   }
 
   const headline = [
-    m.paceScore,
+    ...(pace !== null ? [pace] : []),
     ...(volume !== null ? [volume] : []),
     ai.eloquence.score,
     ai.structure.score,

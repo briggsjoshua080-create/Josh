@@ -18,9 +18,12 @@ export function AiTextLoading({ phrases, intervalMs = 2400 }: { phrases: string[
   }, [phrases.length, intervalMs, reduced]);
 
   return (
+    // Decorative, deliberately: the phrases rotate every 2.4s against a wait of
+    // up to 45s, so announcing them meant interrupting a screen-reader user
+    // roughly nineteen times to say nothing new. The state itself is announced
+    // once by the parent's live region (see CoachListening).
     <div
-      role="status"
-      aria-live="polite"
+      aria-hidden="true"
       className="box-border flex min-h-24 w-full items-center justify-center rounded-(--radius-card) bg-obsidian px-6 py-8"
     >
       {reduced ? (

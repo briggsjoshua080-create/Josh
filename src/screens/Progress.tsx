@@ -8,6 +8,7 @@ import { averageEight, levelForXp, type ProgressState } from "@/lib/progression"
 import { scoreColorVar } from "@/lib/scoreColor";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { LoadError } from "@/components/LoadError";
 import { TrendChart } from "@/components/TrendChart";
 import { MetricRadar } from "@/components/progress/MetricRadar";
 
@@ -16,16 +17,43 @@ export function Progress() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
   const [streak, setStreak] = useState(0);
   const [progress, setProgress] = useState<ProgressState | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      setSessions(await allSessions());
-      setStreak(await currentStreak());
-      // Recompute on entry: cheap, and self-heals after retries or old data.
-      setProgress(await recomputeProgress());
+      try {
+        const [loaded, streakDays, state] = await Promise.all([
+          allSessions(),
+          currentStreak(),
+          // Recompute on entry: cheap, and self-heals after retries or old data.
+          recomputeProgress(),
+        ]);
+        if (!alive) return;
+        setSessions(loaded);
+        setStreak(streakDays);
+        setProgress(state);
+      } catch (err) {
+        console.error("Progress: failed to load", err);
+        if (alive) setFailed(true);
+      }
     })();
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [attempt]);
 
+  if (failed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
   if (!sessions || !progress) return <ProgressSkeleton />;
 
   if (sessions.length === 0) {
@@ -59,7 +87,7 @@ export function Progress() {
 
   return (
     <div className="pt-2 lg:pt-0">
-      {/* â€”â€”â€” Level hero â€”â€”â€” */}
+      {/* ——— Level hero ——— */}
       <section className="snap-section">
       <div className="mt-2 flex items-start justify-between gap-4">
         <div>
@@ -85,7 +113,7 @@ export function Progress() {
       </div>
       </section>
 
-      {/* â€”â€”â€” Headline aggregates across all sessions â€”â€”â€” */}
+      {/* ——— Headline aggregates across all sessions ——— */}
       <section className="snap-section mt-8 grid grid-cols-4 gap-2" data-testid="progress-stats">
         <StatTile label={t("sessionsCount")} value={sessions.length} />
         <StatTile label={t("avgScore")} value={avgScore} />
@@ -93,7 +121,7 @@ export function Progress() {
         <StatTile label={t("statStreak")} value={streak} />
       </section>
 
-      {/* â€”â€”â€” Speaking profile radar (replaces the eight-bar list + Focus Point) â€”â€”â€” */}
+      {/* ——— Speaking profile radar (replaces the eight-bar list + Focus Point) ——— */}
       <section className="snap-section mt-10">
         <h2 className="label-caps">{t("radarTitle")}</h2>
         <div className="mt-4">
@@ -142,10 +170,10 @@ export function Progress() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base text-ink">{s.promptTitle}</span>
                   <span className="text-xs text-muted">
-                    {s.kind === "daily" ? `${t("dayLabel", { n: s.day ?? 0 })} Â· ` : ""}
+                    {s.kind === "daily" ? `${t("dayLabel", { n: s.day ?? 0 })} · ` : ""}
                     {s.dateISO}
                     {s.progress && s.progress.xpPending === false && (
-                      <span className="tnum text-faint"> Â· +{s.progress.xpEarned} XP</span>
+                      <span className="tnum text-faint"> · +{s.progress.xpEarned} XP</span>
                     )}
                   </span>
                 </span>

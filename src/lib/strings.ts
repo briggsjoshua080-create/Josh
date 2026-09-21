@@ -9,6 +9,18 @@ export const strings = {
   navLibrary: { en: "Library", de: "Bibliothek" },
   navProgress: { en: "Progress", de: "Fortschritt" },
   navSettings: { en: "Settings", de: "Einstellungen" },
+  // Route names announced on navigation (see AppShell) — the two screens that
+  // have no tab of their own still need to say where you have landed.
+  routeSession: { en: "Recording", de: "Aufnahme" },
+  routeFeedback: { en: "Your feedback", de: "Dein Feedback" },
+  routeAnnouncement: { en: "{name} page", de: "Seite {name}" },
+  resultCount: { en: "{n} techniques", de: "{n} Techniken" },
+  resultCountOne: { en: "1 technique", de: "1 Technik" },
+  analysisReady: { en: "Your feedback is ready.", de: "Dein Feedback ist fertig." },
+  analysisFailed: {
+    en: "The coach couldn't finish. Your recording is saved.",
+    de: "Der Coach konnte nicht fertig werden. Deine Aufnahme ist gespeichert.",
+  },
   appName: { en: "Orato", de: "Orato" },
 
   // Launch sequence — the three words under the mark. Rendered uppercase by
@@ -33,7 +45,7 @@ export const strings = {
   beginSession: { en: "Take the stage", de: "Auf die Bühne" },
   doneToday: { en: "Day {n} complete", de: "Tag {n} geschafft" },
   doneTodaySub: {
-    en: "The next challenge unlocks tomorrow. Keep sharp in the library.",
+    en: "The next challenge unlocks tomorrow. Keep sharp with a scenario.",
     de: "Die nächste Challenge wartet morgen. Bleib scharf – in den Szenarien.",
   },
   reviewFeedback: { en: "Review today's feedback", de: "Heutiges Feedback ansehen" },
@@ -65,6 +77,7 @@ export const strings = {
   surpriseMe: { en: "Surprise me", de: "Überrasch mich" },
   viewDeck: { en: "Cards", de: "Karten" },
   viewList: { en: "List", de: "Liste" },
+  viewToggle: { en: "Layout", de: "Ansicht" },
   scenarios: { en: "{n} scenarios", de: "{n} Szenarien" },
   searchScenarios: { en: "Search scenarios…", de: "Szenarien durchsuchen…" },
   noResults: {
@@ -120,6 +133,10 @@ export const strings = {
     en: "That was too short to coach. Give it at least ten words.",
     de: "Das war zu kurz für Feedback. Gib mir mindestens zehn Wörter.",
   },
+  recognitionLost: {
+    en: "Speech recognition stopped — check your microphone or headset, then start again. Anything already transcribed is kept.",
+    de: "Die Spracherkennung ist abgebrochen — prüfe Mikrofon oder Headset und starte neu. Bereits Erkanntes bleibt erhalten.",
+  },
   useWord: { en: "Bonus: use “{w}”", de: "Bonus: Verwende „{w}“" },
   idealRange: { en: "Ideal: {a}–{b}", de: "Ideal: {a}–{b}" },
   maxTime: { en: "Max: {t}", de: "Max.: {t}" },
@@ -146,9 +163,9 @@ export const strings = {
   scoreFluency: { en: "Fluency", de: "Redefluss" },
   scoreEloquence: { en: "Words & Eloquence", de: "Worte & Eloquenz" },
   scoreStructure: { en: "Structure", de: "Struktur" },
-  scoreStyle: { en: "Stylistic Devices", de: "Stilmittel" },
+  scoreStyle: { en: "Stylistic devices", de: "Stilmittel" },
   scoreComprehensiveness: { en: "Comprehensiveness", de: "Vollständigkeit" },
-  scoreLogic: { en: "Logic of Arguments", de: "Argumentationslogik" },
+  scoreLogic: { en: "Logic of arguments", de: "Argumentationslogik" },
   scorePhrasing: { en: "Phrasing", de: "Ausdruck" },
   scoreProfessionalism: { en: "Professionalism", de: "Professionalität" },
   categoryScores: { en: "The seven dimensions", de: "Die sieben Dimensionen" },
@@ -188,7 +205,7 @@ export const strings = {
   metricStructure: { en: "Structure", de: "Struktur" },
   metricPace: { en: "Pace", de: "Tempo" },
   metricFluency: { en: "Fluency", de: "Redefluss" },
-  metricWordPower: { en: "Word Power", de: "Wortkraft" },
+  metricWordPower: { en: "Word power", de: "Wortkraft" },
   metricConciseness: { en: "Conciseness", de: "Prägnanz" },
   metricEngagement: { en: "Engagement", de: "Wirkung" },
 
@@ -230,6 +247,11 @@ export const strings = {
   coachTimeout: {
     en: "That took too long. Try again?",
     de: "Das hat zu lange gedauert. Noch einmal versuchen?",
+  },
+  coachOfflineTitle: { en: "Couldn't reach your coach", de: "Coach nicht erreichbar" },
+  coachTimeoutBody: {
+    en: "The analysis didn't finish in time. Your recording and metrics are saved — a retry usually goes through.",
+    de: "Die Analyse wurde nicht rechtzeitig fertig. Aufnahme und Messwerte sind gespeichert — ein erneuter Versuch klappt meist.",
   },
   sessionMissing: {
     en: "Session not found — it may have been removed from this device.",
@@ -289,10 +311,10 @@ export const strings = {
     de: "Geh online für deine volle Bewertung.",
   },
   levelUpTitle: { en: "Level up", de: "Aufgestiegen" },
-  viewStats: { en: "View Your Stats", de: "Deine Statistik ansehen" },
+  viewStats: { en: "View your stats", de: "Deine Statistik ansehen" },
   improveTitle: { en: "Two things to work on", de: "Zwei Dinge zum Üben" },
-  stylisticTitle: { en: "Stylistic Devices", de: "Stilmittel" },
-  vocalDeliveryTitle: { en: "Vocal Delivery", de: "Stimmlicher Vortrag" },
+  stylisticTitle: { en: "Stylistic devices", de: "Stilmittel" },
+  vocalDeliveryTitle: { en: "Vocal delivery", de: "Stimmlicher Vortrag" },
   articulationLabel: { en: "Articulation", de: "Artikulation" },
   hardToCatchLabel: { en: "Hard to catch", de: "Schwer zu verstehen" },
   cleanSpeechLabel: {
@@ -331,7 +353,7 @@ export const strings = {
   statStreak: { en: "Day streak", de: "Tage-Serie" },
   trendTitle: { en: "Score trend", de: "Score-Verlauf" },
   historyTitle: { en: "History", de: "Verlauf" },
-  focusTitle: { en: "Focus Point", de: "Fokus-Punkt" },
+  focusTitle: { en: "Focus point", de: "Fokus-Punkt" },
   focusBody: {
     en: "Your lowest metric over the last {n} sessions — train this first.",
     de: "Deine schwächste Metrik der letzten {n} Sessions — trainiere zuerst das.",
@@ -407,6 +429,46 @@ export const strings = {
   resetConfirmYes: { en: "Yes, reset everything", de: "Ja, alles zurücksetzen" },
   resetConfirmCancel: { en: "Cancel", de: "Abbrechen" },
   resetWorking: { en: "Resetting…", de: "Wird zurückgesetzt…" },
+  resetFailed: {
+    en: "The reset didn't complete — your data is still here. Close any other tabs with Orato open, then try again.",
+    de: "Das Zurücksetzen ist nicht durchgelaufen — deine Daten sind noch da. Schließe andere Tabs mit Orato und versuch es erneut.",
+  },
+  storageTitle: { en: "Storage", de: "Speicher" },
+  storagePersisted: {
+    en: "Your practice history is marked as persistent, so the browser won't evict it to reclaim space.",
+    de: "Dein Übungsverlauf ist als dauerhaft markiert — der Browser löscht ihn nicht, um Platz zu schaffen.",
+  },
+  storageBestEffort: {
+    en: "Your history is stored on a best-effort basis: the browser may delete it if the device runs low on space, and there is no backup. Complete a session to request persistent storage.",
+    de: "Dein Verlauf wird nur „so gut es geht“ gespeichert: Bei Speichermangel kann der Browser ihn löschen, und es gibt kein Backup. Schließe eine Übung ab, um dauerhaften Speicher anzufordern.",
+  },
+
+  // Storage / load failures
+  dataUnavailableTitle: {
+    en: "Couldn't load your data",
+    de: "Deine Daten konnten nicht geladen werden",
+  },
+  dataUnavailableBody: {
+    en: "Your practice history is stored on this device and hasn't been deleted — the app just couldn't reach it. Close any other open tabs and try again.",
+    de: "Dein Übungsverlauf liegt auf diesem Gerät und wurde nicht gelöscht — die App konnte nur nicht darauf zugreifen. Schließe andere offene Tabs und versuch es erneut.",
+  },
+  retry: { en: "Try again", de: "Erneut versuchen" },
+  radarUnscored: { en: "not scored", de: "nicht bewertet" },
+  scoreRingLabel: { en: "{n} out of 100, grade {g}", de: "{n} von 100, Note {g}" },
+  trendChartLabel: {
+    en: "Score trend across {n} sessions, from {lo} to {hi}, averaging {avg}.",
+    de: "Score-Verlauf über {n} Sessions, von {lo} bis {hi}, im Schnitt {avg}.",
+  },
+  coachBusyTitle: { en: "Too many requests", de: "Zu viele Anfragen" },
+  coachBusyBody: {
+    en: "The coach is rate-limited right now. Your recording and score are saved — wait a few minutes, then fetch the full feedback.",
+    de: "Der Coach ist gerade ausgebremst. Deine Aufnahme und dein Score sind gespeichert — warte ein paar Minuten und hol dann das vollständige Feedback.",
+  },
+  saveFailedTitle: { en: "Couldn't save this recording", de: "Aufnahme konnte nicht gespeichert werden" },
+  saveFailedBody: {
+    en: "Your words are still here. This device may be out of storage space — free some up, then try again.",
+    de: "Deine Aufnahme ist noch da. Möglicherweise ist der Speicher voll — gib etwas frei und versuch es erneut.",
+  },
 
   // Misc
   minutes: { en: "min", de: "Min." },

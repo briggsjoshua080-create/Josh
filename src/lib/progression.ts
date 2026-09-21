@@ -65,7 +65,9 @@ function clamp(v: number): number {
  * Pace and Fluency can be scored — everything else stays null (pending).
  */
 export function computeEight(m: Metrics, report: AiReport | null): EightScores {
-  const pace = m.paceScore;
+  // A typed transcript has no speaking tempo to score; leaving it in would
+  // average typing speed into the user's long-run speaking profile.
+  const pace = m.typed ? null : m.paceScore;
   const fluencyOnDevice = Math.round((m.fillerScore + m.fluencyScore) / 2);
   const fluency = report
     ? clamp(0.7 * fluencyOnDevice + 0.3 * report.scores.fluency)

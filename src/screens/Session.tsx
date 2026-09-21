@@ -3,12 +3,20 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
 import { SCENARIOS } from "@/data/scenarios";
-import { SpeechSession, speechSupported, type RecorderResult } from "@/lib/speech";
+import { SpeechSession, speechSupported } from "@/lib/speech";
+import { mergeLegs, type Leg } from "@/lib/legs";
+import { setHoldsUnsavedWork } from "@/lib/appUpdate";
 import { computeMetrics } from "@/lib/metrics";
-import { blendScores, type PauseEvent, type Scenario, type SpeechSegment } from "@/lib/types";
+import { blendScores, type Scenario } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
-import { dailyWordIndex, dailyScenarioId, saveSession, todayISO } from "@/lib/db";
+import {
+  dailyWordIndex,
+  dailyScenarioId,
+  requestPersistentStorage,
+  saveSession,
+  sessionDateISO,
+} from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -17,52 +25,6 @@ import { Waveform } from "@/components/Waveform";
 import { CoachListening } from "@/components/CoachListening";
 
 type Phase = "idle" | "recording" | "paused" | "analyzing";
-
-/** One completed recording segment — recording runs across one or more legs
- *  (a leg ends on pause, or on a "too short" retry), and their segments/pauses/
- *  volume are merged, with timestamps offset, into a single result at Finish. */
-interface Leg {
-  segments: SpeechSegment[];
-  pauses: PauseEvent[];
-  durationSec: number;
-  volume: RecorderResult["volume"];
-}
-
-function mergeLegs(legs: Leg[]): {
-  segments: SpeechSegment[];
-  pauses: PauseEvent[];
-  durationSec: number;
-  volume: { mean: number; std: number } | null;
-} {
-  let offsetMs = 0;
-  const segments: SpeechSegment[] = [];
-  const pauses: PauseEvent[] = [];
-  let durationSec = 0;
-  let weightedMean = 0;
-  let weightedSq = 0;
-  let count = 0;
-  for (const leg of legs) {
-    for (const s of leg.segments) segments.push({ ...s, t: s.t + offsetMs });
-    for (const p of leg.pauses) pauses.push({ ...p, atMs: p.atMs + offsetMs });
-    offsetMs += leg.durationSec * 1000;
-    durationSec += leg.durationSec;
-    if (leg.volume) {
-      // Pooled mean/variance across legs, weighted by each leg's sample count.
-      weightedMean += leg.volume.mean * leg.volume.count;
-      weightedSq += (leg.volume.std ** 2 + leg.volume.mean ** 2) * leg.volume.count;
-      count += leg.volume.count;
-    }
-  }
-  const volume =
-    count > 0
-      ? (() => {
-          const mean = weightedMean / count;
-          const variance = Math.max(0, weightedSq / count - mean * mean);
-          return { mean: +mean.toFixed(3), std: +Math.sqrt(variance).toFixed(3) };
-        })()
-      : null;
-  return { segments, pauses, durationSec, volume };
-}
 
 function fmtTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(Math.round(sec) % 60).padStart(2, "0")}`;
@@ -114,7 +76,9 @@ export function Session() {
   const [finalText, setFinalText] = useState("");
   const [interim, setInterim] = useState("");
   const [elapsed, setElapsed] = useState(0);
-  const [error, setError] = useState<"mic" | "unsupported" | "tooShort" | null>(null);
+  const [error, setError] = useState<
+    "mic" | "unsupported" | "tooShort" | "saveFailed" | "recognition" | null
+  >(null);
   const [typed, setTyped] = useState("");
   const [showType, setShowType] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
@@ -126,20 +90,50 @@ export function Session() {
   /** Completed legs of this recording — a new leg starts each time a pause or
    *  a "too short" retry ends the previous one; Finish merges them all. */
   const legsRef = useRef<Leg[]>([]);
+  /** When the current leg stopped, so resuming can measure the pause it opened. */
+  const legEndedAtRef = useRef<number | null>(null);
+  /** Whether any of this transcript was typed, which makes pace unscoreable. */
+  const usedTypingRef = useRef(false);
+  /** Wall-clock anchor for the on-screen timer, spanning pauses. */
+  const recordingStartedAtRef = useRef<number | null>(null);
   const supported = speechSupported();
 
   /** Ring is full at 1.5× the target ceiling (at least +60s) — the hard "wrap it up" line. */
   const maxSec = Math.max(targetSec[1] + 60, Math.round(targetSec[1] * 1.5));
 
+  // The clock keeps running while paused, because paused time now counts toward
+  // the recording the same way silence on-mic does.
+  //
+  // Derived from a wall-clock anchor rather than by counting ticks: the interval
+  // is torn down and rebuilt on every phase change, and each teardown discarded
+  // the sub-second remainder. After a few pause/resume cycles the ring read up
+  // to a second per leg BELOW the duration the score is computed from, so the
+  // "wrap it up" warning could fail to fire on a recording that was over the max.
   useEffect(() => {
-    if (phase !== "recording") return;
-    const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (phase !== "recording" && phase !== "paused") return;
+    if (recordingStartedAtRef.current === null) recordingStartedAtRef.current = Date.now();
+    const tick = () =>
+      setElapsed(Math.floor((Date.now() - (recordingStartedAtRef.current ?? Date.now())) / 1000));
+    tick();
+    const timer = setInterval(tick, 250);
     return () => clearInterval(timer);
   }, [phase]);
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ block: "end" });
   }, [finalText, interim]);
+
+  // Hold off an auto-update reload while a take exists only in memory. Paused
+  // and analyzing count: the legs aren't saved until finish() writes them.
+  useEffect(() => {
+    setHoldsUnsavedWork(phase === "recording" || phase === "paused" || phase === "analyzing");
+  }, [phase]);
+
+  // Released on unmount only. As a cleanup on the effect above it would run on
+  // every phase change — so tapping Pause would flip the hold off for an
+  // instant, and an update waiting behind it would reload and take the
+  // unsaved take with it. Exactly the case the hold exists to prevent.
+  useEffect(() => () => setHoldsUnsavedWork(false), []);
 
   useEffect(
     () => () => {
@@ -167,9 +161,19 @@ export function Session() {
     setError(supported ? null : "unsupported");
     if (!resume) {
       legsRef.current = [];
+      legEndedAtRef.current = null;
+      usedTypingRef.current = false;
       setFinalText("");
       setInterim("");
       setElapsed(0);
+      recordingStartedAtRef.current = null;
+    } else if (legEndedAtRef.current !== null && legsRef.current.length > 0) {
+      // Charge the time spent paused to the leg it followed, so the merge can
+      // treat it the same way it treats silence on-mic.
+      const paused = Date.now() - legEndedAtRef.current;
+      const legs = legsRef.current;
+      legs[legs.length - 1] = { ...legs[legs.length - 1], pausedAfterMs: paused };
+      legEndedAtRef.current = null;
     }
     // Resuming from a pause (or a "too short" retry) picks the transcript up
     // where the previous leg left off, so the words already said aren't lost.
@@ -185,10 +189,20 @@ export function Session() {
       },
       onError: (code) => {
         if (code === "not-allowed") {
+          // Actually tear the session down: it otherwise keeps its pause
+          // interval and (where the mic itself was granted) its media stream,
+          // leaving the browser's recording indicator lit with no way to clear
+          // it — and start() would orphan it beyond reach.
+          speechRef.current?.stop();
+          speechRef.current = null;
           setError("mic");
           setPhase("idle");
         } else if (code === "unsupported") {
           setError("unsupported");
+        } else if (code === "unknown") {
+          // A dropped headset or blocked speech service used to be invisible:
+          // the UI kept pulsing and the timer climbing while nothing recorded.
+          setError("recognition");
         }
       },
     });
@@ -203,9 +217,16 @@ export function Session() {
     if (rec) {
       const result = rec.stop();
       speechRef.current = null;
+      legEndedAtRef.current = Date.now();
       legsRef.current = [
         ...legsRef.current,
-        { segments: result.segments, pauses: result.pauses, durationSec: result.durationSec, volume: result.volume },
+        {
+          segments: result.segments,
+          pauses: result.pauses,
+          durationSec: result.durationSec,
+          volume: result.volume,
+          pausedAfterMs: 0,
+        },
       ];
     }
     return mergeLegs(legsRef.current);
@@ -221,6 +242,9 @@ export function Session() {
     speechRef.current?.stop();
     speechRef.current = null;
     legsRef.current = [];
+    legEndedAtRef.current = null;
+    usedTypingRef.current = false;
+    recordingStartedAtRef.current = null;
     setConfirmingDiscard(false);
     setPhase("idle");
     setError(null);
@@ -241,21 +265,40 @@ export function Session() {
     }
 
     setPhase("analyzing");
+    try {
+      await saveAndGo(merged, transcript);
+    } catch (err) {
+      // A failed write used to leave the user on an animation with no button
+      // and no message, and reloading destroyed the take. The legs are still
+      // in legsRef, so Finish can simply be tried again.
+      console.error("Session: failed to save recording", err);
+      setError("saveFailed");
+      setPhase("paused");
+    }
+  }
+
+  async function saveAndGo(merged: ReturnType<typeof mergeLegs>, transcript: string) {
     const metrics = computeMetrics({
       segments: merged.segments,
       pauses: merged.pauses,
       durationSec: merged.durationSec,
       lang,
       volume: merged.volume,
+      typed: usedTypingRef.current,
     });
+
+    // Both the date and the timestamp derive from the same instant: the start
+    // of the recording. Stamping the date at save time would credit a take
+    // that crossed midnight to the wrong day and break the streak.
+    const startedAt = Date.now() - Math.round(merged.durationSec * 1000);
 
     const id = await saveSession({
       kind,
       refId: kind === "daily" ? dailyScenario!.id : scenarioId!,
       day: kind === "daily" ? day : undefined,
       lang,
-      dateISO: todayISO(),
-      startedAt: Date.now() - Math.round(merged.durationSec * 1000),
+      dateISO: sessionDateISO(startedAt),
+      startedAt,
       durationSec: Math.round(merged.durationSec),
       transcript,
       segments: merged.segments,
@@ -277,12 +320,18 @@ export function Session() {
       wordOfDay: word?.word,
     });
 
+    // Now that there is something worth keeping, ask the browser not to evict
+    // it. Deliberately after the first successful save: any prompt then arrives
+    // attached to work the user just did, not on a cold first launch.
+    void requestPersistentStorage();
+
     navigate(`/feedback/${id}?fresh=1`, { replace: true });
   }
 
   function injectTyped() {
     const text = typed.trim();
     if (!text) return;
+    usedTypingRef.current = true;
     const hook = (window as unknown as Record<string, unknown>).__oratoInjectSpeech;
     if (typeof hook === "function") (hook as (t: string) => void)(text);
     setTyped("");
@@ -308,6 +357,8 @@ export function Session() {
       {error === "mic" && <Notice tone="bad">{t("micDenied")}</Notice>}
       {error === "unsupported" && <Notice tone="warn">{t("speechUnsupported")}</Notice>}
       {error === "tooShort" && <Notice tone="warn">{t("tooShort")}</Notice>}
+      {error === "saveFailed" && <Notice tone="bad">{`${t("saveFailedTitle")} ${t("saveFailedBody")}`}</Notice>}
+      {error === "recognition" && <Notice tone="bad">{t("recognitionLost")}</Notice>}
 
       {/* Body */}
       {phase === "idle" && (

@@ -1,7 +1,28 @@
-import type { Bilingual, CategoryId, Scores } from "@/lib/types";
+import type { Bilingual, CategoryId, MetricKey, Scores } from "@/lib/types";
 
 /** A score dimension a scenario category strengthens (drives "Recommended next"). */
 export type SkillDimension = Exclude<keyof Scores, "overall">;
+
+/**
+ * Bridge from the eight metrics that are actually scored today to the older
+ * dimension vocabulary the category metadata below is written in.
+ *
+ * "Recommended next" used to read the legacy `Session.scores` directly, but
+ * seven of its eleven dimensions are permanently null (nothing has written them
+ * since the progression system replaced the old AI shape), so the weakest
+ * dimension could only ever resolve to pace, volume, fillers or fluency — and
+ * the recommendation contradicted the radar on the Feedback screen.
+ */
+export const METRIC_TO_DIMENSIONS: Record<MetricKey, SkillDimension[]> = {
+  clarity: ["comprehensiveness", "phrasing"],
+  confidence: ["professionalism", "volume"],
+  structure: ["structure"],
+  pace: ["pace"],
+  fluency: ["fluency", "fillers"],
+  wordPower: ["eloquence", "phrasing"],
+  conciseness: ["comprehensiveness", "logic"],
+  engagement: ["stylistic", "eloquence"],
+};
 
 export interface SkillInfo {
   /** The skill this category trains, phrased for a card ("Reduces filler words"). */

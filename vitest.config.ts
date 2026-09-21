@@ -9,5 +9,9 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
+    // Node has no IndexedDB or localStorage, so without these shims db.ts is
+    // untestable — which is how the file holding all unrecoverable user data
+    // ended up with no coverage at all.
+    setupFiles: ["./tests/setup.ts"],
   },
 });

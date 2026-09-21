@@ -47,6 +47,33 @@ function withAlpha(hex: string, alpha: number): string {
  * Chart.js limit, accepted per spec: pointLabels cannot style the two lines
  * of one label independently, so both lines render uniform gold.
  */
+/** Shared with the skeleton below so the two can't drift apart. */
+const RADAR_CANVAS_WRAPPER = "mx-auto w-full max-w-[340px] py-4";
+
+/**
+ * Placeholder with the same footprint as the real radar.
+ *
+ * A fixed-height skeleton was ~250px shorter than what replaced it, so the page
+ * lurched when the report landed. Mirroring the structure — square canvas, pill
+ * row, detail card — keeps them in step even if the layout changes.
+ */
+export function MetricRadarSkeleton() {
+  return (
+    <div aria-hidden="true">
+      <div className="skeleton mx-auto h-4 w-48" />
+      <div className={RADAR_CANVAS_WRAPPER}>
+        <div className="skeleton aspect-square w-full rounded-(--radius-card)" />
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="skeleton h-11 w-24 rounded-(--radius-pill)" />
+        ))}
+      </div>
+      <div className="skeleton mt-4 h-28 rounded-(--radius-card)" />
+    </div>
+  );
+}
+
 export function MetricRadar({
   primary,
   overlay,
@@ -93,7 +120,16 @@ export function MetricRadar({
     );
   }
 
-  const values = METRIC_KEYS.map((key) => primary[key] ?? 0);
+  /**
+   * null, not 0. An offline session scores only pace and fluency (see
+   * types.ts), and mapping the other six to 0 drew them at the origin AND
+   * coloured them with the 0-score band — six red dots telling the user they
+   * scored nothing on clarity, structure, word power, conciseness and
+   * engagement, none of which was measured. Chart.js renders null as a gap,
+   * which is the truth. The rest of this component already handled null
+   * correctly; the canvas was the only place that didn't.
+   */
+  const values = METRIC_KEYS.map((key) => primary[key]);
   const shortNames = METRIC_KEYS.map((key) => t(METRIC_META[key].shortKey));
 
   const datasets = [
@@ -104,9 +140,14 @@ export function MetricRadar({
       borderWidth: 2,
       fill: true,
       backgroundColor: withAlpha(colors.gold, 0.16),
-      pointRadius: 5,
-      pointHoverRadius: 8,
-      pointBackgroundColor: METRIC_KEYS.map((key) => resolveScoreColor(primary[key] ?? 0)),
+      // A scored point keeps its band colour; an unscored one gets no marker at
+      // all, so absence never reads as a bad result.
+      pointRadius: METRIC_KEYS.map((key) => (primary[key] === null ? 0 : 5)),
+      pointHoverRadius: METRIC_KEYS.map((key) => (primary[key] === null ? 0 : 8)),
+      pointBackgroundColor: METRIC_KEYS.map((key) => {
+        const v = primary[key];
+        return v === null ? "transparent" : resolveScoreColor(v);
+      }),
       pointBorderColor: colors.obsidian,
       pointBorderWidth: 2,
       order: 1,
@@ -115,7 +156,7 @@ export function MetricRadar({
       ? [
           {
             label: "overlay",
-            data: METRIC_KEYS.map((key) => overlay[key] ?? 0),
+            data: METRIC_KEYS.map((key) => overlay[key]),
             borderColor: colors.bronze,
             borderWidth: 1.5,
             borderDash: [4, 4],
@@ -191,9 +232,21 @@ export function MetricRadar({
         )}
       </div>
 
-      <div className="mx-auto w-full max-w-[340px] py-4">
+      <div className={RADAR_CANVAS_WRAPPER}>
         <div className="relative aspect-square w-full">
-          <Radar ref={chartRef} data={{ labels: shortNames, datasets }} options={options} onClick={handleClick} />
+          {/* The canvas carries role="img" from react-chartjs-2 and is opaque to
+              screen readers, so it needs a name that states the actual scores.
+              The pills below are the keyboard-operable path to the same data. */}
+          <Radar
+            ref={chartRef}
+            data={{ labels: shortNames, datasets }}
+            options={options}
+            onClick={handleClick}
+            aria-label={`${primaryLabel}: ${METRIC_KEYS.map((key) => {
+              const v = primary[key];
+              return `${t(METRIC_META[key].nameKey)} ${v === null ? t("radarUnscored") : v}`;
+            }).join(", ")}`}
+          />
         </div>
       </div>
 

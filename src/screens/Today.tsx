@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useI18n } from "@/lib/i18n";
+import { quoted, useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
 import { tipsForToday } from "@/data/tips";
 import { dailyPathState, dailyWordIndex, dailyScenarioId, rerollDailyScenario, db } from "@/lib/db";
@@ -8,6 +8,7 @@ import { SCENARIOS } from "@/data/scenarios";
 import { DIFFICULTY_LABEL } from "@/data/categories";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { LoadError } from "@/components/LoadError";
 import { SnapSection } from "@/components/SnapSection";
 import { TodayHero } from "@/components/TodayHero";
 import { FlipCard } from "@/components/kokonut/FlipCard";
@@ -26,20 +27,42 @@ export function Today() {
     scenario: Scenario;
   } | null>(null);
   const [todaySession, setTodaySession] = useState<Session | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      const { day, doneToday } = await dailyPathState();
-      const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(), dailyScenarioId(day)]);
-      const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
-      setState({ day, doneToday, wordIndex, scenario });
-      if (doneToday) {
-        const sessions = await db.sessions.where("day").equals(day).toArray();
-        setTodaySession(sessions[sessions.length - 1] ?? null);
+      try {
+        const { day, doneToday } = await dailyPathState();
+        const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(), dailyScenarioId(day)]);
+        const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
+        if (!alive) return;
+        setState({ day, doneToday, wordIndex, scenario });
+        if (doneToday) {
+          const sessions = await db.sessions.where("day").equals(day).toArray();
+          if (alive) setTodaySession(sessions[sessions.length - 1] ?? null);
+        }
+      } catch (err) {
+        console.error("Today: failed to load", err);
+        if (alive) setFailed(true);
       }
     })();
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [attempt]);
 
+  if (failed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
   if (!state) return <ScreenSkeleton />;
 
   const { scenario: challenge } = state;
@@ -188,7 +211,7 @@ function ChallengeCard({
  * own bonus (see wordOfDayUsed / WORD_OF_DAY_BONUS), tracked separately.
  */
 function WordOfDay({ word }: { word: WordEntry }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (
@@ -197,7 +220,6 @@ function WordOfDay({ word }: { word: WordEntry }) {
         flipped={open}
         onFlip={() => setOpen(!open)}
         testId="word-of-day-toggle"
-        label={word.word}
         front={
           <span className="flex w-full items-center gap-3">
             <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
@@ -222,7 +244,7 @@ function WordOfDay({ word }: { word: WordEntry }) {
               {word.definition}
             </span>
             <span className="lectern mt-3 block text-base italic text-muted" style={{ overflowWrap: "break-word" }}>
-              “{word.example}”
+              {quoted(word.example, lang)}
             </span>
             <span className="mt-3 block text-sm text-accent-dim">{t("wordOfDayHint")}</span>
           </span>

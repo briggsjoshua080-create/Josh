@@ -9,10 +9,14 @@ import { WORDS_EN, WORDS_DE } from "@/data/words";
  * the entire scenario library, any category, any difficulty.
  */
 export function dailyPoolFor(accountDay: number): Scenario[] {
+  // A NaN day (a malformed ?day= in the URL) would fail every <= comparison and
+  // fall through to the full library, handing a day-2 beginner a difficulty-3
+  // crisis-comms prompt — and that pick then persists for the whole day.
+  const day = Number.isFinite(accountDay) ? Math.max(1, Math.floor(accountDay)) : 1;
   const warmup = SCENARIOS.filter((s) => s.category === "debate" || s.id.startsWith("imp-"));
-  if (accountDay <= 6) return warmup.filter((s) => s.difficulty === 1);
-  if (accountDay <= 13) return warmup.filter((s) => s.difficulty <= 2);
-  if (accountDay <= 20) return warmup;
+  if (day <= 6) return warmup.filter((s) => s.difficulty === 1);
+  if (day <= 13) return warmup.filter((s) => s.difficulty <= 2);
+  if (day <= 20) return warmup;
   return SCENARIOS;
 }
 
@@ -31,6 +35,13 @@ export function pickScenario(
   const blocked = new Set(recentIds);
   const eligible = pool.filter((s) => !blocked.has(s.id));
   const from = eligible.length > 0 ? eligible : pool;
+  // An empty pool would index [-1] and return undefined, which then throws on
+  // `.id` inside the caller's transaction and hangs the Today screen on its
+  // skeleton. Unreachable with today's data; guarded because it is guarded only
+  // by the data, and a future retag could empty a tier.
+  if (from.length === 0) {
+    throw new Error("pickScenario: empty scenario pool");
+  }
   return from[Math.min(from.length - 1, Math.floor(rng() * from.length))];
 }
 

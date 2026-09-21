@@ -86,7 +86,9 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            urlPattern: /^\/api\//,
+            // A callback, not a regex: Workbox tests RegExp routes against the
+            // full href, so /^\/api\// could never match and this rule was dead.
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkOnly",
           },
         ],

@@ -38,8 +38,13 @@ export async function requestReport(req: CoachRequest): Promise<AiReport> {
       body: JSON.stringify({ ...req, metrics: { ...req.metrics, durationSec: undefined } }),
       signal: AbortSignal.timeout(COACH_TIMEOUT_MS),
     });
-  } catch {
-    throw new CoachUnavailableError("network");
+  } catch (err) {
+    // Distinguish the two: a slow model round-trip is not a lost connection,
+    // and the difference decides whether "that took too long, try again" or
+    // "you appear to be offline" is the honest thing to show. Collapsing both
+    // into "network" sent users to check their wifi instead of retrying.
+    const timedOut = err instanceof DOMException && err.name === "TimeoutError";
+    throw new CoachUnavailableError(timedOut ? "timeout" : "network");
   }
   if (!res.ok) throw new CoachUnavailableError(String(res.status));
 
@@ -49,16 +54,34 @@ export async function requestReport(req: CoachRequest): Promise<AiReport> {
   } catch {
     throw new CoachUnavailableError("bad_json");
   }
-  if (
-    typeof report !== "object" ||
-    report === null ||
-    typeof report.scores !== "object" ||
-    typeof report.oneLiners !== "object" ||
-    METRIC_KEYS.some((k) => typeof report.scores?.[k] !== "number")
-  ) {
-    throw new CoachUnavailableError("bad_shape");
-  }
+  if (!isUsableReport(report)) throw new CoachUnavailableError("bad_shape");
   return report;
+}
+
+/**
+ * Validate the fields the UI actually dereferences, not just `scores`.
+ *
+ * The blast radius is why this matters: the Feedback screen persists a report
+ * to IndexedDB before rendering it, and short-circuits to "ready" whenever a
+ * stored report exists. So one payload that satisfies a loose check but lacks
+ * `tighten` is not a transient failure the retry card can clear — it renders
+ * once, throws, and that session's feedback is dead permanently. Failing here
+ * routes it into the existing offline/retry path instead.
+ *
+ * Note `typeof null === "object"`, which is why each object field is checked
+ * for truthiness rather than by type alone.
+ */
+function isUsableReport(report: AiReport): boolean {
+  if (typeof report !== "object" || report === null) return false;
+  if (!report.scores || !report.oneLiners) return false;
+  if (METRIC_KEYS.some((k) => typeof report.scores[k] !== "number")) return false;
+
+  // Dereferenced unguarded while rendering the report.
+  if (!report.tighten || typeof report.tighten.quote !== "string") return false;
+  if (typeof report.tighten.rewrite !== "string") return false;
+  if (!Array.isArray(report.hardToCatch)) return false;
+  if (typeof report.articulation !== "number") return false;
+  return true;
 }
 
 export interface CategoryCoaching {
@@ -139,10 +162,23 @@ export function deliveryCoaching(
   };
 }
 
-/** Simple stem-tolerant check for the word of the day (handles German inflection endings). */
+/**
+ * Stem-tolerant check for the word of the day, handling German inflection.
+ *
+ * Two things this must not do. It must not over-strip: the old rule turned
+ * "Eis" into "Ei", and a bare `includes` then matched "ein", "eine",
+ * "einfach" — so the XP bonus fired on words the user never said, in
+ * essentially any German sentence. And it must match on word boundaries rather
+ * than anywhere inside a longer word.
+ */
 export function wordOfDayUsed(transcript: string, word: string): boolean {
-  const stem = word.toLowerCase().replace(/(e|en|n|s)$/u, "");
-  return transcript.toLowerCase().includes(stem);
+  const lower = word.toLowerCase();
+  // Only strip an inflection when a substantial stem remains.
+  const stripped = lower.replace(/(en|e|n|s)$/u, "");
+  const stem = stripped.length >= 4 ? stripped : lower;
+  const escaped = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Unicode-aware boundaries: \b would break on umlauts and ß.
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}\\p{L}*`, "iu").test(transcript);
 }
 
 /**

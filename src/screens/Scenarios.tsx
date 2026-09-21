@@ -4,28 +4,14 @@ import { useI18n } from "@/lib/i18n";
 import { allSessions } from "@/lib/db";
 import { SCENARIOS } from "@/data/scenarios";
 import { CATEGORIES, DIFFICULTY_LABEL } from "@/data/categories";
-import { SKILLS, type SkillDimension } from "@/data/skills";
+import { SKILLS, METRIC_TO_DIMENSIONS } from "@/data/skills";
+import { METRIC_META } from "@/lib/metricMeta";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/Button";
 import { CardDeck } from "@/components/CardDeck";
 import { FilterPill } from "@/components/FilterPill";
-import type { StringKey } from "@/lib/strings";
-import type { CategoryId, Scenario, Session } from "@/lib/types";
-
-/** Feedback-report label key per recommendable score dimension. */
-const DIMENSION_LABEL: Record<SkillDimension, StringKey> = {
-  pace: "scorePace",
-  volume: "scoreVolume",
-  fillers: "scoreFillers",
-  fluency: "scoreFluency",
-  eloquence: "scoreEloquence",
-  structure: "scoreStructure",
-  stylistic: "scoreStyle",
-  comprehensiveness: "scoreComprehensiveness",
-  logic: "scoreLogic",
-  phrasing: "scorePhrasing",
-  professionalism: "scoreProfessionalism",
-};
+import { LoadError } from "@/components/LoadError";
+import { METRIC_KEYS, type CategoryId, type MetricKey, type Scenario, type Session } from "@/lib/types";
 
 /** Rounded-up rehearsal length in minutes from the scenario's target range. */
 function estMinutes(s: Scenario): number {
@@ -41,13 +27,21 @@ export function Scenarios() {
   /** null while IndexedDB is still answering — drives the skeleton state. */
   const [sessions, setSessions] = useState<Session[] | null>(null);
 
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     let alive = true;
-    allSessions().then((s) => alive && setSessions(s));
+    allSessions()
+      .then((s) => alive && setSessions(s))
+      .catch((err) => {
+        console.error("Scenarios: failed to load sessions", err);
+        if (alive) setFailed(true);
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
 
   /** Best overall score per practiced scenario — the card's mastery %. */
   const masteryById = useMemo(() => {
@@ -67,20 +61,28 @@ export function Scenarios() {
    */
   const recommended = useMemo(() => {
     if (!sessions) return null;
-    const latest = [...sessions].sort((a, b) => b.startedAt - a.startedAt)[0];
-    let weakest: SkillDimension | null = null;
-    if (latest) {
+    // Only a fully analysed session has all eight metrics; an offline one has
+    // just pace and fluency, so its "weakest" would be misleading.
+    const latest = [...sessions]
+      .filter((s) => s.progress?.xpPending === false && s.progress.scores)
+      .sort((a, b) => b.startedAt - a.startedAt)[0];
+
+    let weakest: MetricKey | null = null;
+    if (latest?.progress) {
       let min = Infinity;
-      for (const dim of Object.keys(DIMENSION_LABEL) as SkillDimension[]) {
-        const v = latest.scores[dim];
+      for (const key of METRIC_KEYS) {
+        const v = latest.progress.scores[key];
         if (v !== null && v < min) {
           min = v;
-          weakest = dim;
+          weakest = key;
         }
       }
     }
-    const cats = weakest
-      ? (Object.keys(SKILLS) as CategoryId[]).filter((c) => SKILLS[c].dimensions.includes(weakest))
+    const dimensions = weakest ? METRIC_TO_DIMENSIONS[weakest] : [];
+    const cats = dimensions.length
+      ? (Object.keys(SKILLS) as CategoryId[]).filter((c) =>
+          SKILLS[c].dimensions.some((d) => dimensions.includes(d)),
+        )
       : [];
     const pool = cats.length ? SCENARIOS.filter((s) => cats.includes(s.category)) : SCENARIOS;
     const byEase = (a: Scenario, b: Scenario) => a.difficulty - b.difficulty;
@@ -114,6 +116,16 @@ export function Scenarios() {
   const start = (s: Scenario) => navigate(`/session?kind=scenario&id=${s.id}`);
   const catOf = (s: Scenario) => CATEGORIES.find((c) => c.id === s.category)!;
 
+  if (failed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
   if (sessions === null) return <ScenariosSkeleton title={t("libraryTitle")} />;
 
   return (
@@ -123,12 +135,20 @@ export function Scenarios() {
           <h1 className="text-2xl font-semibold text-ink">{t("libraryTitle")}</h1>
           <p className="mt-1 text-sm text-muted">{t("librarySub", { n: SCENARIOS.length })}</p>
         </div>
-        <div className="flex shrink-0 rounded-full border border-gold/60 bg-card p-0.5" role="tablist">
+        {/* Two toggle buttons, described as exactly that. role="tablist" would
+            promise arrow-key navigation between roving-tabindex tabs and a
+            labelled tabpanel; this is a layout switch, and aria-pressed says
+            so without lying to the screen reader about the keyboard contract. */}
+        <div
+          className="flex shrink-0 rounded-full border border-gold/60 bg-card p-0.5"
+          role="group"
+          aria-label={t("viewToggle")}
+        >
           {(["deck", "list"] as const).map((v) => (
             <button
               key={v}
-              role="tab"
-              aria-selected={view === v}
+              type="button"
+              aria-pressed={view === v}
               onClick={() => setView(v)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
                 view === v ? "bg-gold/20 text-gold" : "text-gold/65 hover:text-gold"
@@ -166,7 +186,7 @@ export function Scenarios() {
             <h3 className="lectern mt-3 text-xl text-ink">{recommended.scenario.title[lang]}</h3>
             {recommended.weakest && (
               <p className="mt-1.5 text-sm leading-relaxed text-muted">
-                {t("recommendedReason", { dim: t(DIMENSION_LABEL[recommended.weakest]) })}
+                {t("recommendedReason", { dim: t(METRIC_META[recommended.weakest].nameKey) })}
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
