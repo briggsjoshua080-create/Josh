@@ -1,262 +1,615 @@
 [
   {
     "id": "a1",
-    "title": "Reappraise Anxiety as Excitement",
-    "technique": "Say out loud 'I am excited' right before you speak instead of trying to calm down. Anxiety and excitement are both high-arousal states, so relabeling is easier than de-escalating, and it shifts you into an opportunity mindset.",
-    "context_tags": ["public_speaking", "interviews", "high_stakes"],
-    "effect_tags": ["reduces_nervousness", "projects_confidence"],
+    "title": {
+      "en": "Reappraise Anxiety as Excitement",
+      "de": "Angst als Vorfreude umdeuten"
+    },
+    "technique": {
+      "en": "Say out loud 'I am excited' right before you speak instead of trying to calm down. Anxiety and excitement are both high-arousal states, so relabeling is easier than de-escalating, and it shifts you into an opportunity mindset.",
+      "de": "Sag dir direkt vor dem Sprechen laut „Ich freue mich darauf“, statt dich beruhigen zu wollen. Angst und Vorfreude sind beides Zustände hoher Erregung — umdeuten gelingt leichter als herunterfahren, und es bringt dich in eine Chancen-Haltung."
+    },
+    "context_tags": [
+      "public_speaking",
+      "interviews",
+      "high_stakes"
+    ],
+    "effect_tags": [
+      "reduces_nervousness",
+      "projects_confidence"
+    ],
     "source": "Alison Wood Brooks, 'Get Excited,' Journal of Experimental Psychology: General 143(3), 2014",
     "source_tier": 1
   },
   {
     "id": "a3",
-    "title": "Long Exhalations to Calm Arousal",
-    "technique": "Breathe in through the nose, then out longer through the mouth. This lowers physiological arousal and steadies your voice.",
-    "context_tags": ["public_speaking", "virtual"],
-    "effect_tags": ["reduces_nervousness", "improves_clarity"],
+    "title": {
+      "en": "Long Exhalations to Calm Arousal",
+      "de": "Lang ausatmen senkt die Anspannung"
+    },
+    "technique": {
+      "en": "Breathe in through the nose, then out longer through the mouth. This lowers physiological arousal and steadies your voice.",
+      "de": "Atme durch die Nase ein und länger durch den Mund aus. Das senkt die körperliche Erregung und macht deine Stimme ruhiger."
+    },
+    "context_tags": [
+      "public_speaking",
+      "virtual"
+    ],
+    "effect_tags": [
+      "reduces_nervousness",
+      "improves_clarity"
+    ],
     "source": "Julian Treasure, TED; Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "a7",
-    "title": "Don't Memorize — Internalize",
-    "technique": "Never memorize word-for-word. It raises cognitive load because you're comparing what you meant to say against what you're saying. Instead, learn a roadmap of key ideas and keep exact figures on a note card.",
-    "context_tags": ["public_speaking", "presentations"],
-    "effect_tags": ["reduces_nervousness", "improves_clarity"],
+    "title": {
+      "en": "Don't Memorize — Internalize",
+      "de": "Nicht auswendig lernen — verinnerlichen"
+    },
+    "technique": {
+      "en": "Never memorize word-for-word. It raises cognitive load because you're comparing what you meant to say against what you're saying. Instead, learn a roadmap of key ideas and keep exact figures on a note card.",
+      "de": "Lerne nie Wort für Wort. Das erhöht die kognitive Last, weil du ständig abgleichst, was du sagen wolltest, mit dem, was du gerade sagst. Lerne stattdessen einen roten Faden aus Kernideen und schreib dir exakte Zahlen auf eine Karte."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations"
+    ],
+    "effect_tags": [
+      "reduces_nervousness",
+      "improves_clarity"
+    ],
     "source": "Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "b1",
-    "title": "Build Around One Throughline",
-    "technique": "Anchor the whole talk to a single connecting idea that every point hangs on. Try to state it in 15 words or less. A throughline is not the same as a topic.",
-    "context_tags": ["public_speaking", "presentations"],
-    "effect_tags": ["improves_memorability", "improves_clarity"],
+    "title": {
+      "en": "Build Around One Throughline",
+      "de": "Um eine Kernaussage herum bauen"
+    },
+    "technique": {
+      "en": "Anchor the whole talk to a single connecting idea that every point hangs on. Try to state it in 15 words or less. A throughline is not the same as a topic.",
+      "de": "Häng den ganzen Vortrag an einen einzigen verbindenden Gedanken, an dem jeder Punkt hängt. Versuch, ihn in höchstens 15 Wörtern zu sagen. Eine Kernaussage ist nicht dasselbe wie ein Thema."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations"
+    ],
+    "effect_tags": [
+      "improves_memorability",
+      "improves_clarity"
+    ],
     "source": "Chris Anderson, TED Talks: The Official TED Guide to Public Speaking, 2016",
     "source_tier": 2
   },
   {
     "id": "b3",
-    "title": "What? So What? Now What?",
-    "technique": "Structure any message in three parts: state your point (What?), explain why it matters (So What?), give the call to action (Now What?).",
-    "context_tags": ["presentations", "interviews", "small_talk"],
-    "effect_tags": ["improves_clarity", "improves_memorability"],
+    "title": {
+      "en": "What? So What? Now What?",
+      "de": "Was? Na und? Was jetzt?"
+    },
+    "technique": {
+      "en": "Structure any message in three parts: state your point (What?), explain why it matters (So What?), give the call to action (Now What?).",
+      "de": "Gliedere jede Botschaft in drei Teile: deine Aussage (Was?), warum sie zählt (Na und?), und die Handlungsaufforderung (Was jetzt?)."
+    },
+    "context_tags": [
+      "presentations",
+      "interviews",
+      "small_talk"
+    ],
+    "effect_tags": [
+      "improves_clarity",
+      "improves_memorability"
+    ],
     "source": "Matt Abrahams, Stanford GSB Insights",
     "source_tier": 2
   },
   {
     "id": "b9",
-    "title": "Start Strong (Hook)",
-    "technique": "Open with a startling fact, a provocative question, or a short story instead of throat-clearing. Attention is highest in the first 10-20 seconds.",
-    "context_tags": ["public_speaking", "presentations"],
-    "effect_tags": ["increases_engagement"],
+    "title": {
+      "en": "Start Strong (Hook)",
+      "de": "Stark einsteigen (Hook)"
+    },
+    "technique": {
+      "en": "Open with a startling fact, a provocative question, or a short story instead of throat-clearing. Attention is highest in the first 10-20 seconds.",
+      "de": "Beginne mit einer überraschenden Zahl, einer zugespitzten Frage oder einer kurzen Geschichte statt mit Geräusper. In den ersten 10 bis 20 Sekunden ist die Aufmerksamkeit am höchsten."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations"
+    ],
+    "effect_tags": [
+      "increases_engagement"
+    ],
     "source": "Toastmasters International; Vanessa Van Edwards, Cues",
     "source_tier": 2
   },
   {
     "id": "c1",
-    "title": "The Power of the Pause",
-    "technique": "Pause for a few seconds before starting and around key points. Silence gives the audience time to process and makes you look thoughtful and in control.",
-    "context_tags": ["public_speaking", "presentations"],
-    "effect_tags": ["projects_confidence", "improves_clarity"],
+    "title": {
+      "en": "The Power of the Pause",
+      "de": "Die Kraft der Pause"
+    },
+    "technique": {
+      "en": "Pause for a few seconds before starting and around key points. Silence gives the audience time to process and makes you look thoughtful and in control.",
+      "de": "Mach ein paar Sekunden Pause, bevor du anfängst, und rund um deine Kernpunkte. Stille gibt dem Publikum Zeit zum Verarbeiten und lässt dich überlegt und souverän wirken."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations"
+    ],
+    "effect_tags": [
+      "projects_confidence",
+      "improves_clarity"
+    ],
     "source": "Toastmasters International; Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "c3",
-    "title": "Land the Phrase to Cut Fillers",
-    "technique": "Finish each thought on a clear out-breath instead of bridging into the next one with 'um' or 'uh.' Filler words spike under cognitive overload, so slowing down here helps.",
-    "context_tags": ["public_speaking", "interviews", "impromptu"],
-    "effect_tags": ["improves_clarity", "projects_confidence"],
+    "title": {
+      "en": "Land the Phrase to Cut Fillers",
+      "de": "Sätze landen lassen statt Füllwörter"
+    },
+    "technique": {
+      "en": "Finish each thought on a clear out-breath instead of bridging into the next one with 'um' or 'uh.' Filler words spike under cognitive overload, so slowing down here helps.",
+      "de": "Beende jeden Gedanken auf einer klaren Ausatmung, statt mit „äh“ oder „ähm“ in den nächsten zu rutschen. Füllwörter häufen sich unter kognitiver Überlast — langsamer werden hilft genau hier."
+    },
+    "context_tags": [
+      "public_speaking",
+      "interviews",
+      "impromptu"
+    ],
+    "effect_tags": [
+      "improves_clarity",
+      "projects_confidence"
+    ],
     "source": "Matt Abrahams, Stanford GSB (Huberman Lab), citing Jerry Weissman",
     "source_tier": 2
   },
   {
     "id": "c6",
-    "title": "Drop Hedges and Up-Talk",
-    "technique": "Cut phrases like 'I think,' 'sort of,' and rising question-intonation on statements that aren't questions.",
-    "context_tags": ["presentations", "interviews", "difficult_conversations"],
-    "effect_tags": ["projects_confidence"],
+    "title": {
+      "en": "Drop Hedges and Up-Talk",
+      "de": "Relativierungen und Fragemelodie weglassen"
+    },
+    "technique": {
+      "en": "Cut phrases like 'I think,' 'sort of,' and rising question-intonation on statements that aren't questions.",
+      "de": "Streich Wendungen wie „ich glaube“, „irgendwie“ oder „so ein bisschen“ — und lass die Stimme am Satzende fallen, wenn es keine Frage ist."
+    },
+    "context_tags": [
+      "presentations",
+      "interviews",
+      "difficult_conversations"
+    ],
+    "effect_tags": [
+      "projects_confidence"
+    ],
     "source": "Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "d1",
-    "title": "Make Sustained Eye Contact",
-    "technique": "Hold soft eye contact with individuals for about 3-4 seconds at a time, spending the majority of your speaking time in eye contact. Research links this to higher perceived credibility.",
-    "context_tags": ["public_speaking", "small_talk"],
-    "effect_tags": ["increases_trust", "reduces_nervousness"],
+    "title": {
+      "en": "Make Sustained Eye Contact",
+      "de": "Blickkontakt halten"
+    },
+    "technique": {
+      "en": "Hold soft eye contact with individuals for about 3-4 seconds at a time, spending the majority of your speaking time in eye contact. Research links this to higher perceived credibility.",
+      "de": "Halte weichen Blickkontakt mit einzelnen Personen für jeweils etwa drei bis vier Sekunden und verbringe den Großteil deiner Redezeit im Blickkontakt. Studien verbinden das mit höherer wahrgenommener Glaubwürdigkeit."
+    },
+    "context_tags": [
+      "public_speaking",
+      "small_talk"
+    ],
+    "effect_tags": [
+      "increases_trust",
+      "reduces_nervousness"
+    ],
     "source": "'Eye contact: A nonverbal determinant of speaker credibility,' The Speech Teacher 23(1), 1974",
     "source_tier": 1
   },
   {
     "id": "d2",
-    "title": "Use Purposeful Explanatory Gestures",
-    "technique": "Talk with your hands using gestures that actually illustrate your meaning. The brain gives extra attentional weight to hand gestures.",
-    "context_tags": ["presentations", "virtual"],
-    "effect_tags": ["increases_engagement", "improves_memorability"],
+    "title": {
+      "en": "Use Purposeful Explanatory Gestures",
+      "de": "Gesten, die etwas erklären"
+    },
+    "technique": {
+      "en": "Talk with your hands using gestures that actually illustrate your meaning. The brain gives extra attentional weight to hand gestures.",
+      "de": "Sprich mit den Händen, aber mit Gesten, die deine Aussage tatsächlich veranschaulichen. Das Gehirn gewichtet Handgesten in der Aufmerksamkeit besonders stark."
+    },
+    "context_tags": [
+      "presentations",
+      "virtual"
+    ],
+    "effect_tags": [
+      "increases_engagement",
+      "improves_memorability"
+    ],
     "source": "Vanessa Van Edwards, Cues",
     "source_tier": 2
   },
   {
     "id": "e1",
-    "title": "Ethos, Pathos, Logos",
-    "technique": "Combine credibility (ethos), emotional appeal (pathos), and logic (logos). Keep ethos always high and adjust the pathos/logos ratio to your audience and topic.",
-    "context_tags": ["persuasion", "presentations"],
-    "effect_tags": ["increases_persuasion"],
+    "title": {
+      "en": "Ethos, Pathos, Logos",
+      "de": "Ethos, Pathos, Logos"
+    },
+    "technique": {
+      "en": "Combine credibility (ethos), emotional appeal (pathos), and logic (logos). Keep ethos always high and adjust the pathos/logos ratio to your audience and topic.",
+      "de": "Verbinde Glaubwürdigkeit (Ethos), emotionale Ansprache (Pathos) und Logik (Logos). Halte Ethos durchgehend hoch und passe das Verhältnis von Pathos zu Logos an Publikum und Thema an."
+    },
+    "context_tags": [
+      "persuasion",
+      "presentations"
+    ],
+    "effect_tags": [
+      "increases_persuasion"
+    ],
     "source": "Aristotle, Rhetoric (foundational rhetoric framework)",
     "source_tier": 2
   },
   {
     "id": "e2",
-    "title": "Reciprocity",
-    "technique": "Give something of value first, ideally personalized and a little unexpected. People feel an urge to return the favor.",
-    "context_tags": ["negotiation", "networking", "persuasion"],
-    "effect_tags": ["increases_persuasion", "builds_rapport"],
+    "title": {
+      "en": "Reciprocity",
+      "de": "Reziprozität"
+    },
+    "technique": {
+      "en": "Give something of value first, ideally personalized and a little unexpected. People feel an urge to return the favor.",
+      "de": "Gib zuerst etwas Wertvolles — idealerweise persönlich zugeschnitten und ein wenig unerwartet. Menschen empfinden den Drang, sich zu revanchieren."
+    },
+    "context_tags": [
+      "negotiation",
+      "networking",
+      "persuasion"
+    ],
+    "effect_tags": [
+      "increases_persuasion",
+      "builds_rapport"
+    ],
     "source": "Robert Cialdini, Influence",
     "source_tier": 1
   },
   {
     "id": "e9",
-    "title": "The Rule of Three",
-    "technique": "Group your key points in threes. Triads are rhythmic and easier to remember than lists of two or four.",
-    "context_tags": ["persuasion", "presentations"],
-    "effect_tags": ["improves_memorability", "increases_persuasion"],
+    "title": {
+      "en": "The Rule of Three",
+      "de": "Die Dreierregel"
+    },
+    "technique": {
+      "en": "Group your key points in threes. Triads are rhythmic and easier to remember than lists of two or four.",
+      "de": "Bündle deine Kernpunkte in Dreiergruppen. Dreier haben Rhythmus und bleiben besser hängen als Listen aus zwei oder vier Punkten."
+    },
+    "context_tags": [
+      "persuasion",
+      "presentations"
+    ],
+    "effect_tags": [
+      "improves_memorability",
+      "increases_persuasion"
+    ],
     "source": "Rhetorical tradition (Aristotle), standard in communication coursework",
     "source_tier": 2
   },
   {
     "id": "f1",
-    "title": "Character + Tension Keeps Attention",
-    "technique": "Tell character-driven stories with rising tension. Sustained tension holds attention and has been linked to oxytocin release, which builds empathy and trust in listeners.",
-    "context_tags": ["public_speaking", "presentations", "persuasion"],
-    "effect_tags": ["builds_rapport", "increases_persuasion"],
+    "title": {
+      "en": "Character + Tension Keeps Attention",
+      "de": "Figur und Spannung halten Aufmerksamkeit"
+    },
+    "technique": {
+      "en": "Tell character-driven stories with rising tension. Sustained tension holds attention and has been linked to oxytocin release, which builds empathy and trust in listeners.",
+      "de": "Erzähl Geschichten mit Figuren und wachsender Spannung. Gehaltene Spannung bindet Aufmerksamkeit und wird mit der Ausschüttung von Oxytocin in Verbindung gebracht, was Empathie und Vertrauen beim Zuhören aufbaut."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations",
+      "persuasion"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "increases_persuasion"
+    ],
     "source": "Paul Zak, 'Why Inspiring Stories Make Us React,' PMC4445577",
     "source_tier": 1
   },
   {
     "id": "f3",
-    "title": "Three-Act Transformation",
-    "technique": "Structure a personal story as setup, then confrontation or struggle, then resolution. The most transformative stories reveal a real flaw or hardship and require genuine candor.",
-    "context_tags": ["public_speaking", "presentations"],
-    "effect_tags": ["increases_engagement", "builds_rapport"],
+    "title": {
+      "en": "Three-Act Transformation",
+      "de": "Drei Akte, eine Verwandlung"
+    },
+    "technique": {
+      "en": "Structure a personal story as setup, then confrontation or struggle, then resolution. The most transformative stories reveal a real flaw or hardship and require genuine candor.",
+      "de": "Bau eine persönliche Geschichte als Ausgangslage, dann Konflikt oder Ringen, dann Auflösung. Die Geschichten mit der größten Wirkung zeigen eine echte Schwäche oder Härte — und verlangen echte Offenheit."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations"
+    ],
+    "effect_tags": [
+      "increases_engagement",
+      "builds_rapport"
+    ],
     "source": "Nancy Duarte, Duarte Inc.",
     "source_tier": 2
   },
   {
     "id": "g1",
-    "title": "Ask Rhetorical & Poll Questions",
-    "technique": "Use questions for effect, quick polls (hand-raise or live poll), or brief thought-experiments to make listening feel two-way. Tell the audience how you want them to respond.",
-    "context_tags": ["presentations", "virtual"],
-    "effect_tags": ["increases_engagement"],
+    "title": {
+      "en": "Ask Rhetorical & Poll Questions",
+      "de": "Rhetorische Fragen und Kurzumfragen"
+    },
+    "technique": {
+      "en": "Use questions for effect, quick polls (hand-raise or live poll), or brief thought-experiments to make listening feel two-way. Tell the audience how you want them to respond.",
+      "de": "Nutze Fragen als Stilmittel, kurze Abstimmungen (Handzeichen oder Live-Umfrage) oder kleine Gedankenexperimente, damit Zuhören beidseitig wirkt. Sag dem Publikum dazu, wie es reagieren soll."
+    },
+    "context_tags": [
+      "presentations",
+      "virtual"
+    ],
+    "effect_tags": [
+      "increases_engagement"
+    ],
     "source": "Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "g3",
-    "title": "Use 'You' and 'We'",
-    "technique": "Connect your topic to the audience using inclusive pronouns, even when telling a personal story.",
-    "context_tags": ["public_speaking", "presentations"],
-    "effect_tags": ["builds_rapport", "increases_engagement"],
+    "title": {
+      "en": "Use 'You' and 'We'",
+      "de": "„Du“ und „wir“ verwenden"
+    },
+    "technique": {
+      "en": "Connect your topic to the audience using inclusive pronouns, even when telling a personal story.",
+      "de": "Verbinde dein Thema über einbeziehende Anreden mit dem Publikum — auch dann, wenn du etwas Persönliches erzählst."
+    },
+    "context_tags": [
+      "public_speaking",
+      "presentations"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "increases_engagement"
+    ],
     "source": "Toastmasters International",
     "source_tier": 2
   },
   {
     "id": "h1",
-    "title": "Balance Warmth and Competence",
-    "technique": "Charisma is a learnable blend of warmth (trust) and competence (capability). The most charismatic people hit the sweet spot of both rather than leaning fully into either.",
-    "context_tags": ["leadership", "first_impressions", "interviews"],
-    "effect_tags": ["increases_trust", "projects_confidence"],
+    "title": {
+      "en": "Balance Warmth and Competence",
+      "de": "Wärme und Kompetenz ausbalancieren"
+    },
+    "technique": {
+      "en": "Charisma is a learnable blend of warmth (trust) and competence (capability). The most charismatic people hit the sweet spot of both rather than leaning fully into either.",
+      "de": "Charisma ist eine erlernbare Mischung aus Wärme (Vertrauen) und Kompetenz (Können). Die charismatischsten Menschen treffen beides, statt sich ganz auf eine Seite zu schlagen."
+    },
+    "context_tags": [
+      "leadership",
+      "first_impressions",
+      "interviews"
+    ],
+    "effect_tags": [
+      "increases_trust",
+      "projects_confidence"
+    ],
     "source": "Vanessa Van Edwards, Cues, citing Fiske, Cuddy & Glick, Trends in Cognitive Sciences, 2007",
     "source_tier": 1
   },
   {
     "id": "h2",
-    "title": "Send Deliberate Warmth Cues",
-    "technique": "Use personal stories, a genuine (slightly slow) smile, listening sounds, leaning in, and open gestures when you're being perceived as cold or intimidating.",
-    "context_tags": ["small_talk", "networking", "first_impressions"],
-    "effect_tags": ["builds_rapport", "increases_trust"],
+    "title": {
+      "en": "Send Deliberate Warmth Cues",
+      "de": "Wärme bewusst signalisieren"
+    },
+    "technique": {
+      "en": "Use personal stories, a genuine (slightly slow) smile, listening sounds, leaning in, and open gestures when you're being perceived as cold or intimidating.",
+      "de": "Setz persönliche Geschichten ein, ein echtes (leicht langsames) Lächeln, kleine Hörlaute, eine Neigung nach vorn und offene Gesten — vor allem, wenn du kühl oder einschüchternd wirkst."
+    },
+    "context_tags": [
+      "small_talk",
+      "networking",
+      "first_impressions"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "increases_trust"
+    ],
     "source": "Vanessa Van Edwards, Cues",
     "source_tier": 2
   },
   {
     "id": "i1",
-    "title": "RASA: Receive, Appreciate, Summarize, Ask",
-    "technique": "Pay full attention (Receive), make small acknowledging sounds like 'hmm' or 'okay' (Appreciate), summarize what you heard with 'so...' (Summarize), then ask a follow-up (Ask).",
-    "context_tags": ["small_talk", "networking", "difficult_conversations"],
-    "effect_tags": ["builds_rapport", "increases_trust"],
+    "title": {
+      "en": "RASA: Receive, Appreciate, Summarize, Ask",
+      "de": "RASA: Aufnehmen, Würdigen, Zusammenfassen, Nachfragen"
+    },
+    "technique": {
+      "en": "Pay full attention (Receive), make small acknowledging sounds like 'hmm' or 'okay' (Appreciate), summarize what you heard with 'so...' (Summarize), then ask a follow-up (Ask).",
+      "de": "Sei ganz bei der Sache (Aufnehmen), gib kleine bestätigende Laute wie „hm“ oder „okay“ (Würdigen), fass das Gehörte mit „also…“ zusammen (Zusammenfassen) und stell dann eine Anschlussfrage (Nachfragen)."
+    },
+    "context_tags": [
+      "small_talk",
+      "networking",
+      "difficult_conversations"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "increases_trust"
+    ],
     "source": "Julian Treasure, TED; Stanford GSB 'Four Pillars of Active Listening'",
     "source_tier": 2
   },
   {
     "id": "i3",
-    "title": "Be Interested, Not Interesting",
-    "technique": "Lead with genuine curiosity about the other person instead of trying to perform for them. The best small-talkers ask more than they tell.",
-    "context_tags": ["small_talk", "dating", "networking"],
-    "effect_tags": ["builds_rapport", "reduces_nervousness"],
+    "title": {
+      "en": "Be Interested, Not Interesting",
+      "de": "Interessiert sein, nicht interessant"
+    },
+    "technique": {
+      "en": "Lead with genuine curiosity about the other person instead of trying to perform for them. The best small-talkers ask more than they tell.",
+      "de": "Geh mit echter Neugier auf dein Gegenüber zu, statt etwas vorzuführen. Wer gut Small Talk kann, fragt mehr, als er erzählt."
+    },
+    "context_tags": [
+      "small_talk",
+      "dating",
+      "networking"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "reduces_nervousness"
+    ],
     "source": "Rachel Greenwald, via Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "i4",
-    "title": "Escalating Self-Disclosure",
-    "technique": "Exchange reciprocal, gradually deepening personal questions rather than staying on small talk. Pairs who did this reported far greater closeness than pairs who made small talk for the same amount of time.",
-    "context_tags": ["dating", "networking", "small_talk"],
-    "effect_tags": ["builds_rapport"],
+    "title": {
+      "en": "Escalating Self-Disclosure",
+      "de": "Schrittweise mehr von sich preisgeben"
+    },
+    "technique": {
+      "en": "Exchange reciprocal, gradually deepening personal questions rather than staying on small talk. Pairs who did this reported far greater closeness than pairs who made small talk for the same amount of time.",
+      "de": "Tauscht wechselseitig Fragen aus, die langsam persönlicher werden, statt beim Small Talk zu bleiben. Paare, die das taten, fühlten sich einander deutlich näher als Paare, die gleich lang Small Talk machten."
+    },
+    "context_tags": [
+      "dating",
+      "networking",
+      "small_talk"
+    ],
+    "effect_tags": [
+      "builds_rapport"
+    ],
     "source": "Aron et al., 'The Experimental Generation of Interpersonal Closeness,' Personality and Social Psychology Bulletin 23(4), 1997",
     "source_tier": 1
   },
   {
     "id": "j1",
-    "title": "Tactical Empathy",
-    "technique": "Understand and name the other person's feelings and perspective to lower their defensiveness. This is empathy used strategically, not agreement.",
-    "context_tags": ["difficult_conversations", "negotiation"],
-    "effect_tags": ["builds_rapport", "reduces_conflict"],
+    "title": {
+      "en": "Tactical Empathy",
+      "de": "Taktische Empathie"
+    },
+    "technique": {
+      "en": "Understand and name the other person's feelings and perspective to lower their defensiveness. This is empathy used strategically, not agreement.",
+      "de": "Verstehe die Gefühle und die Sicht deines Gegenübers und benenne sie, um die Abwehr zu senken. Das ist Empathie als Werkzeug — keine Zustimmung."
+    },
+    "context_tags": [
+      "difficult_conversations",
+      "negotiation"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "reduces_conflict"
+    ],
     "source": "Chris Voss, Never Split the Difference",
     "source_tier": 2
   },
   {
     "id": "j2",
-    "title": "Labeling",
-    "technique": "Name the emotion you observe: 'It sounds like...' or 'It seems like...' Labeling a negative emotion tends to defuse it; labeling a positive one reinforces it.",
-    "context_tags": ["difficult_conversations", "negotiation"],
-    "effect_tags": ["reduces_conflict", "builds_rapport"],
+    "title": {
+      "en": "Labeling",
+      "de": "Benennen"
+    },
+    "technique": {
+      "en": "Name the emotion you observe: 'It sounds like...' or 'It seems like...' Labeling a negative emotion tends to defuse it; labeling a positive one reinforces it.",
+      "de": "Sprich die Emotion aus, die du wahrnimmst: „Das klingt, als ob…“ oder „Es scheint, als…“. Eine negative Emotion zu benennen entschärft sie meist, eine positive verstärkt sie."
+    },
+    "context_tags": [
+      "difficult_conversations",
+      "negotiation"
+    ],
+    "effect_tags": [
+      "reduces_conflict",
+      "builds_rapport"
+    ],
     "source": "Chris Voss, Never Split the Difference",
     "source_tier": 2
   },
   {
     "id": "k1",
-    "title": "Paraphrase Every Question First",
-    "technique": "Restate each question in your own words before answering. It buys you thinking time, confirms you understood correctly, and lets you reframe if needed.",
-    "context_tags": ["q_and_a", "interviews"],
-    "effect_tags": ["projects_confidence", "improves_clarity"],
+    "title": {
+      "en": "Paraphrase Every Question First",
+      "de": "Jede Frage zuerst paraphrasieren"
+    },
+    "technique": {
+      "en": "Restate each question in your own words before answering. It buys you thinking time, confirms you understood correctly, and lets you reframe if needed.",
+      "de": "Gib jede Frage in eigenen Worten wieder, bevor du antwortest. Das verschafft dir Denkzeit, bestätigt dein Verständnis und erlaubt dir, die Frage bei Bedarf neu zu rahmen."
+    },
+    "context_tags": [
+      "q_and_a",
+      "interviews"
+    ],
+    "effect_tags": [
+      "projects_confidence",
+      "improves_clarity"
+    ],
     "source": "Matt Abrahams, Stanford GSB",
     "source_tier": 2
   },
   {
     "id": "l1",
-    "title": "Look Into the Camera, Not the Screen",
-    "technique": "Direct your gaze at the camera lens rather than the screen to create the illusion of eye contact. Position notes or slides close to the camera.",
-    "context_tags": ["virtual"],
-    "effect_tags": ["builds_rapport", "projects_confidence"],
+    "title": {
+      "en": "Look Into the Camera, Not the Screen",
+      "de": "In die Kamera sehen, nicht auf den Bildschirm"
+    },
+    "technique": {
+      "en": "Direct your gaze at the camera lens rather than the screen to create the illusion of eye contact. Position notes or slides close to the camera.",
+      "de": "Richte den Blick auf die Linse statt auf den Bildschirm, damit Blickkontakt entsteht. Leg Notizen oder Folien nah an die Kamera."
+    },
+    "context_tags": [
+      "virtual"
+    ],
+    "effect_tags": [
+      "builds_rapport",
+      "projects_confidence"
+    ],
     "source": "Matt Abrahams, Stanford GSB, '10 Tips for Giving Effective Virtual Presentations'",
     "source_tier": 2
   },
   {
     "id": "m1",
-    "title": "Trust Before Competence",
-    "technique": "Lead with warmth and trustworthiness before showcasing competence. People subconsciously ask 'Can I trust this person?' before 'Can I respect this person?' — and trust comes first.",
-    "context_tags": ["interviews", "first_impressions", "networking"],
-    "effect_tags": ["increases_trust", "projects_confidence"],
+    "title": {
+      "en": "Trust Before Competence",
+      "de": "Vertrauen vor Kompetenz"
+    },
+    "technique": {
+      "en": "Lead with warmth and trustworthiness before showcasing competence. People subconsciously ask 'Can I trust this person?' before 'Can I respect this person?' — and trust comes first.",
+      "de": "Zeig zuerst Wärme und Verlässlichkeit, bevor du Kompetenz vorführst. Menschen fragen sich unbewusst „Kann ich dieser Person vertrauen?“, bevor sie fragen „Kann ich sie respektieren?“ — Vertrauen kommt zuerst."
+    },
+    "context_tags": [
+      "interviews",
+      "first_impressions",
+      "networking"
+    ],
+    "effect_tags": [
+      "increases_trust",
+      "projects_confidence"
+    ],
     "source": "Amy Cuddy, Presence, 2016; 'Connect, Then Lead,' Harvard Business Review, 2013",
     "source_tier": 1
   },
   {
     "id": "m4",
-    "title": "Brevity Conveys Conviction",
-    "technique": "Use fewer words. Over-explaining tends to signal insecurity, while concise answers project confidence and competence.",
-    "context_tags": ["interviews", "presentations"],
-    "effect_tags": ["projects_confidence"],
+    "title": {
+      "en": "Brevity Conveys Conviction",
+      "de": "Kürze wirkt überzeugt"
+    },
+    "technique": {
+      "en": "Use fewer words. Over-explaining tends to signal insecurity, while concise answers project confidence and competence.",
+      "de": "Nimm weniger Wörter. Zu viel Erklären wirkt meist unsicher, während knappe Antworten Souveränität und Kompetenz ausstrahlen."
+    },
+    "context_tags": [
+      "interviews",
+      "presentations"
+    ],
+    "effect_tags": [
+      "projects_confidence"
+    ],
     "source": "Matt Abrahams, Stanford GSB (Think Fast, Talk Smart, with Irv Grousbeck)",
     "source_tier": 2
   }

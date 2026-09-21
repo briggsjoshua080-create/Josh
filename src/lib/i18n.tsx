@@ -56,6 +56,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
 }
 
+/**
+ * Wrap text in the quotation marks the active language actually uses.
+ *
+ * German sets „low-high“ where English sets “high-high”. The app quotes the
+ * user's own sentences back to them — the "say it better" module is the
+ * report's showpiece — so using English marks around German text is exactly
+ * the translated-afterthought texture the product spec rules out.
+ */
+export function quoted(text: string, lang: Lang): string {
+  return lang === "de" ? `„${text}“` : `“${text}”`;
+}
+
 export function useI18n(): LangCtx {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useI18n outside LanguageProvider");

@@ -105,7 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         end={item.to === "/"}
         className={({ isActive }) =>
           `relative flex items-center gap-3 rounded-(--radius-control) px-3 py-2 transition-colors duration-150 ` +
-          `max-lg:flex-col max-lg:gap-1 max-lg:px-5 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
+          `max-lg:min-w-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-1 max-lg:px-2 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
           (isActive ? "text-gold" : "text-muted hover:text-ink")
         }
       >
@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Icon name={item.icon} size={22} />
             </span>
-            <span className="font-medium">{t(item.key)}</span>
+            <span className="max-w-full truncate font-medium">{t(item.key)}</span>
           </>
         )}
       </NavLink>

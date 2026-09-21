@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
-import { useI18n } from "@/lib/i18n";
+import { quoted, useI18n } from "@/lib/i18n";
 import { db, getSession, getProgressState, recomputeProgress, allSessions } from "@/lib/db";
 import { requestReport, deliveryCoaching, wordOfDayUsed, CoachUnavailableError } from "@/lib/feedback";
 import { type EightScores, type Session } from "@/lib/types";
@@ -394,10 +394,10 @@ export function Feedback() {
               <div className="mt-5 border-t hairline pt-5">
                 <h3 className="label-caps">{t("sayItBetter")}</h3>
                 <p className="mt-3 text-sm text-muted">
-                  {t("yourVersion")}: <span className="quoted-phrase text-ink/70">“{report.tighten.quote}”</span>
+                  {t("yourVersion")}: <span className="quoted-phrase text-ink/70">{quoted(report.tighten.quote, lang)}</span>
                 </p>
                 <p className="mt-2 text-sm text-muted">
-                  {t("betterVersion")}: <span className="quoted-phrase text-accent">“{report.tighten.rewrite}”</span>
+                  {t("betterVersion")}: <span className="quoted-phrase text-accent">{quoted(report.tighten.rewrite, lang)}</span>
                 </p>
               </div>
             )}

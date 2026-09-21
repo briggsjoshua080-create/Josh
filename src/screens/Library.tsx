@@ -10,6 +10,7 @@ import {
 } from "@/data/library";
 import { Icon } from "@/components/Icon";
 import { FilterPill } from "@/components/FilterPill";
+import type { Lang } from "@/lib/types";
 
 /**
  * The Library: a scrollable list of expandable technique cards, fed entirely
@@ -17,15 +18,15 @@ import { FilterPill } from "@/components/FilterPill";
  * every card is readable from first launch.
  */
 export function Library() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
   const [contextTag, setContextTag] = useState<string | null>(null);
   const [effectTag, setEffectTag] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const list = useMemo(
-    () => searchLibrary(query, contextTag, effectTag),
-    [query, contextTag, effectTag],
+    () => searchLibrary(query, contextTag, effectTag, lang),
+    [query, contextTag, effectTag, lang],
   );
 
   return (
@@ -52,12 +53,14 @@ export function Library() {
         tags={CONTEXT_TAGS}
         active={contextTag}
         onPick={(tag) => setContextTag(contextTag === tag ? null : tag)}
+        lang={lang}
       />
       <FilterRow
         label={t("tipsEffectFilter")}
         tags={EFFECT_TAGS}
         active={effectTag}
         onPick={(tag) => setEffectTag(effectTag === tag ? null : tag)}
+        lang={lang}
       />
       </section>
 
@@ -73,6 +76,7 @@ export function Library() {
               onToggle={() => setOpenId(openId === card.id ? null : card.id)}
               sourceLabel={t("tipsSourceLabel")}
               caveatLabel={t("tipsCaveatLabel")}
+              lang={lang}
             />
           ))}
         </ul>
@@ -86,11 +90,13 @@ function FilterRow({
   tags,
   active,
   onPick,
+  lang,
 }: {
   label: string;
   tags: string[];
   active: string | null;
   onPick: (tag: string) => void;
+  lang: Lang;
 }) {
   return (
     <div className="mt-3">
@@ -98,7 +104,7 @@ function FilterRow({
       <div className="mt-1.5 flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap">
         {tags.map((tag) => (
           <FilterPill key={tag} active={active === tag} onClick={() => onPick(tag)}>
-            {tagLabel(tag)}
+            {tagLabel(tag, lang)}
           </FilterPill>
         ))}
       </div>
@@ -112,12 +118,14 @@ function TechniqueCard({
   onToggle,
   sourceLabel,
   caveatLabel,
+  lang,
 }: {
   card: LibraryCard;
   open: boolean;
   onToggle: () => void;
   sourceLabel: string;
   caveatLabel: string;
+  lang: Lang;
 }) {
   const ref = useRef<HTMLLIElement>(null);
 
@@ -154,7 +162,7 @@ function TechniqueCard({
           aria-controls={regionId}
           className="flex w-full items-start justify-between gap-3 p-5 text-left text-base font-medium text-ink transition-colors hover:bg-surface-2/40"
         >
-          {card.title}
+          {card.title[lang]}
           <Icon
             name="chevronDown"
             size={16}
@@ -166,18 +174,18 @@ function TechniqueCard({
       <div id={regionId} className="px-5 pb-5">
         {open ? (
           <>
-            <p className="text-sm leading-relaxed text-ink/85">{card.technique}</p>
+            <p className="text-sm leading-relaxed text-ink/85">{card.technique[lang]}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {card.context_tags.map((tag) => (
-                <TagChip key={tag} tag={tag} />
+                <TagChip key={tag} tag={tag} lang={lang} />
               ))}
               {card.effect_tags.map((tag) => (
-                <TagChip key={tag} tag={tag} effect />
+                <TagChip key={tag} tag={tag} effect lang={lang} />
               ))}
             </div>
             {card.caveat && (
               <p className="mt-3 text-xs leading-relaxed text-warn">
-                {caveatLabel}: {card.caveat}
+                {caveatLabel}: {card.caveat[lang]}
               </p>
             )}
             <p className="mt-3 text-xs leading-relaxed text-faint">
@@ -186,13 +194,13 @@ function TechniqueCard({
           </>
         ) : (
           <>
-            <p className="truncate text-sm text-muted">{card.technique}</p>
+            <p className="truncate text-sm text-muted">{card.technique[lang]}</p>
             <div className="mt-2.5 flex flex-wrap gap-1.5">
               {card.context_tags.map((tag) => (
-                <TagChip key={tag} tag={tag} />
+                <TagChip key={tag} tag={tag} lang={lang} />
               ))}
               {card.effect_tags.map((tag) => (
-                <TagChip key={tag} tag={tag} effect />
+                <TagChip key={tag} tag={tag} effect lang={lang} />
               ))}
             </div>
           </>
@@ -203,12 +211,12 @@ function TechniqueCard({
 }
 
 /** Small tag pill: context tags in neutral, effect tags in dim gold. */
-function TagChip({ tag, effect }: { tag: string; effect?: boolean }) {
+function TagChip({ tag, effect, lang }: { tag: string; effect?: boolean; lang: Lang }) {
   return (
     <span
       className={`rounded-full border border-line px-2 py-0.5 text-xs ${effect ? "text-accent-dim" : "text-muted"}`}
     >
-      {tagLabel(tag)}
+      {tagLabel(tag, lang)}
     </span>
   );
 }

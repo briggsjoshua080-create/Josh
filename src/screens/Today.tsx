@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useI18n } from "@/lib/i18n";
+import { quoted, useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
 import { tipsForToday } from "@/data/tips";
 import { dailyPathState, dailyWordIndex, dailyScenarioId, rerollDailyScenario, db } from "@/lib/db";
@@ -211,7 +211,7 @@ function ChallengeCard({
  * own bonus (see wordOfDayUsed / WORD_OF_DAY_BONUS), tracked separately.
  */
 function WordOfDay({ word }: { word: WordEntry }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (
@@ -244,7 +244,7 @@ function WordOfDay({ word }: { word: WordEntry }) {
               {word.definition}
             </span>
             <span className="lectern mt-3 block text-base italic text-muted" style={{ overflowWrap: "break-word" }}>
-              “{word.example}”
+              {quoted(word.example, lang)}
             </span>
             <span className="mt-3 block text-sm text-accent-dim">{t("wordOfDayHint")}</span>
           </span>
