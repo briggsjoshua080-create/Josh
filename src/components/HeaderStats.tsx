@@ -15,12 +15,36 @@ import { Icon } from "./Icon";
  * row: `recomputeProgress()` writes, and a write inside useLiveQuery would
  * invalidate its own query forever. `progressFromSessions` is the same pure
  * function that row is built from, so the two can't drift.
+ *
+ * Both queriers catch internally rather than letting useLiveQuery's observable
+ * error out: dexie-react-hooks rethrows a query error on the next render so an
+ * ErrorBoundary can catch it, and this component is mounted on every screen —
+ * unlike a screen's own db read, a throw here has no local LoadError to land
+ * on and takes the whole app down instead of just this row.
  */
 export function HeaderStats() {
   const { t } = useI18n();
 
-  const streak = useLiveQuery(() => currentStreak(), [], null);
-  const xp = useLiveQuery(async () => progressFromSessions(await db.sessions.toArray()).cumulativeXp, []);
+  const streak = useLiveQuery(
+    async () => {
+      try {
+        return await currentStreak();
+      } catch (err) {
+        console.error("HeaderStats: streak failed", err);
+        return null;
+      }
+    },
+    [],
+    null,
+  );
+  const xp = useLiveQuery(async () => {
+    try {
+      return progressFromSessions(await db.sessions.toArray()).cumulativeXp;
+    } catch (err) {
+      console.error("HeaderStats: xp failed", err);
+      return undefined;
+    }
+  }, []);
 
   // One champagne sheen sweep when XP increases — never on a loop. The pill
   // is re-keyed so the one-shot CSS animation restarts per gain.
