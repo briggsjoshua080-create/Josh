@@ -3,6 +3,7 @@ import {
   CONTEXT_TAGS,
   EFFECT_TAGS,
   LIBRARY_CARDS,
+  TAG_SYNONYMS,
   searchLibrary,
   tagLabel,
 } from "@/data/library";
@@ -62,6 +63,17 @@ describe("library data", () => {
       expect(de).not.toContain("_");
     }
   });
+
+  it("has everyday search words for every tag in use", () => {
+    for (const tag of [...CONTEXT_TAGS, ...EFFECT_TAGS]) {
+      const words = TAG_SYNONYMS[tag];
+      expect(words, `${tag} synonyms`).toBeDefined();
+      // At least one German and one English word, so neither language is
+      // left with only the literal label to match against.
+      expect(words.length, `${tag} synonyms`).toBeGreaterThanOrEqual(3);
+      for (const w of words) expect(w, `${tag}: "${w}"`).toBe(w.toLowerCase());
+    }
+  });
 });
 
 describe("tagLabel", () => {
@@ -99,6 +111,30 @@ describe("searchLibrary", () => {
 
   it("matches a German tag label", () => {
     expect(searchLibrary("Stegreif", null, null, "de").length).toBeGreaterThan(0);
+  });
+
+  /**
+   * The word a German user reaches for first. It is in no title, no technique
+   * and no tag label — the library covers the topic thoroughly and the search
+   * still came back empty, which is the worst version of this failure.
+   */
+  it("finds the stage-fright cards from the everyday word", () => {
+    const ids = searchLibrary("Lampenfieber", null, null, "de").map((c) => c.id);
+    expect(ids).toContain("a1");
+    expect(searchLibrary("stage fright", null, null).length).toBeGreaterThan(0);
+  });
+
+  it("matches everyday words in either language", () => {
+    expect(searchLibrary("Gehalt", null, null, "de").length).toBeGreaterThan(0);
+    expect(searchLibrary("Zoom", null, null, "de").length).toBeGreaterThan(0);
+    expect(searchLibrary("boring", null, null).length).toBeGreaterThan(0);
+  });
+
+  it("does not insist on umlauts the user may not type", () => {
+    const withUmlaut = searchLibrary("Füllwörter", null, null, "de").map((c) => c.id);
+    const without = searchLibrary("Fullworter", null, null, "de").map((c) => c.id);
+    expect(without).toEqual(withUmlaut);
+    expect(searchLibrary("Prasentation", null, null, "de").length).toBeGreaterThan(0);
   });
 
   it("ANDs the query with the context and effect filters", () => {

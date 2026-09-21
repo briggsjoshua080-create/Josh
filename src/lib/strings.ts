@@ -9,6 +9,18 @@ export const strings = {
   navLibrary: { en: "Library", de: "Bibliothek" },
   navProgress: { en: "Progress", de: "Fortschritt" },
   navSettings: { en: "Settings", de: "Einstellungen" },
+  // Route names announced on navigation (see AppShell) — the two screens that
+  // have no tab of their own still need to say where you have landed.
+  routeSession: { en: "Recording", de: "Aufnahme" },
+  routeFeedback: { en: "Your feedback", de: "Dein Feedback" },
+  routeAnnouncement: { en: "{name} page", de: "Seite {name}" },
+  resultCount: { en: "{n} techniques", de: "{n} Techniken" },
+  resultCountOne: { en: "1 technique", de: "1 Technik" },
+  analysisReady: { en: "Your feedback is ready.", de: "Dein Feedback ist fertig." },
+  analysisFailed: {
+    en: "The coach couldn't finish. Your recording is saved.",
+    de: "Der Coach konnte nicht fertig werden. Deine Aufnahme ist gespeichert.",
+  },
   appName: { en: "Orato", de: "Orato" },
 
   // Launch sequence — the three words under the mark. Rendered uppercase by
@@ -65,6 +77,7 @@ export const strings = {
   surpriseMe: { en: "Surprise me", de: "Überrasch mich" },
   viewDeck: { en: "Cards", de: "Karten" },
   viewList: { en: "List", de: "Liste" },
+  viewToggle: { en: "Layout", de: "Ansicht" },
   scenarios: { en: "{n} scenarios", de: "{n} Szenarien" },
   searchScenarios: { en: "Search scenarios…", de: "Szenarien durchsuchen…" },
   noResults: {

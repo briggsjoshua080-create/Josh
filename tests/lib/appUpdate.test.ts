@@ -55,6 +55,21 @@ describe("watchForAppUpdates", () => {
     expect(reload).not.toHaveBeenCalled();
   });
 
+  it("still updates a tab that was open for the first-ever install", async () => {
+    // The install claims the page (no reload), then a deploy lands hours later
+    // while that same tab is still open. Keying off the state at startup would
+    // leave this tab stuck on the version it was born with.
+    const { fireControllerChange, reload } = mockServiceWorker(false);
+    const { watchForAppUpdates } = await freshModule();
+
+    watchForAppUpdates();
+    fireControllerChange(); // the first worker claims the page
+    expect(reload).not.toHaveBeenCalled();
+
+    fireControllerChange(); // a second worker replaces it — a real update
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
   it("never reloads while a recording is unsaved", async () => {
     const { fireControllerChange, reload } = mockServiceWorker(true);
     const { watchForAppUpdates, setHoldsUnsavedWork } = await freshModule();

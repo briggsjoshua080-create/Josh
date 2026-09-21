@@ -56,12 +56,16 @@ export function Settings() {
       {/* Language */}
       <section className="mt-8">
         <h2 className="label-caps">{t("settingsLanguage")}</h2>
-        <div className="mt-3 flex box p-1" role="radiogroup">
+        {/* aria-pressed buttons, not role="radio": a radiogroup owes the user
+            arrow-key navigation over a single tab stop, which these never had.
+            Tabbing to each button and pressing it is the behaviour that is
+            actually implemented here. */}
+        <div className="mt-3 flex box p-1" role="group" aria-label={t("settingsLanguage")}>
           {(["en", "de"] as Lang[]).map((l) => (
             <button
               key={l}
-              role="radio"
-              aria-checked={lang === l}
+              type="button"
+              aria-pressed={lang === l}
               onClick={() => setLang(l)}
               className={`flex-1 rounded-(--radius-control) px-4 py-2.5 text-sm font-medium transition-colors duration-150 ${
                 lang === l ? "bg-surface-2 text-ink" : "text-muted hover:text-ink"

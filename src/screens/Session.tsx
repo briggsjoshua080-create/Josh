@@ -127,8 +127,13 @@ export function Session() {
   // and analyzing count: the legs aren't saved until finish() writes them.
   useEffect(() => {
     setHoldsUnsavedWork(phase === "recording" || phase === "paused" || phase === "analyzing");
-    return () => setHoldsUnsavedWork(false);
   }, [phase]);
+
+  // Released on unmount only. As a cleanup on the effect above it would run on
+  // every phase change — so tapping Pause would flip the hold off for an
+  // instant, and an update waiting behind it would reload and take the
+  // unsaved take with it. Exactly the case the hold exists to prevent.
+  useEffect(() => () => setHoldsUnsavedWork(false), []);
 
   useEffect(
     () => () => {

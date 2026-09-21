@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 
 /**
@@ -92,6 +93,7 @@ export function RecordRing({ elapsed, ideal, maxSec, size = 240 }: RecordRingPro
       role="timer"
       aria-label={timeStr}
     >
+      <ZoneAnnouncer zone={visual} />
       <svg width={size} height={size} className="-rotate-90">
         {/* Static track */}
         <circle
@@ -137,5 +139,32 @@ export function RecordRing({ elapsed, ideal, maxSec, size = 240 }: RecordRingPro
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Speaks each zone change once.
+ *
+ * The ring is the recording screen's load-bearing signal — "you are in the
+ * ideal window now", "you have gone over" — and `role="timer"` is implicitly
+ * aria-live="off", so without this the whole thing is sighted-only. It sits in
+ * its own polite region rather than on the timer, because making the timer
+ * itself live would read the clock out every single second.
+ */
+function ZoneAnnouncer({ zone }: { zone: VisualZone }) {
+  const { t } = useI18n();
+  const prev = useRef<VisualZone>(zone);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (prev.current === zone) return;
+    prev.current = zone;
+    setMessage(t(ZONE_LABEL_KEY[zone]));
+  }, [zone, t]);
+
+  return (
+    <span role="status" aria-live="polite" className="sr-only">
+      {message}
+    </span>
   );
 }

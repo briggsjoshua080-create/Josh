@@ -45,10 +45,18 @@ export function watchForAppUpdates(): void {
   // A page with no controller is a first-ever visit: the worker installing and
   // claiming it is not an update, and what's on screen is already current.
   // Reloading there would be a spurious refresh on someone's first run.
-  const hadController = Boolean(navigator.serviceWorker.controller);
+  //
+  // This tracks the CURRENT state rather than the state at startup, because a
+  // tab opened on the first-ever visit and left open is still a live tab: the
+  // claim that follows install is its first controller (no reload), and a
+  // deploy hours later is a genuine second controller (reload).
+  let hasController = Boolean(navigator.serviceWorker.controller);
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!hadController) return;
+    if (!hasController) {
+      hasController = true;
+      return;
+    }
     if (holdsUnsavedWork) {
       reloadPending = true;
       return;

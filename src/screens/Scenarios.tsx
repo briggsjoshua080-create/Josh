@@ -135,12 +135,20 @@ export function Scenarios() {
           <h1 className="text-2xl font-semibold text-ink">{t("libraryTitle")}</h1>
           <p className="mt-1 text-sm text-muted">{t("librarySub", { n: SCENARIOS.length })}</p>
         </div>
-        <div className="flex shrink-0 rounded-full border border-gold/60 bg-card p-0.5" role="tablist">
+        {/* Two toggle buttons, described as exactly that. role="tablist" would
+            promise arrow-key navigation between roving-tabindex tabs and a
+            labelled tabpanel; this is a layout switch, and aria-pressed says
+            so without lying to the screen reader about the keyboard contract. */}
+        <div
+          className="flex shrink-0 rounded-full border border-gold/60 bg-card p-0.5"
+          role="group"
+          aria-label={t("viewToggle")}
+        >
           {(["deck", "list"] as const).map((v) => (
             <button
               key={v}
-              role="tab"
-              aria-selected={view === v}
+              type="button"
+              aria-pressed={view === v}
               onClick={() => setView(v)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
                 view === v ? "bg-gold/20 text-gold" : "text-gold/65 hover:text-gold"

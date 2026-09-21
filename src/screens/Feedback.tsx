@@ -45,6 +45,20 @@ export function Feedback() {
   const [previous, setPrevious] = useState<EightScores | null>(null);
   const inFlight = useRef(false);
 
+  // The coach can take the better part of a minute. CoachListening announces
+  // the start of that wait and nothing announced the end of it, so a
+  // screen-reader user was left waiting on a spinner that had already stopped.
+  const [doneMessage, setDoneMessage] = useState("");
+  const prevPhase = useRef<Phase>("loading");
+  useEffect(() => {
+    const was = prevPhase.current;
+    prevPhase.current = phase;
+    if (was !== "loading" || phase === "loading" || phase === "missing") return;
+    setDoneMessage(phase === "ready" ? t("analysisReady") : t("analysisFailed"));
+    // `t` is re-created each render; the phase transition is the real input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   useEffect(() => {
     // Reset per id: without this, switching sessions would render the old
     // score, XP chip and radar under the new session's URL.
@@ -227,6 +241,9 @@ export function Feedback() {
 
   return (
     <div className="pt-2 lg:pt-0">
+      <span role="status" aria-live="polite" className="sr-only">
+        {doneMessage}
+      </span>
       <section className="snap-section">
         <p className="text-sm text-muted">{session.promptTitle}</p>
 

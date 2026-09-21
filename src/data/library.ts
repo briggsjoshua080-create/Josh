@@ -63,6 +63,53 @@ const TAG_LABELS: Record<string, Bilingual> = {
   reduces_conflict: { en: "Reduces Conflict", de: "Entschärft Konflikte" },
 };
 
+/**
+ * The words people actually type, in both languages, mapped onto the tags.
+ *
+ * A German user hunting the stage-fright card types "Lampenfieber" — a word
+ * that appears in no title, no technique and no tag label, so the search came
+ * back empty on the single most likely query in the app. These are search keys
+ * only; nothing here is ever rendered.
+ */
+export const TAG_SYNONYMS: Record<string, string[]> = {
+  public_speaking: ["rede", "vortrag", "bühne", "publikum", "speech", "talk", "stage"],
+  interviews: ["vorstellungsgespräch", "bewerbung", "job", "jobinterview"],
+  high_stakes: ["druck", "wichtig", "ernstfall", "pressure", "stakes"],
+  virtual: ["video", "videocall", "zoom", "teams", "online", "remote", "call"],
+  presentations: ["präsentation", "pitch", "folien", "slides", "deck"],
+  small_talk: ["smalltalk", "plaudern", "party", "chitchat"],
+  impromptu: ["spontan", "stegreif", "unvorbereitet", "improvisieren", "off the cuff"],
+  difficult_conversations: ["konflikt", "streit", "kritik", "schlechte nachricht", "conflict", "confrontation"],
+  persuasion: ["überzeugen", "argumentieren", "convince", "argument"],
+  negotiation: ["verhandlung", "gehalt", "preis", "deal", "salary"],
+  networking: ["netzwerken", "kontakte", "konferenz", "event", "mingle"],
+  leadership: ["führung", "team", "chef", "vorgesetzte", "manager", "boss"],
+  first_impressions: ["erster eindruck", "vorstellen", "kennenlernen", "introduction"],
+  dating: ["date", "flirten", "flirt", "beziehung", "romance"],
+  q_and_a: ["fragerunde", "fragen", "rückfragen", "questions", "heckler"],
+  reduces_nervousness: ["lampenfieber", "nervosität", "nervös", "angst", "aufregung", "panik", "stage fright", "nerves", "anxiety", "fear"],
+  projects_confidence: ["selbstbewusstsein", "souverän", "sicher", "auftreten", "confidence", "presence", "authority"],
+  improves_clarity: ["klarheit", "verständlich", "deutlich", "struktur", "clarity", "clear", "concise"],
+  improves_memorability: ["merken", "erinnern", "einprägsam", "hängen bleiben", "memorable", "recall", "story"],
+  increases_engagement: ["aufmerksamkeit", "fesseln", "interesse", "langweilig", "attention", "boring", "engaging"],
+  increases_trust: ["vertrauen", "glaubwürdig", "ehrlich", "trust", "credibility", "honest"],
+  increases_persuasion: ["überzeugungskraft", "beeinflussen", "ja bekommen", "persuade", "influence", "buy in"],
+  builds_rapport: ["sympathie", "verbindung", "nähe", "gemeinsamkeit", "rapport", "likeable", "connection"],
+  reduces_conflict: ["deeskalation", "schlichten", "beruhigen", "de-escalate", "defuse", "calm"],
+};
+
+/**
+ * Compare German the way it is typed: ä/ö/ü/ß on a phone are often just
+ * a/o/u/ss, and a search that insists on the umlaut finds nothing.
+ */
+function fold(s: string): string {
+  return s
+    .toLowerCase()
+    .replaceAll("ß", "ss")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
 /** "public_speaking" → "Public Speaking" / "Vor Publikum". */
 export function tagLabel(tag: string, lang: Lang = "en"): string {
   const known = TAG_LABELS[tag];
@@ -99,18 +146,19 @@ export function searchLibrary(
   lang: Lang = "en",
   cardsToSearch: LibraryCard[] = LIBRARY_CARDS,
 ): LibraryCard[] {
-  const q = query.trim().toLowerCase();
+  const q = fold(query.trim());
   const tagMatches = (tag: string) =>
-    tag.replaceAll("_", " ").includes(q) ||
-    tagLabel(tag, lang).toLowerCase().includes(q) ||
-    tagLabel(tag, "en").toLowerCase().includes(q);
+    fold(tag.replaceAll("_", " ")).includes(q) ||
+    fold(tagLabel(tag, lang)).includes(q) ||
+    fold(tagLabel(tag, "en")).includes(q) ||
+    (TAG_SYNONYMS[tag] ?? []).some((word) => fold(word).includes(q));
   return cardsToSearch.filter(
     (c) =>
       (!contextTag || c.context_tags.includes(contextTag)) &&
       (!effectTag || c.effect_tags.includes(effectTag)) &&
       (!q ||
-        c.title[lang].toLowerCase().includes(q) ||
-        c.technique[lang].toLowerCase().includes(q) ||
+        fold(c.title[lang]).includes(q) ||
+        fold(c.technique[lang]).includes(q) ||
         c.context_tags.some(tagMatches) ||
         c.effect_tags.some(tagMatches)),
   );

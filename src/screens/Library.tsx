@@ -29,6 +29,25 @@ export function Library() {
     [query, contextTag, effectTag, lang],
   );
 
+  // Typing into the search box silently rewrites the list below it. Announce
+  // how many cards are left — but on a delay, because a region that fires on
+  // every keystroke talks over the letters the user is still typing.
+  const [countMessage, setCountMessage] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setCountMessage(
+        list.length === 0
+          ? t("noResults")
+          : list.length === 1
+            ? t("resultCountOne")
+            : t("resultCount", { n: list.length }),
+      );
+    }, 600);
+    return () => clearTimeout(id);
+    // `t` is re-created each render; the result count is the real input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.length, lang]);
+
   return (
     <div className="pt-2 lg:pt-0">
       <section className="snap-section">
@@ -63,6 +82,10 @@ export function Library() {
         lang={lang}
       />
       </section>
+
+      <span role="status" aria-live="polite" className="sr-only">
+        {countMessage}
+      </span>
 
       {list.length === 0 ? (
         <p className="mt-10 text-center text-sm text-muted">{t("noResults")}</p>

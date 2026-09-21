@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { Icon } from "./Icon";
@@ -14,6 +14,18 @@ const NAV = [
 
 /** Tab order for swipe navigation — matches the bottom bar left to right. */
 const TAB_ORDER = ["/", "/scenarios", "/library", "/progress"];
+
+/** What each route is called, for the navigation announcement. */
+function routeNameKey(pathname: string) {
+  if (pathname === "/") return "navToday" as const;
+  if (pathname === "/scenarios") return "navScenarios" as const;
+  if (pathname === "/library") return "navLibrary" as const;
+  if (pathname === "/progress") return "navProgress" as const;
+  if (pathname === "/settings") return "navSettings" as const;
+  if (pathname === "/session") return "routeSession" as const;
+  if (pathname.startsWith("/feedback")) return "routeFeedback" as const;
+  return null;
+}
 
 /** A horizontal swipe must travel this far and stay flatter than 1:1.4. */
 const SWIPE_MIN_PX = 56;
@@ -69,6 +81,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (isSnapRoute(pathname)) root.setAttribute("data-snap", "");
     else root.removeAttribute("data-snap");
     return () => root.removeAttribute("data-snap");
+  }, [pathname]);
+
+  // A client-side route change moves nothing a screen reader can feel: the URL
+  // changes, the DOM swaps, and the user is left reading the old page's tail.
+  // Say where they are, and park the cursor at the top of the new screen so
+  // the next Tab or swipe starts there rather than back in the tab bar.
+  const [routeMessage, setRouteMessage] = useState("");
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      return; // the initial load already announces itself
+    }
+    const key = routeNameKey(pathname);
+    setRouteMessage(key ? t("routeAnnouncement", { name: t(key) }) : "");
+    mainRef.current?.focus();
+    // `t` changes identity every render; the pathname is what this reacts to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   function onTouchStart(e: TouchEvent<HTMLElement>) {
@@ -204,11 +234,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
+        {/* Navigation announcement. Outside <main> so replacing its contents
+            can never take the live region down with it mid-announcement. */}
+        <span role="status" aria-live="polite" className="sr-only">
+          {routeMessage}
+        </span>
+
         <main
           ref={mainRef}
+          tabIndex={-1}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          className="mx-auto w-full max-w-md flex-1 px-5 pb-28 lg:max-w-3xl lg:px-10 lg:py-10 lg:pb-10 overflow-x-clip"
+          className="mx-auto w-full max-w-md flex-1 px-5 pb-28 focus:outline-none lg:max-w-3xl lg:px-10 lg:py-10 lg:pb-10 overflow-x-clip"
         >
           {/* Screens slide in horizontally, matching the swipe direction */}
           <motion.div
