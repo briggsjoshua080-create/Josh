@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { resetAllData } from "@/lib/db";
+import { isStoragePersisted, resetAllData } from "@/lib/db";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/Button";
 import type { Lang } from "@/lib/types";
@@ -19,14 +19,32 @@ export function Settings() {
   const { t, lang, setLang } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [resetFailed, setResetFailed] = useState(false);
+  const [persisted, setPersisted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    isStoragePersisted().then((p) => alive && setPersisted(p));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function reset() {
     setBusy(true);
+    setResetFailed(false);
     try {
       await resetAllData();
-    } finally {
-      // Hard reload: the app boots on empty stores, i.e. first-launch state.
+      // Hard reload only on success: the app boots on empty stores, i.e.
+      // first-launch state.
       window.location.replace("/");
+    } catch (err) {
+      // Reloading here would show the user a "fresh" app with their data still
+      // on disk, right after a dialog promising the wipe was permanent. The
+      // usual cause is another tab holding the database open.
+      console.error("Settings: reset failed", err);
+      setBusy(false);
+      setResetFailed(true);
     }
   }
 
@@ -55,12 +73,29 @@ export function Settings() {
         </div>
       </section>
 
+      {/* Storage — this device holds the only copy, so its durability is worth stating. */}
+      {persisted !== null && (
+        <section className="mt-10">
+          <h2 className="label-caps">{t("storageTitle")}</h2>
+          <div className="mt-3 box p-5">
+            <p className="text-sm leading-relaxed text-muted">
+              {persisted ? t("storagePersisted") : t("storageBestEffort")}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* Data */}
       <section className="mt-10">
         <h2 className="label-caps">{t("settingsDataTitle")}</h2>
         <div className="mt-3 box p-5">
           <h3 className="text-base font-medium text-ink">{t("resetDataTitle")}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-muted">{t("resetDataDesc")}</p>
+          {resetFailed && (
+            <p role="alert" className="mt-3 rounded-(--radius-control) bg-bad/10 px-4 py-3 text-sm text-bad">
+              {t("resetFailed")}
+            </p>
+          )}
           <Button
             variant="ghost"
             className="mt-4 border-bad/60 text-bad hover:bg-bad/10 active:bg-bad/15"

@@ -407,6 +407,19 @@ export const strings = {
   resetConfirmYes: { en: "Yes, reset everything", de: "Ja, alles zurücksetzen" },
   resetConfirmCancel: { en: "Cancel", de: "Abbrechen" },
   resetWorking: { en: "Resetting…", de: "Wird zurückgesetzt…" },
+  resetFailed: {
+    en: "The reset didn't complete — your data is still here. Close any other tabs with Orato open, then try again.",
+    de: "Das Zurücksetzen ist nicht durchgelaufen — deine Daten sind noch da. Schließe andere Tabs mit Orato und versuch es erneut.",
+  },
+  storageTitle: { en: "Storage", de: "Speicher" },
+  storagePersisted: {
+    en: "Your practice history is marked as persistent, so the browser won't evict it to reclaim space.",
+    de: "Dein Übungsverlauf ist als dauerhaft markiert — der Browser löscht ihn nicht, um Platz zu schaffen.",
+  },
+  storageBestEffort: {
+    en: "Your history is stored on a best-effort basis: the browser may delete it if the device runs low on space, and there is no backup. Complete a session to request persistent storage.",
+    de: "Dein Verlauf wird nur „so gut es geht“ gespeichert: Bei Speichermangel kann der Browser ihn löschen, und es gibt kein Backup. Schließe eine Übung ab, um dauerhaften Speicher anzufordern.",
+  },
 
   // Storage / load failures
   dataUnavailableTitle: {

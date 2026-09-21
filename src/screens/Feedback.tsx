@@ -121,7 +121,13 @@ export function Feedback() {
         wpm: s.metrics.wpm,
         xpPending: false,
       };
-      await db.sessions.update(s.id!, { report, progress });
+      // Keep the legacy `scores.overall` in step with the 8-metric score.
+      // It was written once at save time from delivery signals only and never
+      // updated, so Progress — which falls back to it — mixed two
+      // incompatible scales: an unanalysed session could out-rank an analysed
+      // one purely by having decent pace.
+      const legacyScores = { ...s.scores, overall: overallScore };
+      await db.sessions.update(s.id!, { report, progress, scores: legacyScores });
       const after = await recomputeProgress();
 
       // The report is saved either way; the screen is only updated if it is
@@ -138,7 +144,7 @@ export function Feedback() {
           levelUp: levelNow.level > levelForXp(xpBefore).level ? levelNow : null,
         });
       }
-      setSession({ ...s, report, progress });
+      setSession({ ...s, report, progress, scores: legacyScores });
       setPhase("ready");
     } catch (err) {
       if (!(err instanceof CoachUnavailableError)) console.error(err);

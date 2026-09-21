@@ -9,7 +9,13 @@ import { computeMetrics } from "@/lib/metrics";
 import { blendScores, type Scenario } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
-import { dailyWordIndex, dailyScenarioId, saveSession, sessionDateISO } from "@/lib/db";
+import {
+  dailyWordIndex,
+  dailyScenarioId,
+  requestPersistentStorage,
+  saveSession,
+  sessionDateISO,
+} from "@/lib/db";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -270,6 +276,11 @@ export function Session() {
       promptText,
       wordOfDay: word?.word,
     });
+
+    // Now that there is something worth keeping, ask the browser not to evict
+    // it. Deliberately after the first successful save: any prompt then arrives
+    // attached to work the user just did, not on a cold first launch.
+    void requestPersistentStorage();
 
     navigate(`/feedback/${id}?fresh=1`, { replace: true });
   }

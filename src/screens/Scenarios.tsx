@@ -4,29 +4,14 @@ import { useI18n } from "@/lib/i18n";
 import { allSessions } from "@/lib/db";
 import { SCENARIOS } from "@/data/scenarios";
 import { CATEGORIES, DIFFICULTY_LABEL } from "@/data/categories";
-import { SKILLS, type SkillDimension } from "@/data/skills";
+import { SKILLS, METRIC_TO_DIMENSIONS } from "@/data/skills";
+import { METRIC_META } from "@/lib/metricMeta";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/Button";
 import { CardDeck } from "@/components/CardDeck";
 import { FilterPill } from "@/components/FilterPill";
 import { LoadError } from "@/components/LoadError";
-import type { StringKey } from "@/lib/strings";
-import type { CategoryId, Scenario, Session } from "@/lib/types";
-
-/** Feedback-report label key per recommendable score dimension. */
-const DIMENSION_LABEL: Record<SkillDimension, StringKey> = {
-  pace: "scorePace",
-  volume: "scoreVolume",
-  fillers: "scoreFillers",
-  fluency: "scoreFluency",
-  eloquence: "scoreEloquence",
-  structure: "scoreStructure",
-  stylistic: "scoreStyle",
-  comprehensiveness: "scoreComprehensiveness",
-  logic: "scoreLogic",
-  phrasing: "scorePhrasing",
-  professionalism: "scoreProfessionalism",
-};
+import { METRIC_KEYS, type CategoryId, type MetricKey, type Scenario, type Session } from "@/lib/types";
 
 /** Rounded-up rehearsal length in minutes from the scenario's target range. */
 function estMinutes(s: Scenario): number {
@@ -76,20 +61,28 @@ export function Scenarios() {
    */
   const recommended = useMemo(() => {
     if (!sessions) return null;
-    const latest = [...sessions].sort((a, b) => b.startedAt - a.startedAt)[0];
-    let weakest: SkillDimension | null = null;
-    if (latest) {
+    // Only a fully analysed session has all eight metrics; an offline one has
+    // just pace and fluency, so its "weakest" would be misleading.
+    const latest = [...sessions]
+      .filter((s) => s.progress?.xpPending === false && s.progress.scores)
+      .sort((a, b) => b.startedAt - a.startedAt)[0];
+
+    let weakest: MetricKey | null = null;
+    if (latest?.progress) {
       let min = Infinity;
-      for (const dim of Object.keys(DIMENSION_LABEL) as SkillDimension[]) {
-        const v = latest.scores[dim];
+      for (const key of METRIC_KEYS) {
+        const v = latest.progress.scores[key];
         if (v !== null && v < min) {
           min = v;
-          weakest = dim;
+          weakest = key;
         }
       }
     }
-    const cats = weakest
-      ? (Object.keys(SKILLS) as CategoryId[]).filter((c) => SKILLS[c].dimensions.includes(weakest))
+    const dimensions = weakest ? METRIC_TO_DIMENSIONS[weakest] : [];
+    const cats = dimensions.length
+      ? (Object.keys(SKILLS) as CategoryId[]).filter((c) =>
+          SKILLS[c].dimensions.some((d) => dimensions.includes(d)),
+        )
       : [];
     const pool = cats.length ? SCENARIOS.filter((s) => cats.includes(s.category)) : SCENARIOS;
     const byEase = (a: Scenario, b: Scenario) => a.difficulty - b.difficulty;
@@ -185,7 +178,7 @@ export function Scenarios() {
             <h3 className="lectern mt-3 text-xl text-ink">{recommended.scenario.title[lang]}</h3>
             {recommended.weakest && (
               <p className="mt-1.5 text-sm leading-relaxed text-muted">
-                {t("recommendedReason", { dim: t(DIMENSION_LABEL[recommended.weakest]) })}
+                {t("recommendedReason", { dim: t(METRIC_META[recommended.weakest].nameKey) })}
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
