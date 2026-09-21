@@ -8,6 +8,7 @@ import { averageEight, levelForXp, type ProgressState } from "@/lib/progression"
 import { scoreColorVar } from "@/lib/scoreColor";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { LoadError } from "@/components/LoadError";
 import { TrendChart } from "@/components/TrendChart";
 import { MetricRadar } from "@/components/progress/MetricRadar";
 
@@ -16,16 +17,43 @@ export function Progress() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
   const [streak, setStreak] = useState(0);
   const [progress, setProgress] = useState<ProgressState | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      setSessions(await allSessions());
-      setStreak(await currentStreak());
-      // Recompute on entry: cheap, and self-heals after retries or old data.
-      setProgress(await recomputeProgress());
+      try {
+        const [loaded, streakDays, state] = await Promise.all([
+          allSessions(),
+          currentStreak(),
+          // Recompute on entry: cheap, and self-heals after retries or old data.
+          recomputeProgress(),
+        ]);
+        if (!alive) return;
+        setSessions(loaded);
+        setStreak(streakDays);
+        setProgress(state);
+      } catch (err) {
+        console.error("Progress: failed to load", err);
+        if (alive) setFailed(true);
+      }
     })();
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [attempt]);
 
+  if (failed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
   if (!sessions || !progress) return <ProgressSkeleton />;
 
   if (sessions.length === 0) {

@@ -29,7 +29,8 @@ interface SpeechRecognitionEventLike {
 }
 
 const RECOGNITION_LANG: Record<Lang, string> = { en: "en-US", de: "de-DE" };
-const PAUSE_THRESHOLD_MS = 1500;
+/** Silence at or beyond this counts as a pause — on-mic or paused alike. */
+export const PAUSE_THRESHOLD_MS = 1500;
 
 export function speechSupported(): boolean {
   const w = window as unknown as Record<string, unknown>;
@@ -229,6 +230,18 @@ export class SpeechSession {
 
   stop(): RecorderResult {
     this.running = false;
+
+    // Keep the sentence still in flight. Recognition finalizes a phrase 1–3s
+    // after it is spoken, so the last thing the user said is usually still
+    // interim when they tap Finish — and they have already watched it render.
+    // Without this it is dropped from the transcript, the word count, and
+    // everything derived from them, at every stop (including every pause).
+    const pending = this.interim.trim();
+    if (pending) {
+      this.segments.push({ text: pending, t: Math.round(performance.now() - this.startedAt) });
+      this.interim = "";
+    }
+
     // Close any open pause at stop time.
     if (this.pauseOpenSince !== null) {
       const dur = performance.now() - this.pauseOpenSince;
@@ -242,7 +255,9 @@ export class SpeechSession {
     if (this.tickTimer !== null) clearInterval(this.tickTimer);
     if (this.levelRaf !== null) cancelAnimationFrame(this.levelRaf);
     try {
-      this.recognition?.stop();
+      // abort() only — stop() would try to flush a final result we cannot
+      // wait for (this method returns synchronously), and calling both
+      // discarded that result anyway. The pending text is captured above.
       this.recognition?.abort();
     } catch {
       /* noop */

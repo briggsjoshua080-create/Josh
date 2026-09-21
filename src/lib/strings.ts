@@ -408,6 +408,22 @@ export const strings = {
   resetConfirmCancel: { en: "Cancel", de: "Abbrechen" },
   resetWorking: { en: "Resetting…", de: "Wird zurückgesetzt…" },
 
+  // Storage / load failures
+  dataUnavailableTitle: {
+    en: "Couldn't load your data",
+    de: "Deine Daten konnten nicht geladen werden",
+  },
+  dataUnavailableBody: {
+    en: "Your practice history is stored on this device and hasn't been deleted — the app just couldn't reach it. Close any other open tabs and try again.",
+    de: "Dein Übungsverlauf liegt auf diesem Gerät und wurde nicht gelöscht — die App konnte nur nicht darauf zugreifen. Schließe andere offene Tabs und versuch es erneut.",
+  },
+  retry: { en: "Try again", de: "Erneut versuchen" },
+  saveFailedTitle: { en: "Couldn't save this recording", de: "Aufnahme konnte nicht gespeichert werden" },
+  saveFailedBody: {
+    en: "Your words are still here. This device may be out of storage space — free some up, then try again.",
+    de: "Deine Aufnahme ist noch da. Möglicherweise ist der Speicher voll — gib etwas frei und versuch es erneut.",
+  },
+
   // Misc
   minutes: { en: "min", de: "Min." },
   seconds: { en: "s", de: "s" },

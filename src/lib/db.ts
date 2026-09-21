@@ -69,6 +69,17 @@ export function todayISO(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * The calendar date a session belongs to, anchored to when the recording
+ * STARTED rather than when it was saved. A take begun at 23:59 finishes on
+ * the following date; stamping it then would leave the day the user actually
+ * practiced with no session at all, breaking a streak with no way to repair
+ * it (no accounts, no backup, no edit UI).
+ */
+export function sessionDateISO(startedAt: number): string {
+  return todayISO(new Date(startedAt));
+}
+
 export async function saveSession(s: Session): Promise<number> {
   return (await db.sessions.add(s)) as number;
 }

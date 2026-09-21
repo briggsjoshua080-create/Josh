@@ -9,5 +9,8 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
+    // Node has no IndexedDB, so without this db.ts is untestable — which is
+    // how the file holding all unrecoverable user data ended up uncovered.
+    setupFiles: ["fake-indexeddb/auto"],
   },
 });

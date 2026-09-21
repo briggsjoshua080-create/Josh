@@ -9,13 +9,18 @@ import "@fontsource-variable/bodoni-moda";
 import "./styles/theme.css";
 import App from "./App";
 import { LanguageProvider } from "./lib/i18n";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <LanguageProvider>
-        <App />
-      </LanguageProvider>
-    </BrowserRouter>
+    {/* Outside the providers: a throw inside one of them is exactly the case
+        that used to blank the page. */}
+    <ErrorBoundary>
+      <BrowserRouter>
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );

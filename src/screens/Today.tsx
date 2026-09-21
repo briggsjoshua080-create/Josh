@@ -8,6 +8,7 @@ import { SCENARIOS } from "@/data/scenarios";
 import { DIFFICULTY_LABEL } from "@/data/categories";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { LoadError } from "@/components/LoadError";
 import { SnapSection } from "@/components/SnapSection";
 import { TodayHero } from "@/components/TodayHero";
 import { FlipCard } from "@/components/kokonut/FlipCard";
@@ -26,20 +27,42 @@ export function Today() {
     scenario: Scenario;
   } | null>(null);
   const [todaySession, setTodaySession] = useState<Session | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      const { day, doneToday } = await dailyPathState();
-      const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(), dailyScenarioId(day)]);
-      const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
-      setState({ day, doneToday, wordIndex, scenario });
-      if (doneToday) {
-        const sessions = await db.sessions.where("day").equals(day).toArray();
-        setTodaySession(sessions[sessions.length - 1] ?? null);
+      try {
+        const { day, doneToday } = await dailyPathState();
+        const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(), dailyScenarioId(day)]);
+        const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
+        if (!alive) return;
+        setState({ day, doneToday, wordIndex, scenario });
+        if (doneToday) {
+          const sessions = await db.sessions.where("day").equals(day).toArray();
+          if (alive) setTodaySession(sessions[sessions.length - 1] ?? null);
+        }
+      } catch (err) {
+        console.error("Today: failed to load", err);
+        if (alive) setFailed(true);
       }
     })();
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [attempt]);
 
+  if (failed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
   if (!state) return <ScreenSkeleton />;
 
   const { scenario: challenge } = state;

@@ -15,13 +15,14 @@ import { Meter } from "@/components/Meter";
 import { Sparkline } from "@/components/Sparkline";
 import { ScoreRing } from "@/components/ScoreRing";
 import { CoachListening } from "@/components/CoachListening";
+import { LoadError } from "@/components/LoadError";
 import { ParticleBurst } from "@/components/kokonut/ParticleBurst";
 import { MetricRadar } from "@/components/progress/MetricRadar";
 
 /** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
 const PACE_DOMAIN: [number, number] = [60, 220];
 
-type Phase = "loading" | "ready" | "offline" | "missing";
+type Phase = "loading" | "ready" | "offline" | "missing" | "failed";
 
 interface Earned {
   xp: number;
@@ -43,26 +44,53 @@ export function Feedback() {
   const inFlight = useRef(false);
 
   useEffect(() => {
+    // Reset per id: without this, switching sessions would render the old
+    // score, XP chip and radar under the new session's URL.
+    let alive = true;
+    setSession(null);
+    setPrevious(null);
+    setEarned(null);
+    setPhase("loading");
+    inFlight.current = false;
+
     (async () => {
-      const s = await getSession(Number(id));
-      if (!s) {
-        // Bad deep link or wiped store: without this the skeleton never resolves.
-        setPhase("missing");
-        return;
+      try {
+        const s = await getSession(Number(id));
+        if (!alive) return;
+        if (!s) {
+          // Bad deep link or wiped store: without this the skeleton never resolves.
+          setPhase("missing");
+          return;
+        }
+        setSession(s);
+        const earlier = (await allSessions())
+          .filter((o) => o.id !== s.id && o.startedAt < s.startedAt && o.progress?.scores)
+          .sort((a, b) => a.startedAt - b.startedAt)
+          .pop();
+        if (!alive) return;
+        setPrevious(earlier?.progress?.scores ?? null);
+        if (s.report) setPhase("ready");
+        else await fetchReport(s, () => alive);
+      } catch (err) {
+        console.error("Feedback: failed to load session", err);
+        if (alive) setPhase("failed");
       }
-      setSession(s);
-      const earlier = (await allSessions())
-        .filter((o) => o.id !== s.id && o.startedAt < s.startedAt && o.progress?.scores)
-        .sort((a, b) => a.startedAt - b.startedAt)
-        .pop();
-      setPrevious(earlier?.progress?.scores ?? null);
-      if (s.report) setPhase("ready");
-      else await fetchReport(s);
     })();
+
+    return () => {
+      // Stops an in-flight analysis from writing to a screen the user left —
+      // and from racing a second request to the database.
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function fetchReport(s: Session) {
+  /**
+   * `isAlive` lets an analysis that outlived its screen finish quietly: the
+   * report is still worth persisting (the user paid for it), but it must not
+   * touch React state or race a newer request's write.
+   */
+  async function fetchReport(s: Session, isAlive: () => boolean = () => true) {
     if (inFlight.current) return;
     inFlight.current = true;
     setPhase("loading");
@@ -96,7 +124,13 @@ export function Feedback() {
       await db.sessions.update(s.id!, { report, progress });
       const after = await recomputeProgress();
 
-      if (wasPending) {
+      // The report is saved either way; the screen is only updated if it is
+      // still the one the user is looking at.
+      if (!isAlive()) return;
+
+      // The XP flourish celebrates a gain, so it only fires on a fresh
+      // analysis — not when browsing an old session out of history.
+      if (wasPending && fresh) {
         const levelNow = levelForXp(after.cumulativeXp);
         setEarned({
           xp: xpEarned,
@@ -108,9 +142,25 @@ export function Feedback() {
       setPhase("ready");
     } catch (err) {
       if (!(err instanceof CoachUnavailableError)) console.error(err);
+      if (!isAlive()) return;
       setPhase("offline");
     }
     inFlight.current = false;
+  }
+
+  if (phase === "failed") {
+    return (
+      <LoadError
+        onRetry={() => {
+          setPhase("loading");
+          setSession(null);
+          // Re-mounting the effect by touching the key it depends on isn't
+          // available here, so a reload is the honest retry for a store that
+          // would not open at all.
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   if (phase === "missing") {

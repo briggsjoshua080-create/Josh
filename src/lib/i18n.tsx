@@ -13,8 +13,16 @@ interface LangCtx {
 const Ctx = createContext<LangCtx | null>(null);
 
 function detectLang(): Lang {
-  const stored = localStorage.getItem(LANG_KEY);
-  if (stored === "de" || stored === "en") return stored;
+  // localStorage THROWS (not returns null) where site data is blocked —
+  // third-party-cookie blocking, some WebViews, strict privacy modes. This
+  // runs during the provider's first render, above every route, so an
+  // unguarded read blanks the whole app on launch.
+  try {
+    const stored = localStorage.getItem(LANG_KEY);
+    if (stored === "de" || stored === "en") return stored;
+  } catch {
+    /* storage unavailable — fall through to the browser's language */
+  }
   return navigator.language.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
@@ -26,12 +34,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   const setLang = (l: Lang) => {
-    localStorage.setItem(LANG_KEY, l);
+    try {
+      localStorage.setItem(LANG_KEY, l);
+    } catch {
+      /* can't persist the choice, but it still applies for this session */
+    }
     setLangState(l);
   };
 
   const t: LangCtx["t"] = (key, vars) => {
-    let s: string = strings[key][lang];
+    // A key missing at runtime (one indexed from a Record rather than a
+    // literal) would otherwise throw and blank the screen. A visibly wrong
+    // label is a far better failure than no app.
+    let s: string = strings[key]?.[lang] ?? key;
     if (vars) {
       for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
     }

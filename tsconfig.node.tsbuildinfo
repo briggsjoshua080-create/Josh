@@ -1,1 +1,1 @@
-{"root":["./vite.config.ts"],"version":"6.0.3"}
+{"root":["./vite.config.ts","./server/coach.ts","./api/feedback.ts"],"version":"6.0.3"}

@@ -9,6 +9,7 @@ import { Icon } from "@/components/Icon";
 import { Button } from "@/components/Button";
 import { CardDeck } from "@/components/CardDeck";
 import { FilterPill } from "@/components/FilterPill";
+import { LoadError } from "@/components/LoadError";
 import type { StringKey } from "@/lib/strings";
 import type { CategoryId, Scenario, Session } from "@/lib/types";
 
@@ -41,13 +42,21 @@ export function Scenarios() {
   /** null while IndexedDB is still answering — drives the skeleton state. */
   const [sessions, setSessions] = useState<Session[] | null>(null);
 
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     let alive = true;
-    allSessions().then((s) => alive && setSessions(s));
+    allSessions()
+      .then((s) => alive && setSessions(s))
+      .catch((err) => {
+        console.error("Scenarios: failed to load sessions", err);
+        if (alive) setFailed(true);
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
 
   /** Best overall score per practiced scenario — the card's mastery %. */
   const masteryById = useMemo(() => {
@@ -114,6 +123,16 @@ export function Scenarios() {
   const start = (s: Scenario) => navigate(`/session?kind=scenario&id=${s.id}`);
   const catOf = (s: Scenario) => CATEGORIES.find((c) => c.id === s.category)!;
 
+  if (failed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
   if (sessions === null) return <ScenariosSkeleton title={t("libraryTitle")} />;
 
   return (

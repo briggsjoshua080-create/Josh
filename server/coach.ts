@@ -183,28 +183,78 @@ const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 8;
 const requestLog = new Map<string, number[]>();
 
+let lastSweep = 0;
+
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const recent = (requestLog.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  recent.push(now);
-  requestLog.set(ip, recent);
-  // Keep the map from growing unbounded over a long-lived instance.
-  if (requestLog.size > 5000) {
+  const limited = recent.length >= RATE_LIMIT_MAX;
+
+  // Only record attempts that were actually allowed. Recording blocked ones
+  // too would let a hammering client extend its own lockout indefinitely —
+  // and would punish a legitimate user for tapping Retry.
+  if (!limited) {
+    recent.push(now);
+    requestLog.set(ip, recent);
+  }
+
+  // Keep the map bounded, but sweep at most once a minute: re-scanning it on
+  // every request is the wrong behavior under exactly the flood it exists for.
+  if (requestLog.size > 5000 && now - lastSweep > 60_000) {
+    lastSweep = now;
     for (const [key, times] of requestLog) {
       if (times.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) requestLog.delete(key);
     }
   }
-  return recent.length > RATE_LIMIT_MAX;
+  return limited;
 }
 
-function validate(body: unknown): FeedbackRequest | null {
+/**
+ * Size ceilings. Every one of these fields is interpolated into a paid API
+ * call, so an unbounded field is an unbounded bill — capping only the
+ * transcript left a ~45x cost multiplier reachable from one request. The
+ * limits are generous against real sessions: the longest plausible recording
+ * transcribes to roughly 3,000 characters.
+ */
+const LIMITS = {
+  body: 80_000,
+  transcript: 12_000,
+  promptText: 2_000,
+  promptTitle: 200,
+  wordOfDay: 100,
+  metricsJson: 4_000,
+  durationSec: 3_600,
+} as const;
+
+export function validate(body: unknown): FeedbackRequest | null {
   if (typeof body !== "object" || body === null) return null;
   const b = body as Record<string, unknown>;
   if (b.lang !== "en" && b.lang !== "de") return null;
+
   if (typeof b.transcript !== "string" || b.transcript.trim().split(/\s+/).length < 5) return null;
-  if (b.transcript.length > 60_000) return null;
-  if (typeof b.promptText !== "string" || typeof b.promptTitle !== "string") return null;
-  if (typeof b.durationSec !== "number" || typeof b.metrics !== "object" || b.metrics === null) return null;
+  if (b.transcript.length > LIMITS.transcript) return null;
+
+  if (typeof b.promptText !== "string" || b.promptText.length > LIMITS.promptText) return null;
+  if (typeof b.promptTitle !== "string" || b.promptTitle.length > LIMITS.promptTitle) return null;
+
+  if (b.wordOfDay !== undefined) {
+    if (typeof b.wordOfDay !== "string" || b.wordOfDay.length > LIMITS.wordOfDay) return null;
+  }
+
+  if (typeof b.durationSec !== "number" || !Number.isFinite(b.durationSec)) return null;
+  if (b.durationSec <= 0 || b.durationSec > LIMITS.durationSec) return null;
+
+  if (typeof b.metrics !== "object" || b.metrics === null) return null;
+  // The metrics object is stringified into the prompt, so its serialized size
+  // is what actually costs money — not its key count.
+  let metricsJson: string;
+  try {
+    metricsJson = JSON.stringify(b.metrics);
+  } catch {
+    return null; // circular or otherwise unserializable
+  }
+  if (metricsJson.length > LIMITS.metricsJson) return null;
+
   return b as unknown as FeedbackRequest;
 }
 
@@ -220,6 +270,11 @@ export async function handleFeedback(
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return { status: 503, body: JSON.stringify({ error: "no_key" }) };
+  }
+
+  // Reject an oversized body before spending CPU parsing it.
+  if (bodyText.length > LIMITS.body) {
+    return { status: 413, body: JSON.stringify({ error: "too_large" }) };
   }
 
   let parsed: unknown;
@@ -248,7 +303,11 @@ export async function handleFeedback(
   try {
     const response = await client.messages.create({
       model: env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
-      max_tokens: 4096,
+      // Thinking tokens count against this ceiling, so 4096 could be spent
+      // reasoning before the ~1k-token report started — truncating it into
+      // invalid JSON that we had already paid for. This is a ceiling, not a
+      // target: requests that don't need the room don't pay for it.
+      max_tokens: 16_000,
       thinking: { type: "adaptive" },
       output_config: {
         effort: "medium",
@@ -260,6 +319,11 @@ export async function handleFeedback(
 
     if (response.stop_reason === "refusal") {
       return { status: 502, body: JSON.stringify({ error: "refused" }) };
+    }
+    // A truncated report is billed in full and its JSON will not parse, so
+    // name it rather than letting it fall through as a generic server error.
+    if (response.stop_reason === "max_tokens") {
+      return { status: 502, body: JSON.stringify({ error: "truncated" }) };
     }
     const text = response.content.find((b) => b.type === "text");
     if (!text || text.type !== "text") {
@@ -275,7 +339,10 @@ export async function handleFeedback(
       return { status: 429, body: JSON.stringify({ error: "rate_limited" }) };
     }
     if (err instanceof Anthropic.APIError) {
-      return { status: 502, body: JSON.stringify({ error: "upstream", detail: err.message }) };
+      // Log upstream detail server-side only: it can disclose billing state
+      // and key validity, and the client discards it anyway.
+      console.error("anthropic upstream error:", err.message);
+      return { status: 502, body: JSON.stringify({ error: "upstream" }) };
     }
     return { status: 500, body: JSON.stringify({ error: "server_error" }) };
   }

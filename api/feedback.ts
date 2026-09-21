@@ -9,11 +9,41 @@ type ResponseLike = {
   end?: (data?: string) => void;
 };
 
+/**
+ * A cross-origin POST with `content-type: text/plain` is a CORS *simple*
+ * request: no preflight, so it executes and bills us even though the attacker
+ * never sees the response. Any third-party page could therefore spend the
+ * API budget through its visitors' browsers — from their real IPs, which
+ * defeats per-IP limiting too. Requiring JSON and a same-origin Origin closes
+ * that without affecting the app's own same-origin fetch.
+ */
+function isAllowedRequest(req: IncomingMessage): boolean {
+  const contentType = req.headers["content-type"] ?? "";
+  if (!contentType.toLowerCase().startsWith("application/json")) return false;
+
+  const origin = req.headers.origin;
+  if (!origin) return true; // same-origin fetches may omit it entirely
+
+  const host = req.headers.host;
+  try {
+    return !!host && new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req: IncomingMessage & { body?: string }, res: ResponseLike) {
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.setHeader?.("content-type", "application/json");
     res.end?.(JSON.stringify({ error: "method_not_allowed" }));
+    return;
+  }
+
+  if (!isAllowedRequest(req)) {
+    res.statusCode = 403;
+    res.setHeader?.("content-type", "application/json");
+    res.end?.(JSON.stringify({ error: "forbidden" }));
     return;
   }
 
