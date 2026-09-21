@@ -39,7 +39,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 flex items-end justify-center bg-black/60 p-5 sm:items-center"
+      className="fixed inset-0 flex items-end justify-center bg-obsidian/70 p-5 sm:items-center"
       style={{ zIndex: "var(--z-backdrop)" }}
       onClick={busy ? undefined : onCancel}
     >

@@ -44,4 +44,9 @@ Composed, candid, theatrical-in-restraint. Three words: **stage, craft, candor**
 
 ## Accessibility & Inclusion
 
-WCAG AA minimum: body text ≥4.5:1 on all surfaces (verified against the dark palette), full keyboard operability, visible focus rings, `prefers-reduced-motion` alternatives for every animation (crossfade or instant). Microphone and speech-recognition permission states handled explicitly with recovery paths. Works offline as a PWA shell; recording requires the mic but browsing content does not.
+WCAG AA minimum: body text ≥4.5:1 on all surfaces, full keyboard operability, visible focus rings, `prefers-reduced-motion` alternatives for every animation (crossfade or instant). Microphone and speech-recognition permission states handled explicitly with recovery paths. Works offline as a PWA shell; recording requires the mic but browsing content does not.
+
+The contrast claim is enforced, not asserted: `tests/styles/contrast.test.ts` computes every text role against every surface and fails below 4.5:1. It exists because this section previously claimed the palette had been "verified against the dark palette" when it had not — three roles were shipping between 2.24:1 and 4.37:1. Two things made that easy to miss, and both are worth knowing before touching colour:
+
+- **The class name and the token name disagree.** Tailwind's `text-muted` resolves to `--text-secondary` (gold, comfortably passing), while `text-faint` resolves to `--text-muted` (the role that was failing). Auditing "muted" checks the wrong colour.
+- **Text and structure need different bars.** The wine and bronze ramp steps are correct for hairlines, icon strokes and chart bars at 3:1. Type needs 4.5:1, so the text roles (`--text-muted`, `--text-tertiary`, `--text-negative`) point at lighter ramp steps while `--border-emphasis` and `--score-weak` keep the darker originals. Lightening the shared ramp instead would wash out the structure the design depends on.

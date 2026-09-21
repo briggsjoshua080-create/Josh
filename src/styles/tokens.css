@@ -10,9 +10,16 @@
   --orato-wine: #4a1420;
   --orato-claret: #722f37;
   --orato-claret-light: #8e4750;
+  /* One step further up the wine ramp, for small text. claret-light measures
+     2.24:1 on bg-surface-raised — nowhere near the 4.5:1 this product claims —
+     and it carries real content: "tap to reveal", per-row XP, source citations. */
+  --orato-claret-pale: #cc8189;
 
   /* Metals — gold ramp */
   --orato-bronze: #7a5a31;
+  /* Text-safe bronze. The darker step stays for borders and icon strokes, where
+     3:1 is the correct bar; this one is for type (4.75:1 on the worst surface). */
+  --orato-bronze-light: #b58a4e;
   --orato-gold: #c9a876;
   --orato-champagne: #e0c795;
   --orato-vellum: #efdfbb;
@@ -21,6 +28,8 @@
   --orato-verdigris: #6fa88c;
   --orato-ochre: #d9954a;
   --orato-bole: #c05553;
+  /* Text-safe bole, for error copy and destructive labels. */
+  --orato-bole-light: #d87a77;
   --orato-lapis: #5c87a8;
 
   /* Roles — components MUST use these, never the raw ramp values above */
@@ -32,7 +41,12 @@
   --border-emphasis: var(--orato-bronze);
   --text-primary: var(--orato-vellum);
   --text-secondary: var(--orato-gold);
-  --text-muted: var(--orato-claret-light);
+  --text-muted: var(--orato-claret-pale);
+  /* Type on a wine ground; distinct from --border-emphasis, which is the same
+     hue family kept dark on purpose. Splitting them is what lets both bars be
+     right: 4.5:1 for text, 3:1 for a line. */
+  --text-tertiary: var(--orato-bronze-light);
+  --text-negative: var(--orato-bole-light);
   --accent: var(--orato-gold);
 
   --score-excellent: var(--orato-verdigris);

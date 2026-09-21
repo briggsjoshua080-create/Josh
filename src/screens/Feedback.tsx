@@ -17,7 +17,7 @@ import { ScoreRing } from "@/components/ScoreRing";
 import { CoachListening } from "@/components/CoachListening";
 import { LoadError } from "@/components/LoadError";
 import { ParticleBurst } from "@/components/kokonut/ParticleBurst";
-import { MetricRadar } from "@/components/progress/MetricRadar";
+import { MetricRadar, MetricRadarSkeleton } from "@/components/progress/MetricRadar";
 
 /** Pace meter domain: 60–220 wpm covers everything a human plausibly records. */
 const PACE_DOMAIN: [number, number] = [60, 220];
@@ -327,7 +327,7 @@ export function Feedback() {
       <section className="snap-section mt-10">
         <h2 className="label-caps">{t("radarTitleFeedback")}</h2>
         {phase === "loading" ? (
-          <div className="skeleton mt-4 h-[420px]" />
+          <div className="mt-4"><MetricRadarSkeleton /></div>
         ) : (
           <div className="mt-4">
             <MetricRadar
@@ -559,7 +559,7 @@ function FeedbackSkeleton() {
         <div className="skeleton h-52 w-52 rounded-full" />
         <div className="skeleton h-6 w-56" />
       </div>
-      <div className="skeleton mt-10 h-[420px]" />
+      <div className="mt-10"><MetricRadarSkeleton /></div>
     </div>
   );
 }
