@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "apple-design-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "tekgnosis-net/apple-design-marketplace"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "apple-design@apple-design-marketplace": true
+  }
+}
