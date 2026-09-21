@@ -5,6 +5,7 @@ import { wordAtIndex } from "@/lib/daily";
 import { SCENARIOS } from "@/data/scenarios";
 import { SpeechSession, speechSupported } from "@/lib/speech";
 import { mergeLegs, type Leg } from "@/lib/legs";
+import { setHoldsUnsavedWork } from "@/lib/appUpdate";
 import { computeMetrics } from "@/lib/metrics";
 import { blendScores, type Scenario } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
@@ -121,6 +122,13 @@ export function Session() {
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ block: "end" });
   }, [finalText, interim]);
+
+  // Hold off an auto-update reload while a take exists only in memory. Paused
+  // and analyzing count: the legs aren't saved until finish() writes them.
+  useEffect(() => {
+    setHoldsUnsavedWork(phase === "recording" || phase === "paused" || phase === "analyzing");
+    return () => setHoldsUnsavedWork(false);
+  }, [phase]);
 
   useEffect(
     () => () => {

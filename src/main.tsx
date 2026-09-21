@@ -10,6 +10,11 @@ import "./styles/theme.css";
 import App from "./App";
 import { LanguageProvider } from "./lib/i18n";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { watchForAppUpdates } from "./lib/appUpdate";
+
+// Before render: a new service worker can claim the page at any moment, and the
+// listener has to be in place to notice.
+watchForAppUpdates();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

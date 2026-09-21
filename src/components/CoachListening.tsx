@@ -36,12 +36,17 @@ export function CoachListening() {
 
   return (
     <div className="box-border flex w-full flex-col items-center gap-5" role="status" aria-live="polite">
+      {/* The one thing worth announcing, said once. It used to sit as an
+          aria-label on a bare <div>, which maps to role="generic" — where
+          aria-label is prohibited and dropped, so it reached nobody. */}
+      <span className="sr-only">{t("coachReviewing")}</span>
+
       {/* justify-between spreads the bars edge to edge whatever the count is,
           so the read-head never crosses empty space. */}
       <div
+        aria-hidden="true"
         className="relative box-border flex w-full max-w-sm items-center justify-between overflow-hidden rounded-(--radius-card) bg-obsidian px-5 py-6"
         style={{ height: BOX_H }}
-        aria-label={t("coachReviewing")}
       >
         {bars.map((h, i) => (
           <span

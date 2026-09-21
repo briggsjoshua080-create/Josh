@@ -356,14 +356,21 @@ export async function currentStreak(): Promise<number> {
   const newest = dates[0];
 
   // Anchor the walk at the newest practice date, not at "today", so a forward
-  // calendar jump (timezone change, corrected clock) doesn't zero the streak.
+  // calendar jump (timezone change, corrected clock) doesn't zero a streak the
+  // user never broke — flying LAX->NRT skips a local date while only ~14 hours
+  // of wall time pass.
   let cursor: Date;
   if (seen.has(today)) {
     cursor = new Date();
   } else {
-    const newestAt = new Date(`${newest}T12:00:00`);
-    if (Date.now() - newestAt.getTime() > STREAK_GRACE_MS) return 0;
-    cursor = newestAt;
+    // Elapsed time comes from the session's own timestamp. Deriving it from the
+    // date at midday instead made a two-calendar-day gap measure anywhere from
+    // 36 to 60 hours depending on the time of day, so whether a streak survived
+    // depended on when you happened to open the app.
+    const last = await db.sessions.orderBy("startedAt").last();
+    const elapsed = last ? Date.now() - last.startedAt : Infinity;
+    if (!(elapsed >= 0 && elapsed <= STREAK_GRACE_MS)) return 0;
+    cursor = new Date(`${newest}T12:00:00`);
   }
 
   let streak = 0;

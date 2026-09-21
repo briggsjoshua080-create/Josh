@@ -128,25 +128,45 @@ function TechniqueCard({
     ref.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   }, [open]);
 
+  const regionId = `technique-${card.id}`;
+
+  /*
+   * A disclosure, not a button wrapping a document.
+   *
+   * The whole card used to be one <button> containing <h3> and <p> elements.
+   * That is an invalid content model (a button takes phrasing content only),
+   * browsers recover from it inconsistently, and the heading disappeared from
+   * the outline — on a screen that is a list of 29 headed cards, so a screen
+   * reader user could not navigate the Library by heading at all. The button
+   * also had no label of its own, so its accessible name was computed from
+   * every descendant: title plus the full technique, every tag, the caveat and
+   * the citation, re-announced on each focus.
+   *
+   * Now the trigger holds only the heading and the chevron, and the body is a
+   * sibling region it points at with aria-controls.
+   */
   return (
     <li ref={ref} className="snap-section box">
-      <button
-        onClick={onToggle}
-        aria-expanded={open}
-        className="w-full p-5 text-left transition-colors hover:bg-surface-2/40"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-medium text-ink">{card.title}</h3>
+      <h3>
+        <button
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls={regionId}
+          className="flex w-full items-start justify-between gap-3 p-5 text-left text-base font-medium text-ink transition-colors hover:bg-surface-2/40"
+        >
+          {card.title}
           <Icon
             name="chevronDown"
             size={16}
             className={`mt-1 shrink-0 text-faint transition-transform duration-150 ${open ? "rotate-180" : ""}`}
           />
-        </div>
+        </button>
+      </h3>
 
+      <div id={regionId} className="px-5 pb-5">
         {open ? (
           <>
-            <p className="mt-2.5 text-sm leading-relaxed text-ink/85">{card.technique}</p>
+            <p className="text-sm leading-relaxed text-ink/85">{card.technique}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {card.context_tags.map((tag) => (
                 <TagChip key={tag} tag={tag} />
@@ -166,7 +186,7 @@ function TechniqueCard({
           </>
         ) : (
           <>
-            <p className="mt-1 truncate text-sm text-muted">{card.technique}</p>
+            <p className="truncate text-sm text-muted">{card.technique}</p>
             <div className="mt-2.5 flex flex-wrap gap-1.5">
               {card.context_tags.map((tag) => (
                 <TagChip key={tag} tag={tag} />
@@ -177,7 +197,7 @@ function TechniqueCard({
             </div>
           </>
         )}
-      </button>
+      </div>
     </li>
   );
 }

@@ -220,7 +220,6 @@ function WordOfDay({ word }: { word: WordEntry }) {
         flipped={open}
         onFlip={() => setOpen(!open)}
         testId="word-of-day-toggle"
-        label={word.word}
         front={
           <span className="flex w-full items-center gap-3">
             <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">

@@ -15,14 +15,12 @@ export function FlipCard({
   front,
   back,
   testId,
-  label,
 }: {
   flipped: boolean;
   onFlip: () => void;
   front: ReactNode;
   back: ReactNode;
   testId?: string;
-  label?: string;
 }) {
   const reduced = useReducedMotion();
 
@@ -35,7 +33,6 @@ export function FlipCard({
         type="button"
         onClick={onFlip}
         aria-expanded={flipped}
-        aria-label={label}
         data-testid={testId}
         className="w-full text-left"
       >
@@ -60,7 +57,6 @@ export function FlipCard({
       type="button"
       onClick={onFlip}
       aria-expanded={flipped}
-      aria-label={label}
       data-testid={testId}
       className="w-full text-left"
       style={{ perspective: 1200 }}

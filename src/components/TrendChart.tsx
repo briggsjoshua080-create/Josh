@@ -152,9 +152,21 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
     ],
   };
 
+  // react-chartjs-2 hardcodes role="img" on the canvas, and a role="img" with
+  // no accessible name is a WCAG 1.1.1 / 4.1.2 failure — a screen reader
+  // announces an unnamed image and moves on. A canvas has no readable content
+  // of its own, so the series has to be summarised in words.
+  const scores = points.map((p) => p.score);
+  const summary = t("trendChartLabel", {
+    n: points.length,
+    lo: Math.min(...scores),
+    hi: Math.max(...scores),
+    avg: average,
+  });
+
   return (
     <div className="relative w-full" style={{ height: 190 }} data-testid="trend-chart">
-      <Line data={data} options={options} plugins={[avgLabel]} />
+      <Line data={data} options={options} plugins={[avgLabel]} aria-label={summary} />
     </div>
   );
 }

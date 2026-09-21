@@ -440,6 +440,12 @@ export const strings = {
     de: "Dein Übungsverlauf liegt auf diesem Gerät und wurde nicht gelöscht — die App konnte nur nicht darauf zugreifen. Schließe andere offene Tabs und versuch es erneut.",
   },
   retry: { en: "Try again", de: "Erneut versuchen" },
+  radarUnscored: { en: "not scored", de: "nicht bewertet" },
+  scoreRingLabel: { en: "{n} out of 100, grade {g}", de: "{n} von 100, Note {g}" },
+  trendChartLabel: {
+    en: "Score trend across {n} sessions, from {lo} to {hi}, averaging {avg}.",
+    de: "Score-Verlauf über {n} Sessions, von {lo} bis {hi}, im Schnitt {avg}.",
+  },
   coachBusyTitle: { en: "Too many requests", de: "Zu viele Anfragen" },
   coachBusyBody: {
     en: "The coach is rate-limited right now. Your recording and score are saved — wait a few minutes, then fetch the full feedback.",

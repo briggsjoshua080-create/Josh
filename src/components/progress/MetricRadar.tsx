@@ -234,7 +234,19 @@ export function MetricRadar({
 
       <div className={RADAR_CANVAS_WRAPPER}>
         <div className="relative aspect-square w-full">
-          <Radar ref={chartRef} data={{ labels: shortNames, datasets }} options={options} onClick={handleClick} />
+          {/* The canvas carries role="img" from react-chartjs-2 and is opaque to
+              screen readers, so it needs a name that states the actual scores.
+              The pills below are the keyboard-operable path to the same data. */}
+          <Radar
+            ref={chartRef}
+            data={{ labels: shortNames, datasets }}
+            options={options}
+            onClick={handleClick}
+            aria-label={`${primaryLabel}: ${METRIC_KEYS.map((key) => {
+              const v = primary[key];
+              return `${t(METRIC_META[key].nameKey)} ${v === null ? t("radarUnscored") : v}`;
+            }).join(", ")}`}
+          />
         </div>
       </div>
 

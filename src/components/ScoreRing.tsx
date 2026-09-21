@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
+import { useI18n } from "@/lib/i18n";
 import { scoreColorVar } from "@/lib/scoreColor";
 import { resolveToken } from "@/lib/cssTokens";
 import { letterGrade } from "@/lib/grade";
@@ -24,6 +25,7 @@ interface ScoreRingProps {
  * does — same input, same thresholds, so the two never disagree mid-flight.
  */
 export function ScoreRing({ value, active = true, size = 208 }: ScoreRingProps) {
+  const { t } = useI18n();
   const reduced = useReducedMotion();
   const still = reduced || !active;
 
@@ -60,7 +62,7 @@ export function ScoreRing({ value, active = true, size = 208 }: ScoreRingProps) 
       className="relative inline-flex items-center justify-center"
       style={{ width: size, height: size }}
       role="img"
-      aria-label={`${Math.round(value)} out of 100, grade ${grade}`}
+      aria-label={t("scoreRingLabel", { n: Math.round(value), g: grade })}
     >
       <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle

@@ -145,6 +145,29 @@ describe("schema migrations", () => {
 });
 
 describe("currentStreak", () => {
+  /**
+   * Pin the clock: the grace window is measured in wall-clock hours, so a test
+   * reading the real "now" changes meaning with the time of day — this suite
+   * passed in the morning and failed by mid-afternoon before it was pinned.
+   * Only Date is faked; IndexedDB needs real timers to resolve.
+   */
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 8, 21, 9, 0, 0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A session on a given day, with a timestamp that agrees with its date. */
+  const dayAt = (todayISO: (d: Date) => string, offset: number, hour = 20) => {
+    const d = new Date();
+    d.setDate(d.getDate() - offset);
+    d.setHours(hour, 0, 0, 0);
+    return { dateISO: todayISO(d), startedAt: d.getTime() };
+  };
+
   it("is 0 with no sessions", async () => {
     const { currentStreak, db } = await freshDb();
     expect(await currentStreak()).toBe(0);
@@ -153,13 +176,8 @@ describe("currentStreak", () => {
 
   it("counts consecutive days ending today", async () => {
     const { currentStreak, db, todayISO } = await freshDb();
-    const day = (offset: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - offset);
-      return todayISO(d);
-    };
     for (const offset of [0, 1, 2]) {
-      await db.sessions.add(session({ dateISO: day(offset) }));
+      await db.sessions.add(session(dayAt(todayISO, offset)));
     }
     expect(await currentStreak()).toBe(3);
     db.close();
@@ -167,13 +185,8 @@ describe("currentStreak", () => {
 
   it("allows one grace day — a streak ending yesterday still counts", async () => {
     const { currentStreak, db, todayISO } = await freshDb();
-    const day = (offset: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - offset);
-      return todayISO(d);
-    };
     for (const offset of [1, 2]) {
-      await db.sessions.add(session({ dateISO: day(offset) }));
+      await db.sessions.add(session(dayAt(todayISO, offset)));
     }
     expect(await currentStreak()).toBe(2);
     db.close();
@@ -181,14 +194,9 @@ describe("currentStreak", () => {
 
   it("counts only the most recent run, not days before a gap", async () => {
     const { currentStreak, db, todayISO } = await freshDb();
-    const day = (offset: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - offset);
-      return todayISO(d);
-    };
     // Today and yesterday, then a hole at 2, then more history.
     for (const offset of [0, 1, 3, 4, 5]) {
-      await db.sessions.add(session({ dateISO: day(offset) }));
+      await db.sessions.add(session(dayAt(todayISO, offset)));
     }
     expect(await currentStreak()).toBe(2);
     db.close();
@@ -198,13 +206,8 @@ describe("currentStreak", () => {
     // Flying LAX->NRT skips a local date while only ~14h of wall time passes;
     // the old today-or-yesterday test zeroed a streak the user never broke.
     const { currentStreak, db, todayISO } = await freshDb();
-    const day = (offset: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - offset);
-      return todayISO(d);
-    };
     for (const offset of [2, 3, 4]) {
-      await db.sessions.add(session({ dateISO: day(offset) }));
+      await db.sessions.add(session(dayAt(todayISO, offset)));
     }
     expect(await currentStreak()).toBe(3);
     db.close();
@@ -212,9 +215,7 @@ describe("currentStreak", () => {
 
   it("is 0 once the gap exceeds the grace window", async () => {
     const { currentStreak, db, todayISO } = await freshDb();
-    const d = new Date();
-    d.setDate(d.getDate() - 6);
-    await db.sessions.add(session({ dateISO: todayISO(d) }));
+    await db.sessions.add(session(dayAt(todayISO, 6)));
     expect(await currentStreak()).toBe(0);
     db.close();
   });
