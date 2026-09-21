@@ -39,6 +39,8 @@ export function Feedback() {
   const [session, setSession] = useState<Session | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [earned, setEarned] = useState<Earned | null>(null);
+  /** Why the last analysis failed, so the card can say the true thing. */
+  const [coachError, setCoachError] = useState<string | null>(null);
   /** The scored session immediately before this one — the radar's dashed ghost. */
   const [previous, setPrevious] = useState<EightScores | null>(null);
   const inFlight = useRef(false);
@@ -50,6 +52,7 @@ export function Feedback() {
     setSession(null);
     setPrevious(null);
     setEarned(null);
+    setCoachError(null);
     setPhase("loading");
     inFlight.current = false;
 
@@ -151,7 +154,9 @@ export function Feedback() {
       if (!isAlive()) return;
       // A rate-limited user is not offline, and retrying immediately is the one
       // thing that cannot help — say so instead of sending them to check wifi.
-      setPhase(err instanceof CoachUnavailableError && err.message === "429" ? "busy" : "offline");
+      const reason = err instanceof CoachUnavailableError ? err.message : "network";
+      setCoachError(reason);
+      setPhase(reason === "429" ? "busy" : "offline");
     }
     inFlight.current = false;
   }
@@ -264,9 +269,13 @@ export function Feedback() {
 
           {/* Delivery stats — pace, length and the filler count, always visible */}
           <div className="tnum mt-6 flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm text-muted">
-            <span>
-              <b className="font-semibold text-ink">{m.wpm}</b> {t("wpmUnit")}
-            </span>
+            {/* A typed transcript has no speaking tempo; showing typing speed
+                as "wpm" would be a made-up number. */}
+            {!m.typed && (
+              <span>
+                <b className="font-semibold text-ink">{m.wpm}</b> {t("wpmUnit")}
+              </span>
+            )}
             <span>
               <b className="font-semibold text-ink">{m.wordCount}</b> {t("wordsUnit")}
             </span>
@@ -300,10 +309,12 @@ export function Feedback() {
         <div className="box mt-8 flex flex-col gap-3 p-5">
           <div className="flex items-center gap-2.5">
             <Icon name="clock" size={18} className="shrink-0 text-bad" />
-            <p className="text-base font-medium text-ink">{t("coachTimeout")}</p>
+            <p className="text-base font-medium text-ink">
+              {coachError === "timeout" ? t("coachTimeout") : t("coachOfflineTitle")}
+            </p>
           </div>
           <p className="text-sm text-muted" style={{ overflowWrap: "break-word" }}>
-            {t("coachFailed")} {t("xpPendingNote")}
+            {coachError === "timeout" ? t("coachTimeoutBody") : t("coachFailed")} {t("xpPendingNote")}
           </p>
           <Button variant="gold" onClick={() => fetchReport(session)}>
             <Icon name="refresh" size={16} />
@@ -446,24 +457,26 @@ export function Feedback() {
               </div>
             )}
 
-            <div className="mt-5 border-t hairline pt-5">
-              <div className="flex items-baseline justify-between">
-                <h3 className="label-caps">{t("paceSectionTitle")}</h3>
-                <span className="tnum text-sm font-medium text-ink">
-                  {m.wpm} {t("wpmUnit")}
-                </span>
+            {!m.typed && (
+              <div className="mt-5 border-t hairline pt-5">
+                <div className="flex items-baseline justify-between">
+                  <h3 className="label-caps">{t("paceSectionTitle")}</h3>
+                  <span className="tnum text-sm font-medium text-ink">
+                    {m.wpm} {t("wpmUnit")}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <Meter
+                    value={paceFrac(m.wpm)}
+                    band={[paceFrac(band[0]), paceFrac(band[1])]}
+                    leftLabel={t("meterSlow")}
+                    rightLabel={t("meterFast")}
+                    ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
+                  />
+                </div>
+                {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
               </div>
-              <div className="mt-4">
-                <Meter
-                  value={paceFrac(m.wpm)}
-                  band={[paceFrac(band[0]), paceFrac(band[1])]}
-                  leftLabel={t("meterSlow")}
-                  rightLabel={t("meterFast")}
-                  ariaLabel={`${t("paceSectionTitle")}: ${m.wpm} ${t("wpmUnit")}`}
-                />
-              </div>
-              {report.oneLiners.pace && <p className="mt-3 text-sm text-muted">{report.oneLiners.pace}</p>}
-            </div>
+            )}
 
             {(report.stylisticDevices?.length ?? 0) > 0 && (
               <div className="mt-5 border-t hairline pt-5">

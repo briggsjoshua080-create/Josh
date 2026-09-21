@@ -75,7 +75,9 @@ export function Session() {
   const [finalText, setFinalText] = useState("");
   const [interim, setInterim] = useState("");
   const [elapsed, setElapsed] = useState(0);
-  const [error, setError] = useState<"mic" | "unsupported" | "tooShort" | "saveFailed" | null>(null);
+  const [error, setError] = useState<
+    "mic" | "unsupported" | "tooShort" | "saveFailed" | "recognition" | null
+  >(null);
   const [typed, setTyped] = useState("");
   const [showType, setShowType] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
@@ -89,17 +91,30 @@ export function Session() {
   const legsRef = useRef<Leg[]>([]);
   /** When the current leg stopped, so resuming can measure the pause it opened. */
   const legEndedAtRef = useRef<number | null>(null);
+  /** Whether any of this transcript was typed, which makes pace unscoreable. */
+  const usedTypingRef = useRef(false);
+  /** Wall-clock anchor for the on-screen timer, spanning pauses. */
+  const recordingStartedAtRef = useRef<number | null>(null);
   const supported = speechSupported();
 
   /** Ring is full at 1.5× the target ceiling (at least +60s) — the hard "wrap it up" line. */
   const maxSec = Math.max(targetSec[1] + 60, Math.round(targetSec[1] * 1.5));
 
-  // The clock keeps running while paused, because paused time now counts
-  // toward the recording the same way silence on-mic does. A timer that
-  // stopped would under-report what the score is actually computed from.
+  // The clock keeps running while paused, because paused time now counts toward
+  // the recording the same way silence on-mic does.
+  //
+  // Derived from a wall-clock anchor rather than by counting ticks: the interval
+  // is torn down and rebuilt on every phase change, and each teardown discarded
+  // the sub-second remainder. After a few pause/resume cycles the ring read up
+  // to a second per leg BELOW the duration the score is computed from, so the
+  // "wrap it up" warning could fail to fire on a recording that was over the max.
   useEffect(() => {
     if (phase !== "recording" && phase !== "paused") return;
-    const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (recordingStartedAtRef.current === null) recordingStartedAtRef.current = Date.now();
+    const tick = () =>
+      setElapsed(Math.floor((Date.now() - (recordingStartedAtRef.current ?? Date.now())) / 1000));
+    tick();
+    const timer = setInterval(tick, 250);
     return () => clearInterval(timer);
   }, [phase]);
 
@@ -134,9 +149,11 @@ export function Session() {
     if (!resume) {
       legsRef.current = [];
       legEndedAtRef.current = null;
+      usedTypingRef.current = false;
       setFinalText("");
       setInterim("");
       setElapsed(0);
+      recordingStartedAtRef.current = null;
     } else if (legEndedAtRef.current !== null && legsRef.current.length > 0) {
       // Charge the time spent paused to the leg it followed, so the merge can
       // treat it the same way it treats silence on-mic.
@@ -159,10 +176,20 @@ export function Session() {
       },
       onError: (code) => {
         if (code === "not-allowed") {
+          // Actually tear the session down: it otherwise keeps its pause
+          // interval and (where the mic itself was granted) its media stream,
+          // leaving the browser's recording indicator lit with no way to clear
+          // it — and start() would orphan it beyond reach.
+          speechRef.current?.stop();
+          speechRef.current = null;
           setError("mic");
           setPhase("idle");
         } else if (code === "unsupported") {
           setError("unsupported");
+        } else if (code === "unknown") {
+          // A dropped headset or blocked speech service used to be invisible:
+          // the UI kept pulsing and the timer climbing while nothing recorded.
+          setError("recognition");
         }
       },
     });
@@ -203,6 +230,8 @@ export function Session() {
     speechRef.current = null;
     legsRef.current = [];
     legEndedAtRef.current = null;
+    usedTypingRef.current = false;
+    recordingStartedAtRef.current = null;
     setConfirmingDiscard(false);
     setPhase("idle");
     setError(null);
@@ -242,6 +271,7 @@ export function Session() {
       durationSec: merged.durationSec,
       lang,
       volume: merged.volume,
+      typed: usedTypingRef.current,
     });
 
     // Both the date and the timestamp derive from the same instant: the start
@@ -288,6 +318,7 @@ export function Session() {
   function injectTyped() {
     const text = typed.trim();
     if (!text) return;
+    usedTypingRef.current = true;
     const hook = (window as unknown as Record<string, unknown>).__oratoInjectSpeech;
     if (typeof hook === "function") (hook as (t: string) => void)(text);
     setTyped("");
@@ -314,6 +345,7 @@ export function Session() {
       {error === "unsupported" && <Notice tone="warn">{t("speechUnsupported")}</Notice>}
       {error === "tooShort" && <Notice tone="warn">{t("tooShort")}</Notice>}
       {error === "saveFailed" && <Notice tone="bad">{`${t("saveFailedTitle")} ${t("saveFailedBody")}`}</Notice>}
+      {error === "recognition" && <Notice tone="bad">{t("recognitionLost")}</Notice>}
 
       {/* Body */}
       {phase === "idle" && (

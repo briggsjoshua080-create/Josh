@@ -120,6 +120,10 @@ export const strings = {
     en: "That was too short to coach. Give it at least ten words.",
     de: "Das war zu kurz für Feedback. Gib mir mindestens zehn Wörter.",
   },
+  recognitionLost: {
+    en: "Speech recognition stopped — check your microphone or headset, then start again. Anything already transcribed is kept.",
+    de: "Die Spracherkennung ist abgebrochen — prüfe Mikrofon oder Headset und starte neu. Bereits Erkanntes bleibt erhalten.",
+  },
   useWord: { en: "Bonus: use “{w}”", de: "Bonus: Verwende „{w}“" },
   idealRange: { en: "Ideal: {a}–{b}", de: "Ideal: {a}–{b}" },
   maxTime: { en: "Max: {t}", de: "Max.: {t}" },
@@ -230,6 +234,11 @@ export const strings = {
   coachTimeout: {
     en: "That took too long. Try again?",
     de: "Das hat zu lange gedauert. Noch einmal versuchen?",
+  },
+  coachOfflineTitle: { en: "Couldn't reach your coach", de: "Coach nicht erreichbar" },
+  coachTimeoutBody: {
+    en: "The analysis didn't finish in time. Your recording and metrics are saved — a retry usually goes through.",
+    de: "Die Analyse wurde nicht rechtzeitig fertig. Aufnahme und Messwerte sind gespeichert — ein erneuter Versuch klappt meist.",
   },
   sessionMissing: {
     en: "Session not found — it may have been removed from this device.",

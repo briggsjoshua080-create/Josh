@@ -54,6 +54,13 @@ export interface RecorderResult {
 /** Frames quieter than this are treated as silence and excluded from loudness. */
 const SPEECH_FLOOR = 0.03;
 
+/**
+ * How many consecutive non-benign recognition errors to absorb before giving
+ * up. An error that recurs on every restart (a dropped headset, a blocked
+ * speech service) otherwise turns the auto-restart into a tight loop.
+ */
+const MAX_FAILED_RESTARTS = 3;
+
 export class SpeechSession {
   private recognition: SpeechRecognitionLike | null = null;
   private segments: SpeechSegment[] = [];
@@ -70,6 +77,7 @@ export class SpeechSession {
   private levelSum = 0;
   private levelSqSum = 0;
   private levelCount = 0;
+  private failedRestarts = 0;
 
   constructor(
     private lang: Lang,
@@ -108,6 +116,8 @@ export class SpeechSession {
 
     rec.onresult = (e) => {
       this.markActivity();
+      // Recognition is working again, so don't hold earlier failures against it.
+      this.failedRestarts = 0;
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
@@ -124,11 +134,21 @@ export class SpeechSession {
 
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        this.cb.onError("not-allowed");
         this.running = false;
+        this.cb.onError("not-allowed");
       } else if (e.error === "no-speech" || e.error === "aborted") {
         // benign — auto-restart handles it
+        this.failedRestarts = 0;
       } else {
+        // audio-capture (headset dropped), network, language-not-supported…
+        // These used to be silently swallowed: the UI kept pulsing, the timer
+        // kept climbing, and nothing was being recorded.
+        this.failedRestarts++;
+        if (this.failedRestarts >= MAX_FAILED_RESTARTS) {
+          // Stop trying: without this the onend/start cycle spins at ~4
+          // restarts a second for the rest of the session, burning battery.
+          this.running = false;
+        }
         this.cb.onError("unknown");
       }
     };
@@ -193,10 +213,30 @@ export class SpeechSession {
 
   private async startLevelMeter() {
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.audioCtx = new AudioContext();
+      // Acquiring the mic takes hundreds of ms even when already granted, and
+      // seconds on a first prompt. stop() may well have run by the time it
+      // resolves — and its cleanup already saw null fields, so without these
+      // checks the stream and context are assigned afterwards and never torn
+      // down: the browser's recording indicator stays lit with no UI to clear
+      // it, and enough leaked AudioContexts hit Chrome's per-page limit.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!this.running) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      this.mediaStream = stream;
+
+      const ctx = new AudioContext();
       // iOS/Safari starts the context suspended until a user gesture resumes it.
-      if (this.audioCtx.state === "suspended") await this.audioCtx.resume().catch(() => {});
+      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+      if (!this.running) {
+        stream.getTracks().forEach((t) => t.stop());
+        void ctx.close().catch(() => {});
+        this.mediaStream = null;
+        return;
+      }
+      this.audioCtx = ctx;
+
       const source = this.audioCtx.createMediaStreamSource(this.mediaStream);
       const analyser = this.audioCtx.createAnalyser();
       analyser.fftSize = 512;
