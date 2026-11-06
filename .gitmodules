@@ -1,0 +1,6 @@
+[submodule "plugins/superpowers"]
+	path = plugins/superpowers
+	url = https://github.com/obra/superpowers.git
+[submodule "plugins/ui-ux-pro-max-skill"]
+	path = plugins/ui-ux-pro-max-skill
+	url = https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git
