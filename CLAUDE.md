@@ -20,5 +20,7 @@
   GitHub/Vercel. Use the Base44 connector tools (`edit_file` / `run_command` for direct
   edits, no builder credits), run the tests and `vite build` there, then finish with
   `create_checkpoint` (otherwise a Restore in the builder discards the edits).
-- Do not edit while the app status is `processing`. Don't deploy/publish in Base44 unless
-  Josh asks.
+- Do not edit while the app status is `processing`.
+- **Also publish it** (Josh confirmed): after the checkpoint, deploy that checkpoint with
+  `execute_api` `POST /api/apps/{app_id}/deploy` and body `{"checkpoint_id": "<id>"}`.
+  Live URL: https://orato.base44.app
