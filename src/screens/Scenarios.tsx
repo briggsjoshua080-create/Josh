@@ -167,7 +167,7 @@ export function Scenarios() {
             <h2 className="font-medium text-ink">{t("emptyLibraryTitle")}</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{t("emptyLibraryBody")}</p>
             <p className="lectern mt-2 text-lg text-ink">{recommended.scenario.title[lang]}</p>
-            <Button variant="gold" className="mt-4" onClick={() => start(recommended.scenario)}>
+            <Button variant="patina" className="mt-4" onClick={() => start(recommended.scenario)}>
               <Icon name="mic" size={17} />
               {t("startExercise")}
             </Button>
@@ -197,7 +197,7 @@ export function Scenarios() {
               </span>
               <span>{t(DIFFICULTY_LABEL[recommended.scenario.difficulty])}</span>
             </div>
-            <Button variant="gold" className="mt-4 w-full sm:w-auto" onClick={() => start(recommended.scenario)}>
+            <Button variant="patina" className="mt-4 w-full sm:w-auto" onClick={() => start(recommended.scenario)}>
               <Icon name="mic" size={17} />
               {t("startExercise")}
             </Button>
@@ -341,11 +341,11 @@ export function Scenarios() {
   );
 }
 
-/** Thin completion bar: neutral track, success-green fill (gold stays on CTAs). */
+/** Thin completion bar: neutral track, patina fill (gold stays on borders/logo/icons). */
 function MasteryBar({ pct }: { pct: number }) {
   return (
     <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-surface-2">
-      <span className="block h-full rounded-full bg-ok" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+      <span className="block h-full rounded-full bg-patina" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
     </span>
   );
 }

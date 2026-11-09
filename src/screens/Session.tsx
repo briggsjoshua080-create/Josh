@@ -368,7 +368,7 @@ export function Session() {
           <button
             onClick={() => start()}
             aria-label={t("startRecording")}
-            className="mt-10 flex h-24 w-24 items-center justify-center rounded-full bg-primary text-white transition-colors duration-150 hover:bg-primary-bright active:bg-primary-deep"
+            className="mt-10 flex h-24 w-24 items-center justify-center rounded-full bg-patina text-accent-ink transition-colors duration-150 hover:brightness-105 active:bg-patina-dark active:text-vellum"
           >
             <Icon name="mic" size={38} />
           </button>
@@ -491,7 +491,7 @@ export function Session() {
         <div className="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
           <p className="tnum text-lg text-muted">{fmtTime(elapsed)}</p>
           <p className="text-base font-medium text-ink">{t("pausedLabel")}</p>
-          <Button size="lg" className="w-full" onClick={() => start(true)}>
+          <Button variant="patina" size="lg" className="w-full" onClick={() => start(true)}>
             <Icon name="mic" size={18} />
             {t("resumeRecording")}
           </Button>

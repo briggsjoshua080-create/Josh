@@ -136,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         className={({ isActive }) =>
           `relative flex items-center gap-3 rounded-(--radius-control) px-3 py-2 transition-colors duration-150 ` +
           `max-lg:min-w-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-1 max-lg:px-2 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
-          (isActive ? "text-gold" : "text-muted hover:text-ink")
+          (isActive ? (item.to === "/progress" ? "text-patina-light" : "text-gold") : "text-muted hover:text-ink")
         }
       >
         {({ isActive }) => (
@@ -156,9 +156,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <motion.span
                   layoutId={`${surface}-active`}
                   className={
-                    surface === "tabs"
-                      ? "block h-[2px] w-8 rounded-full bg-accent"
-                      : "block h-5 w-[3px] rounded-full bg-accent"
+                    (surface === "tabs" ? "block h-[2px] w-8 rounded-full " : "block h-5 w-[3px] rounded-full ") +
+                    (item.to === "/progress" ? "bg-patina" : "bg-accent")
                   }
                   transition={{ type: "spring", stiffness: 380, damping: 32 }}
                 />

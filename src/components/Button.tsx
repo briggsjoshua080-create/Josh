@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "gold" | "ghost" | "danger";
+  variant?: "primary" | "gold" | "patina" | "ghost" | "danger";
   size?: "md" | "lg";
   children: ReactNode;
 }
@@ -17,6 +17,10 @@ const VARIANTS: Record<string, string> = {
   primary:
     "bg-primary text-vellum hover:bg-primary-bright active:bg-primary-deep",
   gold: "bg-accent text-accent-ink hover:brightness-105 active:brightness-95",
+  // The one key action on a screen. Pressed steps down to patina-dark, which
+  // carries vellum text; patina itself only clears 4.5:1 with obsidian ink.
+  patina:
+    "bg-patina text-accent-ink hover:brightness-105 active:bg-patina-dark active:text-vellum",
   ghost:
     "bg-transparent text-ink border border-line hover:bg-surface active:bg-surface-2",
   danger: "bg-bad text-vellum hover:brightness-110 active:brightness-90",

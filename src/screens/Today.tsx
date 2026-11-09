@@ -95,7 +95,7 @@ export function Today() {
         {state.doneToday ? (
           <div className="mt-3">
             <div className="box flex items-center gap-3 p-5">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ok/15 text-ok">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-patina/15 text-patina-light">
                 <Icon name="check" size={22} />
               </span>
               <div>
@@ -105,7 +105,7 @@ export function Today() {
             </div>
             <div className="mt-4 flex flex-col gap-3">
               {todaySession?.id && (
-                <Button variant="gold" onClick={() => navigate(`/feedback/${todaySession.id}`)}>
+                <Button variant="patina" onClick={() => navigate(`/feedback/${todaySession.id}`)}>
                   {t("reviewFeedback")}
                 </Button>
               )}
@@ -196,7 +196,7 @@ function ChallengeCard({
           {t("newChallenge")}
         </button>
       </div>
-      <Button size="lg" className="mt-6 w-full" onClick={onBegin}>
+      <Button variant="patina" size="lg" className="mt-6 w-full" onClick={onBegin}>
         <Icon name="mic" size={20} />
         {t("beginSession")}
       </Button>
@@ -229,7 +229,7 @@ function WordOfDay({ word }: { word: WordEntry }) {
               {/* Dictionary-style IPA, always visible next to the word */}
               <span className="text-sm text-muted">{word.pronunciation}</span>
             </span>
-            <span className="ml-auto shrink-0 text-xs text-faint">{t("wordRevealHint")}</span>
+            <span className="ml-auto shrink-0 text-xs font-medium text-patina-light">{t("wordRevealHint")}</span>
           </span>
         }
         back={

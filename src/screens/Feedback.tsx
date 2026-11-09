@@ -367,7 +367,7 @@ export function Feedback() {
             <section className="snap-section mt-6 box p-5">
               <h2 className="label-caps">{t("whatWorked")}</h2>
               <div className="mt-3 flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok/15 text-ok">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-patina/15 text-patina-light">
                   <Icon name="check" size={13} />
                 </span>
                 <span>
@@ -519,7 +519,7 @@ export function Feedback() {
 
       <div className="snap-end mt-10 flex flex-col gap-3 pb-6">
         <Link to="/progress">
-          <Button variant="gold" className="w-full">
+          <Button variant="patina" className="w-full">
             {t("viewStats")}
             <Icon name="arrowRight" size={16} />
           </Button>

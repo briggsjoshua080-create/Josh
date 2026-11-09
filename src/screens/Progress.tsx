@@ -62,7 +62,7 @@ export function Progress() {
         <Icon name="chart" size={40} className="text-faint" />
         <p className="mt-4 max-w-xs text-base text-muted">{t("emptyProgress")}</p>
         <Link to="/" className="mt-6">
-          <Button>{t("emptyProgressCta")}</Button>
+          <Button variant="patina">{t("emptyProgressCta")}</Button>
         </Link>
       </div>
     );
@@ -201,7 +201,7 @@ function XpBar({ progress }: { progress: number }) {
   return (
     <div className="h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
       <motion.div
-        className="h-full rounded-full bg-accent"
+        className="h-full rounded-full bg-patina"
         initial={reduced ? { width: `${progress * 100}%` } : { width: 0 }}
         animate={{ width: `${Math.max(progress * 100, 1)}%` }}
         transition={{ type: "spring", stiffness: 80, damping: 20 }}

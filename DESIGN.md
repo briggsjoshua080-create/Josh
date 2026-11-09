@@ -42,6 +42,15 @@ No arbitrary bar colours anywhere. Letter grades are a separate system with the 
 input: `letterGrade()` in `src/lib/grade.ts` (front-loaded 13-band scale, A+ only at 100);
 grade colour still comes from the score band — the two systems never fork.
 
+**Patina** (`--accent-patina` `#3F8F86` · `-light` `#7FC4B8` · `-dark` `#1F4D4A`) — the
+oxidised-bronze signal for function and feedback, used for about 10% of the UI: progress
+bars, the active Progress tab, success/completed marks, the word-of-the-day reveal hint, and
+the single key button per screen (`<Button variant="patina">`). Main patina is for fills and
+marks only (3.9:1 on wine); any text or icon on a wine/claret card uses `-light`; `-dark` is
+the pressed state. It is separate from verdigris, which stays the score-band colour. There is
+no light theme yet — if one is added, patina text needs `-dark` on cream and main patina stays
+fill-only (vellum on main patina is 2.9:1).
+
 Rule: vellum marks **content**; gold marks **earned things and the spotlight**; wine marks
 **structure**; claret marks **action**. The semantic trio (verdigris/ochre/bole) is meaning,
 never decoration. Hex values outside tokens.css exist only where CSS variables cannot reach:

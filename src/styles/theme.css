@@ -44,6 +44,11 @@
   --color-bole: var(--orato-bole);
   --color-lapis: var(--orato-lapis);
 
+  /* Patina — function/feedback signal. bg-patina, text-patina-light, … */
+  --color-patina: var(--accent-patina);
+  --color-patina-light: var(--accent-patina-light);
+  --color-patina-dark: var(--accent-patina-dark);
+
   /* Chip fill (streak / XP / language pills) */
   --color-card: var(--bg-chip);
 

@@ -32,6 +32,16 @@
   --orato-bole-light: #d87a77;
   --orato-lapis: #5c87a8;
 
+  /* Patina — oxidised bronze. The signal colour for function and feedback
+     (progress, success, the reveal, the one key button per screen); gold stays
+     decorative. Contrast: patina is for fills, bars and marks only (3.9:1 on
+     wine — too low for type); patina-light is the text/icon step on wine and
+     claret cards (4.8:1 on claret); patina-dark is the filled/pressed step and
+     carries vellum text (7.2:1). */
+  --orato-patina: #3f8f86;
+  --orato-patina-light: #7fc4b8;
+  --orato-patina-dark: #1f4d4a;
+
   /* Roles — components MUST use these, never the raw ramp values above */
   --bg-page: var(--orato-obsidian);
   --bg-surface: var(--orato-deep-wine);
@@ -48,6 +58,9 @@
   --text-tertiary: var(--orato-bronze-light);
   --text-negative: var(--orato-bole-light);
   --accent: var(--orato-gold);
+  --accent-patina: var(--orato-patina);
+  --accent-patina-light: var(--orato-patina-light);
+  --accent-patina-dark: var(--orato-patina-dark);
 
   --score-excellent: var(--orato-verdigris);
   --score-good: var(--orato-gold);

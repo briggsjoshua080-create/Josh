@@ -40,6 +40,7 @@ const TEXT_ROLES = [
   "--text-muted",
   "--text-tertiary",
   "--text-negative",
+  "--accent-patina-light",
 ] as const;
 
 describe("text contrast (WCAG AA)", () => {
@@ -63,5 +64,21 @@ describe("text contrast (WCAG AA)", () => {
     // score-good is gold, which passes on its own; the weak band is only ever a
     // bar, with --text-negative used where the same meaning appears as words.
     expect(contrast(tokenValue("--score-good"), tokenValue("--bg-surface-raised"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("patina-light stays readable on the claret flip-card face and chips", () => {
+    // "Tap to reveal" sits on a bg-claret face, which SURFACES does not cover.
+    expect(contrast(tokenValue("--accent-patina-light"), tokenValue("--bg-chip"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("patina button states keep their label legible", () => {
+    // Rest: obsidian ink on patina. Pressed: vellum ink on patina-dark.
+    expect(contrast(tokenValue("--orato-obsidian"), tokenValue("--accent-patina"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(tokenValue("--orato-vellum"), tokenValue("--accent-patina-dark"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("patina fills (bars, tab marker) clear the 3:1 non-text bar on the track and page", () => {
+    expect(contrast(tokenValue("--accent-patina"), tokenValue("--bg-surface-raised"))).toBeGreaterThanOrEqual(3);
+    expect(contrast(tokenValue("--accent-patina"), tokenValue("--bg-page"))).toBeGreaterThanOrEqual(3);
   });
 });
