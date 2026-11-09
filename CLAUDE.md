@@ -11,3 +11,14 @@
 - Only skip the direct-to-main push if Josh explicitly asks for a PR-only
   workflow for a specific change, or if the change is large/risky enough that
   a manual review makes sense — say so and ask first in that case.
+
+# Base44 sync (standing rule from Josh)
+
+- The same app also lives in Base44 as **"Orato"** (app id `6aee01ef8bca758ff2570f86`,
+  branch `main`, TanStack Start, JavaScript `.jsx` — not `.tsx`, and it has no `DESIGN.md`).
+- **Every change made here must also be applied to the Base44 app**, not only to
+  GitHub/Vercel. Use the Base44 connector tools (`edit_file` / `run_command` for direct
+  edits, no builder credits), run the tests and `vite build` there, then finish with
+  `create_checkpoint` (otherwise a Restore in the builder discards the edits).
+- Do not edit while the app status is `processing`. Don't deploy/publish in Base44 unless
+  Josh asks.
