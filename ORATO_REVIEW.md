@@ -1,6 +1,6 @@
 # Orato review
 
-**Date:** 2026-11-15 · **Scope:** the whole app, reviewed as it is (no code changed yet) · **Status:** Phase 1 (review) is done. Fixing waits for "weiter".
+**Date:** 2026-11-15 · **Scope:** the whole app · **Status:** Phase 1 (review) and Phase 2 (fixes) are done. All High and all but three Medium findings are fixed; Low findings were left alone as agreed.
 
 Skills used: impeccable (audit), ui-ux-pro-max (accessibility and touch rules), design-taste-frontend (looking for "AI-made" visual patterns; most of this skill is about landing pages, so only its general rules were applied to this app).
 
@@ -55,6 +55,41 @@ The code is unusually careful. Most edge cases (midnight recordings, iOS storage
 
 ---
 
+## 0. Phase 2 result (status overview)
+
+| ID | Finding | Status |
+|---|---|---|
+| H-1 | Switching tabs hides the page title under the header and keeps the old scroll position | ✅ fixed (commit 3627d05) |
+| H-2 | Typed speeches (the fallback for Firefox and other browsers without speech recognition) never get an overall score or XP | ✅ fixed + old typed sessions repaired on next launch (37aaba6) |
+| H-3 | The streak looks alive after a missed day, then drops when you practise | ✅ fixed + tests (37aaba6) |
+| H-4 | The daily screen doesn't update when the date changes while the app stays open | ✅ fixed (37aaba6) |
+| H-5 | During a recording, one tap on the bottom tab bar silently throws the take away | ✅ fixed (32abb53) |
+| H-6 | On phone, the recording controls are tiny and "Finish" is below the screen edge | ✅ fixed (32abb53) |
+| H-7 | Text colours below the WCAG AA minimum on the filter pills and some labels | ✅ fixed + contrast test extended (9c73341) |
+| M-1 | The main daily action is 1½ screens down on phone | ❓ needs your decision (visible layout change) |
+| M-2 | Target length shows "2 min–2 min" | ✅ fixed (f1ddbe2) |
+| M-3 | Error and loading gaps | ✅ fixed (37aaba6, 32abb53, f1ddbe2) |
+| M-4 | Other tap targets under 44 px on phone | ✅ fixed (9c73341) |
+| M-5 | Buttons nested inside links | ✅ fixed (f1ddbe2) |
+| M-6 | Placeholder-only label on the typed-fallback input | ✅ fixed (32abb53) |
+| M-7 | Mandatory scroll snap on long phone sections | ✅ fixed (f1ddbe2); please still try Feedback/Library on your iPhone |
+| M-8 | No security headers on the deployed site | ✅ fixed (48ed8db) |
+| M-9 | The whole app ships as one 929 KB JavaScript file | ⏭️ skipped, needs your decision (would change how app updates are loaded) |
+| M-10 | No linter | ✅ fixed (48ed8db) |
+| M-11 | The API's abuse protection depends on two settings outside the code | ❓ needs you: two settings outside the code (steps below) |
+| L-1 to L-8 | Low findings | ⏭️ not touched (only if you ask) |
+
+**Checks after the fixes:** type check ✅ · linter ✅ (new, 91 files, 0 problems) · tests ✅ 183 (5 new) · build ✅ · browser tour phone + desktop ✅ (no errors except the expected "no API key" on the test machine) · production build tested with the new security headers ✅ (nothing blocked).
+
+**Extra found during Phase 2:** react-router had a published security advisory (for a server mode Orato doesn't use) → updated to 7.18.5; Vite updated to 8.3.8. The shipped app now has **0 known vulnerabilities**. 20 remain in developer-only tools (never sent to users); `npm audit fix` itself crashes on this lockfile, so they are left for a later tooling update.
+
+### M-11 · How to check your two budget protections (step by step)
+1. **Anthropic spend limit:** open https://console.anthropic.com → log in → left menu **Settings** → **Limits**. Under "Spend limits" make sure a monthly limit is set (for example 20 USD). If it says "No limit", click **Change limit**, type an amount, **Save**.
+2. **Vercel rate limit:** open https://vercel.com → click your Orato project → top menu **Firewall** → **Configure** → **+ New Rule**. Name it "feedback limit". Under **If**, choose *Request Path* · *starts with* · `/api/feedback`. Under **Then**, choose **Rate Limit**, 20 requests per 10 minutes (600 seconds), per IP, action **Deny**. Click **Save rule**, then **Review Changes** → **Publish**.
+   (I tried to check this for you, but my Vercel connection needs permission for your team first. If you'd like me to do it next time, tell me and I'll send you the one-click approval link.)
+
+---
+
 ## 2. Findings
 
 Severity: **Critical** = data loss, a security hole or the app is unusable · **High** = a core feature is wrong, or a clear accessibility failure on the main flow · **Medium** = it hurts but there is a workaround · **Low** = polish.
@@ -68,42 +103,49 @@ Severity: **Critical** = data loss, a security hole or the app is unusable · **
 ### High
 
 #### H-1 · Switching tabs hides the page title under the header and keeps the old scroll position
+- **Status:** ✅ fixed (commit 3627d05)
 - **Where:** `src/components/AppShell.tsx:99` (`mainRef.current?.focus()`)
 - **What's wrong:** After every screen change the app moves keyboard focus to the content area (good for screen readers). The browser then also scrolls that area to the top of the window, so it slides 96 px up **under the sticky header**. On Scenarios, Library and Settings the title ("Scenario library", "Library", …) is hidden. The scroll position from the previous screen is also kept. For example, scroll down on Today, tap "Scenarios", and you land halfway down the list.
 - **Reproduce:** Phone size → Today → scroll down → tap *Scenarios*. Measured scroll position: 169 px instead of 0. Opening `/scenarios` directly in dev: 96 px.
 - **Planned fix:** Use `focus({ preventScroll: true })` and scroll the window to the top on each route change.
 
 #### H-2 · Typed speeches (the fallback for Firefox and other browsers without speech recognition) never get an overall score or XP
+- **Status:** ✅ fixed + old typed sessions repaired on next launch (37aaba6)
 - **Where:** `src/lib/progression.ts:155` (pace = null for typed) together with `overallFromEight()` line 188 and `Feedback.tsx:126`
 - **What's wrong:** A typed transcript has no pace, which is correct. But the overall score is only calculated when **all 8** metrics exist, so it is always empty. XP becomes `xpForScore(null) = 0`. Anyone on a browser without speech recognition can practise forever and never earn XP. The score ring shows "—".
 - **Reproduce (proven):** A typed session with a full AI report gives `overall = null`, `xp = 0`.
 - **Planned fix:** Calculate the overall score from the metrics that were actually scored (7 of 8 for typed speeches) and give the XP as normal. Keep the behaviour "no overall score before the AI report arrives".
 
 #### H-3 · The streak looks alive after a missed day, then drops when you practise
+- **Status:** ✅ fixed + tests (37aaba6)
 - **Where:** `src/lib/db.ts:612–649` (`currentStreak`, 44-hour grace)
 - **What's wrong:** The 44-hour grace is meant for flying across time zones. In everyday use it also hides a missed day. Practise Sunday 22:00, skip Monday, open the app Tuesday at 09:00: the pill still shows **2**. Record your speech and it drops to **1**. Practising makes the number go down, which is the opposite of motivating.
 - **Reproduce (proven):** Sat 21:00 + Sun 22:00 sessions, clock set to Tue 09:00 → streak 2. Add Tuesday's session → streak 1.
 - **Planned fix:** Only apply the grace when the time zone really changed. Store the time-zone offset with each new session and compare it with the current one. Without a time-zone change, the normal "today or yesterday" rule applies. Add a test for both cases.
 
 #### H-4 · The daily screen doesn't update when the date changes while the app stays open
+- **Status:** ✅ fixed (37aaba6)
 - **Where:** `src/screens/Today.tsx:33–54` (data is loaded once on mount); also `HeaderStats` and the date in `Session.tsx`
 - **What's wrong:** A home-screen app often stays open in the background for days, especially on iPhone. Next morning Today still shows **yesterday's** word, challenge and "done today ✓". The streak pill also stays stale until something is saved. The "Begin" link carries yesterday's day number into the session (`?day=N`).
 - **Reproduce:** Open Today, leave the app in the background past midnight (or change the device clock), return: nothing updates until you fully reload. *(Found by reading the code; the clock change was not simulated in the browser.)*
 - **Planned fix:** Reload Today's data when the app comes back to the foreground (`visibilitychange`) and the date has changed. Re-read the streak the same way. In `Session.tsx`, take the day number from `dailyPathState()` instead of trusting the URL.
 
 #### H-5 · During a recording, one tap on the bottom tab bar silently throws the take away
+- **Status:** ✅ fixed (32abb53)
 - **Where:** `src/components/AppShell.tsx:261` (tab bar always shown) and `Session.tsx` (no leave guard)
 - **What's wrong:** The tab bar, the logo link and the settings icon all stay active while recording or paused. A stray tap navigates away and the recording is gone, with no "Are you sure?". The app already blocks automatic update reloads during a take; manual navigation should be protected the same way.
 - **Reproduce:** Phone → start a recording → tap *Library*. The take is lost.
 - **Planned fix:** While recording or paused, hide the tab bar on the recording screen (it also frees space, see H-6). Block in-app navigation and ask with the existing discard dialog, and warn on page close (`beforeunload`).
 
 #### H-6 · On phone, the recording controls are tiny and "Finish" is below the screen edge
+- **Status:** ✅ fixed (32abb53)
 - **Where:** `src/screens/Session.tsx:451–485` (recording) and `498–514` (paused)
 - **What's wrong:** Measured tap areas: **Pause 54×16 px, Discard 62×16 px, Type instead 90×16 px** (the minimum is 24 px, the recommendation is 44 px). On a 390×844 phone the big **Finish** button is below the fold, under the tab bar, while you are speaking. On the paused screen, "Finish" is only a 16 px tall text link.
 - **Reproduce:** Phone → start recording → screenshot `phone-session-recording.png`: no Finish button visible.
 - **Planned fix:** Give Pause, Discard and Type instead at least 44 px tall tap areas (padding only, same look). Hiding the tab bar (H-5) and a slightly smaller transcript strip bring Finish into view. On the paused screen, make Finish a proper secondary button.
 
 #### H-7 · Text colours below the WCAG AA minimum on the filter pills and some labels
+- **Status:** ✅ fixed + contrast test extended (9c73341)
 - **Where:** `src/components/FilterPill.tsx:17`, the view toggle in `src/screens/Scenarios.tsx:152`, the IPA text on the word card (`Today.tsx:230`), the recording ring label (`RecordRing.tsx:137`)
 - **What's wrong (measured):**
   - Inactive filter pills (gold at 65 % on a half-transparent claret background): **3.6 : 1** (needs 4.5). These are 25+ buttons on Scenarios and Library.
@@ -118,16 +160,19 @@ Severity: **Critical** = data loss, a security hole or the app is unusable · **
 ### Medium
 
 #### M-1 · The main daily action is 1½ screens down on phone
+- **Status:** ❓ needs your decision (visible layout change)
 - **Where:** `src/screens/Today.tsx:77–81` + `src/components/TodayHero.tsx`
 - **What's wrong:** The first phone screen is mostly the decorative emblem card. The challenge text and the **"Take the stage"** button start at about 1,065 px, below the fold even on desktop. The word card's front face is also about 185 px tall but holds only one word (it is sized to the back face).
 - **Planned fix (design decision → I'll ask first in Phase 2):** For example a smaller hero, or the challenge card moved up, so the challenge and its button are visible without scrolling. The word card's front would shrink to fit its content.
 
 #### M-2 · Target length shows "2 min–2 min"
+- **Status:** ✅ fixed (f1ddbe2)
 - **Where:** `src/screens/Today.tsx:70` (`mins()` rounds to whole minutes)
 - **What's wrong:** 34 scenarios (e.g. targets 90–120 s, 90–140 s, 100–140 s) show "Aim for **2 min–2 min**". 45–90 s shows "45 seconds–2 min", where 90 s is rounded up. The recording screen formats correctly ("1:30–2:00").
 - **Planned fix:** Use the same `m:ss` format as the recording screen, or half-minute steps.
 
 #### M-3 · Error and loading gaps
+- **Status:** ✅ fixed (37aaba6, 32abb53, f1ddbe2)
 - `Today.tsx:162` "New challenge": no `catch`. A database error is silently swallowed, with no message.
 - `Session.tsx:49` / `63`: if loading the daily scenario fails, the recording screen **stays on its skeleton forever**.
 - `Session.tsx` with a bad or old scenario link (`/session?kind=scenario&id=xyz`): it shows "Ready when you are" with **no prompt** and lets you record. The session is then saved with an empty prompt and `refId: null`.
@@ -135,36 +180,44 @@ Severity: **Critical** = data loss, a security hole or the app is unusable · **
 - **Planned fix:** Add a catch and a short message; use the existing `LoadError` card for the endless skeleton; show a "scenario not found" card with a link back; add `role="alert"` to the notices.
 
 #### M-4 · Other tap targets under 44 px on phone
+- **Status:** ✅ fixed (9c73341)
 - Settings gear icon in the header: **20×20 px**. Language toggle: 69×34. "New challenge": 131×28. Filter pills: 34 px tall. Deck arrows: 40×40. Settings language buttons: 40 px tall.
 - **Planned fix:** Make the tap areas bigger with padding or a minimum height, keeping the same look (the icons stay the same size).
 
 #### M-5 · Buttons nested inside links
+- **Status:** ✅ fixed (f1ddbe2)
 - **Where:** `Feedback.tsx:493–502` (`<Link><Button/></Link>`)
 - **What's wrong:** Invalid HTML. The keyboard stops twice on one control and screen readers announce it twice.
 - **Planned fix:** Style the `Link` itself as a button (a shared class), with no nested `<button>`.
 
 #### M-6 · Placeholder-only label on the typed-fallback input
+- **Status:** ✅ fixed (32abb53)
 - **Where:** `Session.tsx:437`
 - **Planned fix:** Add an `aria-label` (or a visually hidden label) with the same text.
 
 #### M-7 · Mandatory scroll snap on long phone sections
+- **Status:** ✅ fixed (f1ddbe2); please still try Feedback/Library on your iPhone
 - **Where:** `src/styles/theme.css:558` (`scroll-snap-type: y mandatory` on phone)
 - **What's wrong:** It works on the short screens. On Feedback with "More detail" open, or long Library cards, mandatory snapping can jump back or skip content, especially in iOS Safari. Chromium was fine in this test; iOS could not be tested here.
 - **Planned fix:** Switch to `proximity` (as on desktop) on the screens with tall sections (Feedback, Library), or turn snapping off while the details panel is open. **Please check on your iPhone afterwards.**
 
 #### M-8 · No security headers on the deployed site
+- **Status:** ✅ fixed (48ed8db)
 - **Where:** `vercel.json`
 - **What's wrong:** No `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`, or frame protection (`frame-ancestors`). Another site could embed Orato in a frame.
 - **Planned fix:** Add a `headers` block to `vercel.json` with a CSP that allows only Orato's own scripts, styles and fonts, plus the other headers.
 
 #### M-9 · The whole app ships as one 929 KB JavaScript file
+- **Status:** ⏭️ skipped, needs your decision (would change how app updates are loaded)
 - **What's wrong:** The first visit downloads the chart library, all 248 scenarios, both word lists and the library data before anything shows (308 KB compressed). After that the service worker caches it.
 - **Planned fix:** Load Progress (Chart.js) and the scenario data only when they are needed. **Caution:** `lib/appUpdate.ts` says reloading is safe *because* there is only one file. Splitting it needs that logic checked, so I'd do it carefully or skip it (your call).
 
 #### M-10 · No linter
+- **Status:** ✅ fixed (48ed8db)
 - **Planned fix:** Add ESLint with the React Hooks rules (the code already has `eslint-disable` comments that expect it), plus an `npm run lint` script. Fix only real errors.
 
 #### M-11 · The API's abuse protection depends on two settings outside the code
+- **Status:** ❓ needs you: two settings outside the code (steps below)
 - **Where:** `server/coach.ts:185–219`, README "Protecting the API budget"
 - **What's wrong:** The code checks size, origin and JSON, and keeps a per-IP limit (20 requests per 10 minutes). That limit lives in one server instance's memory, and a script without an `Origin` header passes the origin check. The README already says the real protection is (1) a **spend cap on the Anthropic key** and (2) a **Vercel firewall rate-limit rule**. I can't see whether those are set.
 - **Planned fix (needs you):** I'll give you step-by-step instructions to check both in the Anthropic Console and the Vercel dashboard. No code change.
