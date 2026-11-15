@@ -196,7 +196,7 @@ function ChallengeCard({
           type="button"
           onClick={reroll}
           disabled={busy}
-          className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-(--radius-pill) px-2 py-1 text-sm text-muted transition-colors hover:text-ink disabled:opacity-50"
+          className="ml-auto flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-(--radius-pill) px-2 py-1 text-sm text-muted transition-colors hover:text-ink disabled:opacity-50"
         >
           <Icon name="refresh" size={15} className="text-gold/70" />
           {t("newChallenge")}
@@ -233,7 +233,7 @@ function WordOfDay({ word }: { word: WordEntry }) {
                 {word.word}
               </span>
               {/* Dictionary-style IPA, always visible next to the word */}
-              <span className="text-sm text-muted">{word.pronunciation}</span>
+              <span className="text-sm text-champagne">{word.pronunciation}</span>
             </span>
             <span className="ml-auto shrink-0 text-xs font-medium text-patina-light">{t("wordRevealHint")}</span>
           </span>

@@ -25,6 +25,17 @@ function relativeLuminance(hex: string): number {
   return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
 }
 
+/** `top` composited at `alpha` over `bottom`, as a hex colour. */
+function mixHex(top: string, bottom: string, alpha: number): string {
+  const ch = (hex: string, i: number) => parseInt(hex.slice(i, i + 2), 16);
+  return (
+    "#" +
+    [1, 3, 5]
+      .map((i) => Math.round(ch(top, i) * alpha + ch(bottom, i) * (1 - alpha)).toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
 function contrast(a: string, b: string): number {
   const [hi, lo] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
@@ -69,6 +80,22 @@ describe("text contrast (WCAG AA)", () => {
   it("patina-light stays readable on the claret flip-card face and chips", () => {
     // "Tap to reveal" sits on a bg-claret face, which SURFACES does not cover.
     expect(contrast(tokenValue("--accent-patina-light"), tokenValue("--bg-chip"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("filter pills, the view toggle and the word card keep their type legible", () => {
+    // These sit on claret (--bg-chip) or a half-strength claret wash, which
+    // SURFACES does not cover — and the faded gold they used measured 2.7-4.3:1.
+    const chip = tokenValue("--bg-chip");
+    const halfChip = mixHex(chip, tokenValue("--bg-page"), 0.5);
+    expect(contrast(tokenValue("--orato-champagne"), chip)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(tokenValue("--orato-gold"), halfChip)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(tokenValue("--orato-vellum"), mixHex(tokenValue("--orato-gold"), chip, 0.2))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("recording-ring captions clear 4.5:1 on the page", () => {
+    for (const role of ["--text-muted", "--orato-gold", "--orato-verdigris", "--orato-ochre", "--text-negative"]) {
+      expect(contrast(tokenValue(role), tokenValue("--bg-page"))).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("patina button states keep their label legible", () => {

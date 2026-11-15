@@ -248,7 +248,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               to="/settings"
               aria-label={t("navSettings")}
               className={({ isActive }) =>
-                `justify-self-end transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
+                // 44px hit area around the 20px glyph; the negative margin keeps
+                // the glyph exactly where it sat.
+                `-mr-3 inline-flex h-11 w-11 items-center justify-center justify-self-end transition-colors duration-150 ${isActive ? "text-gold" : "text-muted hover:text-ink"}`
               }
             >
               <Icon name="gear" size={20} />
@@ -347,7 +349,7 @@ function LangToggle({
   return (
     <button
       onClick={() => setLang(lang === "en" ? "de" : "en")}
-      className="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-muted hover:text-ink hover:bg-surface transition-colors duration-150"
+      className="relative after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-muted hover:text-ink hover:bg-surface transition-colors duration-150"
       aria-label={label}
     >
       <Icon name="globe" size={16} />

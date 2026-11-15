@@ -67,7 +67,7 @@ export function Settings() {
               type="button"
               aria-pressed={lang === l}
               onClick={() => setLang(l)}
-              className={`flex-1 rounded-(--radius-control) px-4 py-2.5 text-sm font-medium transition-colors duration-150 ${
+              className={`flex-1 rounded-(--radius-control) px-4 py-3 text-sm font-medium transition-colors duration-150 ${
                 lang === l ? "bg-surface-2 text-ink" : "text-muted hover:text-ink"
               }`}
             >

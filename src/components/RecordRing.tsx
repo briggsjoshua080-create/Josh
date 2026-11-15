@@ -37,6 +37,18 @@ const ZONE_STROKE: Record<VisualZone, string> = {
   over: "var(--orato-bole)",
 };
 
+/**
+ * The zone caption is 12px type, so it needs 4.5:1 where the arc only needs
+ * 3:1. Claret-light (3.0:1) and bole (4.4:1) step up to their text roles.
+ */
+const ZONE_TEXT: Record<VisualZone, string> = {
+  warmup: "var(--text-muted)",
+  building: "var(--orato-gold)",
+  ideal: "var(--orato-verdigris)",
+  wrapup: "var(--orato-ochre)",
+  over: "var(--text-negative)",
+};
+
 const ZONE_LABEL_KEY = {
   warmup: "zoneWarmup",
   building: "zoneBuilding",
@@ -134,7 +146,7 @@ export function RecordRing({ elapsed, ideal, maxSec, size = 240 }: RecordRingPro
         >
           {timeStr}
         </span>
-        <span className="mt-1.5 text-xs" style={{ color: ZONE_STROKE[visual] }}>
+        <span className="mt-1.5 text-xs" style={{ color: ZONE_TEXT[visual] }}>
           {t(ZONE_LABEL_KEY[visual])}
         </span>
       </div>

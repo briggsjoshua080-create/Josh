@@ -150,8 +150,8 @@ export function Scenarios() {
               type="button"
               aria-pressed={view === v}
               onClick={() => setView(v)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
-                view === v ? "bg-gold/20 text-gold" : "text-gold/65 hover:text-gold"
+              className={`relative after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+                view === v ? "bg-gold/20 text-vellum" : "text-champagne hover:text-vellum"
               }`}
             >
               {v === "deck" ? t("viewDeck") : t("viewList")}
