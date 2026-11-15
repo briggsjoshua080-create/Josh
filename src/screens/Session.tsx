@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { wordAtIndex } from "@/lib/daily";
 import { SCENARIOS } from "@/data/scenarios";
@@ -11,6 +11,7 @@ import { blendScores, type Scenario } from "@/lib/types";
 import { computeEight } from "@/lib/progression";
 import { wordOfDayUsed } from "@/lib/feedback";
 import {
+  dailyPathState,
   dailyWordIndex,
   dailyScenarioId,
   requestPersistentStorage,
@@ -23,6 +24,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RecordRing, ringZone } from "@/components/RecordRing";
 import { Waveform } from "@/components/Waveform";
 import { CoachListening } from "@/components/CoachListening";
+import { LoadError } from "@/components/LoadError";
 
 type Phase = "idle" | "recording" | "paused" | "analyzing";
 
@@ -36,35 +38,42 @@ export function Session() {
   const [params] = useSearchParams();
 
   const kind = params.get("kind") === "scenario" ? "scenario" : "daily";
-  const day = Number(params.get("day") ?? 1);
   const scenarioId = params.get("id");
   const scenario = kind === "scenario" ? SCENARIOS.find((s) => s.id === scenarioId) : undefined;
 
   // The daily challenge is a random pick persisted per calendar date — the
   // same lookup Today.tsx uses, so both screens agree on today's scenario.
-  const [dailyScenario, setDailyScenario] = useState<Scenario | null>(null);
-  useEffect(() => {
-    if (kind !== "daily") return;
-    let live = true;
-    dailyScenarioId(day).then((id) => {
-      if (live) setDailyScenario(SCENARIOS.find((s) => s.id === id) ?? null);
-    });
-    return () => {
-      live = false;
-    };
-  }, [kind, day]);
-
+  // The path day is read from the database, not from the URL: a Today screen
+  // left open overnight (or an edited link) carried a stale ?day= into the
+  // saved session.
+  const [daily, setDaily] = useState<{ day: number; scenario: Scenario | null } | null>(null);
   // Today's word is a persisted random draw, so it has to come from IndexedDB
   // rather than from `day` — same row the Today screen reads, same word.
   const [wordIndex, setWordIndex] = useState<number | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (kind !== "daily") return;
     let live = true;
-    dailyWordIndex().then((i) => live && setWordIndex(i));
+    (async () => {
+      try {
+        const { day } = await dailyPathState();
+        const [id, index] = await Promise.all([dailyScenarioId(day), dailyWordIndex()]);
+        if (!live) return;
+        setDaily({ day, scenario: SCENARIOS.find((s) => s.id === id) ?? null });
+        setWordIndex(index);
+      } catch (err) {
+        // Used to leave the recording screen on its skeleton forever.
+        console.error("Session: failed to load today's challenge", err);
+        if (live) setLoadFailed(true);
+      }
+    })();
     return () => {
       live = false;
     };
-  }, [kind]);
+  }, [kind, attempt]);
+  const dailyScenario = daily?.scenario ?? null;
+  const day = daily?.day ?? 1;
   const word = wordIndex === null ? undefined : wordAtIndex(wordIndex, lang);
 
   const active = scenario ?? dailyScenario;
@@ -145,6 +154,35 @@ export function Session() {
   // The daily scenario resolves from IndexedDB (same draw Today.tsx made) —
   // usually near-instant, but the recording UI must wait for the real prompt
   // and target window rather than flash a placeholder one.
+  if (loadFailed) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setLoadFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
+
+  // A stale or edited link to a scenario that does not exist used to open a
+  // recorder with no prompt, then save the take with an empty prompt.
+  if (kind === "scenario" && !scenario) {
+    return (
+      <div className="pt-2 lg:pt-0">
+        <div className="box mt-8 flex flex-col items-center gap-4 p-6 text-center">
+          <Icon name="info" size={22} className="text-bad" />
+          <p role="alert" className="text-sm text-muted">
+            {t("scenarioMissing")}
+          </p>
+          <Link to="/scenarios" className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">
+            {t("anotherScenario")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (kind === "daily" && !dailyScenario) {
     return (
       <div className="pt-2 lg:pt-0">
@@ -299,6 +337,7 @@ export function Session() {
       lang,
       dateISO: sessionDateISO(startedAt),
       startedAt,
+      tzOffset: new Date(startedAt).getTimezoneOffset(),
       durationSec: Math.round(merged.durationSec),
       transcript,
       segments: merged.segments,

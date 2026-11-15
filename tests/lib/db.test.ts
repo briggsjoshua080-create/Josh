@@ -202,14 +202,37 @@ describe("currentStreak", () => {
     db.close();
   });
 
-  it("survives a two-day forward calendar jump within the wall-clock grace", async () => {
-    // Flying LAX->NRT skips a local date while only ~14h of wall time passes;
-    // the old today-or-yesterday test zeroed a streak the user never broke.
+  it("survives a forward calendar jump when the time zone really changed", async () => {
+    // Flying LAX->NRT skips a local date while only ~21h of wall time pass:
+    // the last take was at 20:00 two dates ago on a clock 16 hours behind.
     const { currentStreak, db, todayISO } = await freshDb();
-    for (const offset of [2, 3, 4]) {
+    const twoDatesAgo = new Date();
+    twoDatesAgo.setDate(twoDatesAgo.getDate() - 2);
+    await db.sessions.add(
+      session({
+        dateISO: todayISO(twoDatesAgo),
+        startedAt: Date.now() - 21 * 60 * 60 * 1000,
+        tzOffset: new Date().getTimezoneOffset() + 16 * 60,
+      }),
+    );
+    for (const offset of [3, 4]) {
       await db.sessions.add(session(dayAt(todayISO, offset)));
     }
     expect(await currentStreak()).toBe(3);
+    db.close();
+  });
+
+  it("does not forgive a missed day without a time-zone change", async () => {
+    // Practised two evenings, skipped yesterday: the streak is broken this
+    // morning, not shown alive and then dropped to 1 after practising.
+    const { currentStreak, db, todayISO } = await freshDb();
+    const tz = new Date().getTimezoneOffset();
+    for (const offset of [2, 3]) {
+      await db.sessions.add(session({ ...dayAt(todayISO, offset, 22), tzOffset: tz }));
+    }
+    expect(await currentStreak()).toBe(0);
+    await db.sessions.add(session({ ...dayAt(todayISO, 0, 8), tzOffset: tz }));
+    expect(await currentStreak()).toBe(1);
     db.close();
   });
 
@@ -367,6 +390,29 @@ describe("recomputeProgress", () => {
     });
 
     expect((await recomputeProgress()).cumulativeXp).toBe(70);
+    db.close();
+  });
+});
+
+describe("repairTypedSessions", () => {
+  it("gives an already-analysed typed take its overall score and XP", async () => {
+    const { repairTypedSessions, db } = await freshDb();
+    const scores = {
+      clarity: 80, confidence: 80, structure: 80, pace: null,
+      fluency: 80, wordPower: 80, conciseness: 80, engagement: 80,
+    };
+    const id = (await db.sessions.add(
+      session({
+        metrics: { ...session().metrics, typed: true },
+        report: {} as Session["report"],
+        progress: { scores, overallScore: null, xpEarned: 0, wordOfDayUsed: false, wpm: 0, xpPending: false },
+      }),
+    )) as number;
+    expect(await repairTypedSessions()).toBe(1);
+    const fixed = await db.sessions.get(id);
+    expect(fixed?.progress?.overallScore).toBe(80);
+    expect(fixed?.progress?.xpEarned).toBe(640);
+    expect(await repairTypedSessions()).toBe(0);
     db.close();
   });
 });

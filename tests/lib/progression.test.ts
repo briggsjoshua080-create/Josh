@@ -7,6 +7,7 @@ import {
   levelForXp,
   overallFromEight,
   rollingStats,
+  unscorableMetrics,
   xpForScore,
 } from "@/lib/progression";
 import { cleanSpeechSeconds, countHedges, wpmSeries } from "@/lib/metrics";
@@ -100,6 +101,20 @@ describe("computeEight", () => {
     // Penalty is capped at 20.
     const veryHedgy = makeMetrics({ hedges: { total: 20, perMin: 20, counts: { maybe: 20 } } });
     expect(computeEight(veryHedgy, makeReport(80)).confidence).toBe(60);
+  });
+
+  it("scores a typed take from the seven metrics it can have", () => {
+    // Typing has no speaking tempo, so pace stays null; that used to leave the
+    // overall score null forever and the session worth 0 XP.
+    const typed = makeMetrics({ typed: true });
+    const eight = computeEight(typed, makeReport(80));
+    expect(eight.pace).toBeNull();
+    expect(overallFromEight(eight)).toBeNull();
+    const overall = overallFromEight(eight, unscorableMetrics(typed));
+    expect(overall).not.toBeNull();
+    expect(xpForScore(overall!)).toBeGreaterThan(0);
+    // Still pending before the coach report arrives.
+    expect(overallFromEight(computeEight(typed, null), unscorableMetrics(typed))).toBeNull();
   });
 
   it("awards the word-of-day bonus on top of quadratic XP", () => {

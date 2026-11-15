@@ -5,7 +5,7 @@ import { quoted, useI18n } from "@/lib/i18n";
 import { db, getSession, getProgressState, recomputeProgress, allSessions } from "@/lib/db";
 import { requestReport, deliveryCoaching, wordOfDayUsed, CoachUnavailableError } from "@/lib/feedback";
 import { type EightScores, type Session } from "@/lib/types";
-import { computeEight, overallFromEight, xpForScore, levelForXp, WORD_OF_DAY_BONUS, type LevelState } from "@/lib/progression";
+import { computeEight, overallFromEight, unscorableMetrics, xpForScore, levelForXp, WORD_OF_DAY_BONUS, type LevelState } from "@/lib/progression";
 import { CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
 import { PACE_BAND, wpmSeries } from "@/lib/metrics";
 import { Button } from "@/components/Button";
@@ -123,7 +123,7 @@ export function Feedback() {
       });
 
       const scores = computeEight(s.metrics, report);
-      const overallScore = overallFromEight(scores)!;
+      const overallScore = overallFromEight(scores, unscorableMetrics(s.metrics))!;
       const wodUsed =
         s.progress?.wordOfDayUsed ?? (s.wordOfDay ? wordOfDayUsed(s.transcript, s.wordOfDay) : false);
       const xpEarned = xpForScore(overallScore) + (wodUsed ? WORD_OF_DAY_BONUS : 0);
@@ -212,7 +212,7 @@ export function Feedback() {
   const eight: EightScores = session.progress?.xpPending === false && session.progress
     ? session.progress.scores
     : computeEight(m, report ?? null);
-  const overall = session.progress?.overallScore ?? overallFromEight(eight);
+  const overall = session.progress?.overallScore ?? overallFromEight(eight, unscorableMetrics(m));
   const offline = phase === "offline" && !report;
   const busy = phase === "busy" && !report;
   /** Either failure leaves the report unfetched, so the radar degrades the same way. */

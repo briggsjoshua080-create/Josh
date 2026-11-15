@@ -253,6 +253,10 @@ export const strings = {
     en: "The analysis didn't finish in time. Your recording and metrics are saved — a retry usually goes through.",
     de: "Die Analyse wurde nicht rechtzeitig fertig. Aufnahme und Messwerte sind gespeichert — ein erneuter Versuch klappt meist.",
   },
+  scenarioMissing: {
+    en: "This scenario isn't available. Pick another one from the library.",
+    de: "Dieses Szenario gibt es nicht. Such dir ein anderes aus der Bibliothek aus.",
+  },
   sessionMissing: {
     en: "Session not found — it may have been removed from this device.",
     de: "Session nicht gefunden — sie wurde vielleicht von diesem Gerät entfernt.",

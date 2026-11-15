@@ -12,6 +12,7 @@ import { LoadError } from "@/components/LoadError";
 import { SnapSection } from "@/components/SnapSection";
 import { TodayHero } from "@/components/TodayHero";
 import { FlipCard } from "@/components/kokonut/FlipCard";
+import { useToday } from "@/lib/useToday";
 import type { Scenario, Session, WordEntry } from "@/lib/types";
 
 export function Today() {
@@ -29,19 +30,24 @@ export function Today() {
   const [todaySession, setTodaySession] = useState<Session | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Re-runs the load below when the calendar date rolls over while the app
+  // stays open, instead of showing yesterday's word and challenge.
+  const today = useToday();
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const { day, doneToday } = await dailyPathState();
-        const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(), dailyScenarioId(day)]);
+        const [wordIndex, scenarioId] = await Promise.all([dailyWordIndex(today), dailyScenarioId(day, today)]);
         const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
         if (!alive) return;
         setState({ day, doneToday, wordIndex, scenario });
         if (doneToday) {
           const sessions = await db.sessions.where("day").equals(day).toArray();
           if (alive) setTodaySession(sessions[sessions.length - 1] ?? null);
+        } else {
+          setTodaySession(null);
         }
       } catch (err) {
         console.error("Today: failed to load", err);
@@ -51,7 +57,7 @@ export function Today() {
     return () => {
       alive = false;
     };
-  }, [attempt]);
+  }, [attempt, today]);
 
   if (failed) {
     return (

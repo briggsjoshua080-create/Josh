@@ -4,6 +4,7 @@ import { db, currentStreak } from "@/lib/db";
 import { progressFromSessions } from "@/lib/progression";
 import { useI18n } from "@/lib/i18n";
 import { Icon } from "./Icon";
+import { useToday } from "@/lib/useToday";
 
 /**
  * The slim streak + XP row that sits directly under the header logo, on every
@@ -24,6 +25,9 @@ import { Icon } from "./Icon";
  */
 export function HeaderStats() {
   const { t } = useI18n();
+  // The streak depends on the date as well as the data: a streak that ended
+  // yesterday is gone at midnight even though no session changed.
+  const today = useToday();
 
   const streak = useLiveQuery(
     async () => {
@@ -34,7 +38,7 @@ export function HeaderStats() {
         return null;
       }
     },
-    [],
+    [today],
     null,
   );
   const xp = useLiveQuery(async () => {

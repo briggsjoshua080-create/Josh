@@ -99,10 +99,24 @@ export function computeEight(m: Metrics, report: AiReport | null): EightScores {
   };
 }
 
-/** round(mean of the 8); null unless every metric was scored. */
-export function overallFromEight(scores: EightScores): number | null {
-  const values = METRIC_KEYS.map((k) => scores[k]);
-  if (values.some((v) => v === null)) return null;
+/**
+ * The metrics a session can never score, whatever the coach says. A typed
+ * transcript has no speaking tempo, so its pace stays null for good.
+ */
+export function unscorableMetrics(m: Pick<Metrics, "typed">): MetricKey[] {
+  return m.typed ? ["pace"] : [];
+}
+
+/**
+ * round(mean of the scored metrics); null while any scorable metric is still
+ * pending. `unscorable` names metrics that can never be scored for this
+ * session — without it a typed take (pace is always null) never got an
+ * overall score, and so never earned XP.
+ */
+export function overallFromEight(scores: EightScores, unscorable: readonly MetricKey[] = []): number | null {
+  const keys = METRIC_KEYS.filter((k) => !unscorable.includes(k));
+  const values = keys.map((k) => scores[k]);
+  if (values.length === 0 || values.some((v) => v === null)) return null;
   return Math.round((values as number[]).reduce((a, b) => a + b, 0) / values.length);
 }
 

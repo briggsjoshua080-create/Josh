@@ -11,10 +11,15 @@ import App from "./App";
 import { LanguageProvider } from "./lib/i18n";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { watchForAppUpdates } from "./lib/appUpdate";
+import { repairTypedSessions } from "./lib/db";
 
 // Before render: a new service worker can claim the page at any moment, and the
 // listener has to be in place to notice.
 watchForAppUpdates();
+
+// Typed takes analysed before they could be scored were saved with 0 XP.
+// Cheap and idempotent; a failure only means the repair waits for next launch.
+void repairTypedSessions().catch((err) => console.warn("repairTypedSessions failed", err));
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

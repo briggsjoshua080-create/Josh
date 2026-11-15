@@ -190,6 +190,12 @@ export interface Session {
   /** Local calendar date yyyy-mm-dd (streak + daily-path anchor). */
   dateISO: string;
   startedAt: number;
+  /**
+   * Date.getTimezoneOffset() when the take started (minutes, positive west of
+   * UTC). Lets the streak tell a time-zone jump from a genuinely missed day.
+   * Absent on sessions saved before it existed.
+   */
+  tzOffset?: number;
   durationSec: number;
   transcript: string;
   segments: SpeechSegment[];

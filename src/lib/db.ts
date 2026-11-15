@@ -1,6 +1,13 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { DailyPick, DailyScenarioPick, Session } from "./types";
-import { progressFromSessions, type ProgressState } from "./progression";
+import {
+  overallFromEight,
+  progressFromSessions,
+  unscorableMetrics,
+  xpForScore,
+  WORD_OF_DAY_BONUS,
+  type ProgressState,
+} from "./progression";
 import {
   DAILY_WORD_COUNT,
   RECENT_WORD_MEMORY,
@@ -200,6 +207,8 @@ export async function dailyScenarioId(accountDay: number, dateISO = todayISO()):
  * calendar-keyed row remains the single source of truth for today's pick.
  */
 const rejectedToday = new Set<string>();
+/** The date rejectedToday belongs to — it is cleared when the date rolls over. */
+let rejectedDate = "";
 
 /** Pick a different daily scenario, excluding the one on screen, those already rerolled away, and recent days'. */
 export async function rerollDailyScenario(accountDay: number, dateISO = todayISO()): Promise<string> {
@@ -211,6 +220,10 @@ export async function rerollDailyScenario(accountDay: number, dateISO = todayISO
       .limit(RECENT_DAILY_MEMORY)
       .toArray();
 
+    if (rejectedDate !== dateISO) {
+      rejectedToday.clear();
+      rejectedDate = dateISO;
+    }
     const current = await db.dailyScenarioPicks.get(dateISO);
     if (current) rejectedToday.add(current.scenarioId);
     const recentIds = recent.map((p) => p.scenarioId);
@@ -293,6 +306,33 @@ export async function isStoragePersisted(): Promise<boolean | null> {
   }
 }
 
+/**
+ * One-off repair for typed takes analysed before they could get an overall
+ * score: they were stored with overallScore null and 0 XP. Idempotent — a
+ * repaired session no longer matches — and returns how many were fixed.
+ */
+export async function repairTypedSessions(): Promise<number> {
+  const broken = (await db.sessions.toArray()).filter(
+    (s) =>
+      s.metrics?.typed &&
+      s.report &&
+      s.progress &&
+      !s.progress.xpPending &&
+      s.progress.overallScore === null,
+  );
+  for (const s of broken) {
+    const overallScore = overallFromEight(s.progress!.scores, unscorableMetrics(s.metrics));
+    if (overallScore === null) continue;
+    const xpEarned = xpForScore(overallScore) + (s.progress!.wordOfDayUsed ? WORD_OF_DAY_BONUS : 0);
+    await db.sessions.update(s.id!, {
+      progress: { ...s.progress!, overallScore, xpEarned },
+      scores: { ...s.scores, overall: overallScore },
+    });
+  }
+  if (broken.length > 0) await recomputeProgress();
+  return broken.length;
+}
+
 export async function getProgressState(): Promise<ProgressState> {
   return (await db.progress.get("main")) ?? (await recomputeProgress());
 }
@@ -338,13 +378,25 @@ export async function dailyPathState(): Promise<{ day: number; doneToday: boolea
 }
 
 /**
- * How many calendar days a streak may have been idle before it is considered
- * broken. A plain "today or yesterday" test breaks a streak the user never
- * missed: fly LAX→NRT overnight and the local calendar skips a date entirely
- * while only ~14 hours of wall time pass. Measuring elapsed wall time as well
- * forgives that without forgiving a genuinely missed day.
+ * How long after the last take a time-zone jump may still be forgiven. Flying
+ * LAX→NRT skips a local date while only ~14 hours of wall time pass.
  */
 const STREAK_GRACE_MS = 44 * 60 * 60 * 1000;
+
+/** The calendar date `ms` falls on for a clock at `offsetMin` (getTimezoneOffset sign). */
+function dateAtOffset(ms: number, offsetMin: number): string {
+  const d = new Date(ms - offsetMin * 60_000);
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${m}-${day}`;
+}
+
+/** The ISO date one calendar day before `iso`. */
+function dayBefore(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() - 1);
+  return todayISO(d);
+}
 
 /** Consecutive calendar days (ending at the most recent practice) with any session. */
 export async function currentStreak(): Promise<number> {
@@ -355,21 +407,28 @@ export async function currentStreak(): Promise<number> {
   const today = todayISO();
   const newest = dates[0];
 
-  // Anchor the walk at the newest practice date, not at "today", so a forward
-  // calendar jump (timezone change, corrected clock) doesn't zero a streak the
-  // user never broke — flying LAX->NRT skips a local date while only ~14 hours
-  // of wall time pass.
   let cursor: Date;
   if (seen.has(today)) {
     cursor = new Date();
+  } else if (newest === dayBefore(today)) {
+    // Not practised yet today: the streak is still alive until midnight.
+    cursor = new Date(`${newest}T12:00:00`);
   } else {
-    // Elapsed time comes from the session's own timestamp. Deriving it from the
-    // date at midday instead made a two-calendar-day gap measure anywhere from
-    // 36 to 60 hours depending on the time of day, so whether a streak survived
-    // depended on when you happened to open the app.
+    // A two-date gap is a missed day — unless the clock's time zone moved.
+    // A wall-clock window alone used to forgive any missed day whenever the
+    // last take was late in the evening: practise Sunday 22:00, skip Monday,
+    // and Tuesday morning still showed the streak — which then dropped to 1
+    // the moment you practised. So the grace now needs evidence of travel:
+    // judged on the clock the last take was recorded under, was it only
+    // yesterday?
     const last = await db.sessions.orderBy("startedAt").last();
+    const offset = last?.tzOffset;
     const elapsed = last ? Date.now() - last.startedAt : Infinity;
-    if (!(elapsed >= 0 && elapsed <= STREAK_GRACE_MS)) return 0;
+    const travelled = typeof offset === "number" && offset !== new Date().getTimezoneOffset();
+    if (!last || !travelled || !(elapsed >= 0 && elapsed <= STREAK_GRACE_MS)) return 0;
+    const thereToday = dateAtOffset(Date.now(), offset);
+    const thereLast = dateAtOffset(last.startedAt, offset);
+    if (thereLast !== thereToday && thereLast !== dayBefore(thereToday)) return 0;
     cursor = new Date(`${newest}T12:00:00`);
   }
 
