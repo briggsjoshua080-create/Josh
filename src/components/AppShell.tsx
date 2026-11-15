@@ -88,15 +88,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Say where they are, and park the cursor at the top of the new screen so
   // the next Tab or swipe starts there rather than back in the tab bar.
   const [routeMessage, setRouteMessage] = useState("");
-  const firstRoute = useRef(true);
+  const firstRoute = useRef<string | null>(null);
   useEffect(() => {
-    if (firstRoute.current) {
-      firstRoute.current = false;
+    // Keyed on the path rather than a boolean: StrictMode runs this effect
+    // twice on mount, and a boolean flag let the second run treat the very
+    // first screen as a navigation.
+    if (firstRoute.current === null || firstRoute.current === pathname) {
+      firstRoute.current = pathname;
       return; // the initial load already announces itself
     }
+    firstRoute.current = "";
     const key = routeNameKey(pathname);
     setRouteMessage(key ? t("routeAnnouncement", { name: t(key) }) : "");
-    mainRef.current?.focus();
+    // A new screen starts at its top. Without this the previous screen's scroll
+    // offset carried over, and a plain focus() then scrolled <main> flush with
+    // the viewport top — underneath the sticky mobile header, hiding the title.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    mainRef.current?.focus({ preventScroll: true });
     // `t` changes identity every render; the pathname is what this reacts to.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
