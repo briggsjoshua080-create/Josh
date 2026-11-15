@@ -137,6 +137,11 @@ export const strings = {
     en: "That was too short to coach. Give it at least ten words.",
     de: "Das war zu kurz für Feedback. Gib mir mindestens zehn Wörter.",
   },
+  tooShortCount: {
+    en: "Keep going: the coach needs at least 10 words ({n} so far).",
+    de: "Sprich noch weiter: der Coach braucht mindestens 10 Wörter (bisher {n}).",
+  },
+  finishingTake: { en: "Wrapping up…", de: "Wird abgeschlossen…" },
   recognitionLost: {
     en: "Speech recognition stopped — check your microphone or headset, then start again. Anything already transcribed is kept.",
     de: "Die Spracherkennung ist abgebrochen — prüfe Mikrofon oder Headset und starte neu. Bereits Erkanntes bleibt erhalten.",

@@ -86,7 +86,7 @@ export function Session() {
   const [interim, setInterim] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<
-    "mic" | "unsupported" | "tooShort" | "saveFailed" | "recognition" | null
+    "mic" | "unsupported" | "saveFailed" | "recognition" | null
   >(null);
   const [typed, setTyped] = useState("");
   const [showType, setShowType] = useState(false);
@@ -95,7 +95,12 @@ export function Session() {
   const speechRef = useRef<SpeechSession | null>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const levelRef = useRef(0);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const transcriptBoxRef = useRef<HTMLDivElement>(null);
+  /** Set the instant Finish is pressed, so a second tap can't start a second finish. */
+  const finishingRef = useRef(false);
+  const [finishing, setFinishing] = useState(false);
+  /** Words recognised so far when a Finish was judged too short (shown by the button). */
+  const [shortCount, setShortCount] = useState<number | null>(null);
   /** Completed legs of this recording — a new leg starts each time a pause or
    *  a "too short" retry ends the previous one; Finish merges them all. */
   const legsRef = useRef<Leg[]>([]);
@@ -129,7 +134,11 @@ export function Session() {
   }, [phase]);
 
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ block: "end" });
+    // Scroll the transcript strip only. scrollIntoView also scrolled the page
+    // itself every time a word arrived, so the screen shifted under a finger
+    // that was reaching for Finish.
+    const box = transcriptBoxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [finalText, interim]);
 
   // Hold off an auto-update reload while a take exists only in memory. Paused
@@ -260,12 +269,16 @@ export function Session() {
     await session.start();
   }
 
-  /** Stops the live recognizer (if any) and folds its result into legsRef. */
-  function stopLeg() {
+  /**
+   * Stops the live recognizer (if any) and folds its result into legsRef.
+   * `flush` waits briefly for words the engine is still finalising — used by
+   * Finish, where the last sentence decides whether the take is long enough.
+   */
+  async function stopLeg(flush = false) {
     const rec = speechRef.current;
     if (rec) {
-      const result = rec.stop();
       speechRef.current = null;
+      const result = flush ? await rec.finalize() : rec.stop();
       legEndedAtRef.current = Date.now();
       legsRef.current = [
         ...legsRef.current,
@@ -283,7 +296,8 @@ export function Session() {
 
   function pause() {
     if (!speechRef.current) return;
-    stopLeg();
+    void stopLeg();
+    setShortCount(null);
     setPhase("paused");
   }
 
@@ -295,6 +309,7 @@ export function Session() {
     usedTypingRef.current = false;
     recordingStartedAtRef.current = null;
     setConfirmingDiscard(false);
+    setShortCount(null);
     setPhase("idle");
     setError(null);
     setFinalText("");
@@ -303,26 +318,40 @@ export function Session() {
   }
 
   async function finish() {
-    const merged = stopLeg();
-    const transcript = merged.segments.map((s) => s.text).join(" ");
-    if (transcript.trim().split(/\s+/).filter(Boolean).length < 10) {
-      // Don't throw the recording away — pick the mic back up so what's
-      // already been said keeps counting toward the ten-word minimum.
-      await start(true);
-      setError("tooShort");
-      return;
-    }
-
-    setPhase("analyzing");
+    // One tap, one finish: the button answers immediately ("Wrapping up…")
+    // and ignores repeat taps while the last words are collected.
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setFinishing(true);
+    setShortCount(null);
     try {
-      await saveAndGo(merged, transcript);
-    } catch (err) {
-      // A failed write used to leave the user on an animation with no button
-      // and no message, and reloading destroyed the take. The legs are still
-      // in legsRef, so Finish can simply be tried again.
-      console.error("Session: failed to save recording", err);
-      setError("saveFailed");
-      setPhase("paused");
+      const merged = await stopLeg(true);
+      const transcript = merged.segments.map((s) => s.text).join(" ");
+      const words = transcript.trim().split(/\s+/).filter(Boolean).length;
+      if (words < 10) {
+        // Don't throw the recording away — pick the mic back up so what's
+        // already been said keeps counting toward the ten-word minimum. The
+        // reason is shown right by the button: up at the top of the screen it
+        // was usually out of view, so the tap just looked like it had failed.
+        await start(true);
+        setShortCount(words);
+        return;
+      }
+
+      setPhase("analyzing");
+      try {
+        await saveAndGo(merged, transcript);
+      } catch (err) {
+        // A failed write used to leave the user on an animation with no button
+        // and no message, and reloading destroyed the take. The legs are still
+        // in legsRef, so Finish can simply be tried again.
+        console.error("Session: failed to save recording", err);
+        setError("saveFailed");
+        setPhase("paused");
+      }
+    } finally {
+      finishingRef.current = false;
+      setFinishing(false);
     }
   }
 
@@ -406,7 +435,6 @@ export function Session() {
       {/* Errors */}
       {error === "mic" && <Notice tone="bad">{t("micDenied")}</Notice>}
       {error === "unsupported" && <Notice tone="warn">{t("speechUnsupported")}</Notice>}
-      {error === "tooShort" && <Notice tone="warn">{t("tooShort")}</Notice>}
       {error === "saveFailed" && <Notice tone="bad">{`${t("saveFailedTitle")} ${t("saveFailedBody")}`}</Notice>}
       {error === "recognition" && <Notice tone="bad">{t("recognitionLost")}</Notice>}
 
@@ -456,6 +484,7 @@ export function Session() {
 
           {/* Live transcript: capped strip, top fade, interim words fade in */}
           <div
+            ref={transcriptBoxRef}
             className="box box-border mt-5 min-h-24 overflow-y-auto p-5"
             style={{
               maxHeight: 160,
@@ -474,7 +503,6 @@ export function Session() {
               </span>
               {!finalText && !interim && <span className="text-faint">{t("waitingForSpeech")}</span>}
             </p>
-            <div ref={transcriptEndRef} />
           </div>
 
           {/* Live level waveform — visual confirmation the mic is capturing */}
@@ -528,13 +556,19 @@ export function Session() {
                 {t("discard")}
               </button>
             </div>
+            {shortCount !== null && (
+              <p role="status" className="mb-1 text-center text-sm text-warn" data-testid="too-short">
+                {t("tooShortCount", { n: shortCount })}
+              </p>
+            )}
             <button
               onClick={finish}
-              aria-label={t("stopRecording")}
+              disabled={finishing}
+              aria-busy={finishing}
               data-testid="finish-recording"
-              className="flex h-14 w-full items-center justify-center rounded-(--radius-pill) border border-bronze bg-claret text-base font-medium text-vellum transition-transform duration-150 active:scale-[0.98]"
+              className="flex h-14 w-full touch-manipulation items-center justify-center gap-2 rounded-(--radius-pill) border border-bronze bg-claret text-base font-medium text-vellum transition-transform duration-150 active:scale-[0.98] disabled:opacity-80"
             >
-              {t("stopRecording")}
+              {finishing ? t("finishingTake") : t("stopRecording")}
             </button>
           </div>
         </div>
@@ -548,9 +582,16 @@ export function Session() {
             <Icon name="mic" size={18} />
             {t("resumeRecording")}
           </Button>
-          <Button variant="ghost" className="w-full" onClick={finish} data-testid="finish-recording">
+          <Button
+            variant="ghost"
+            className="w-full touch-manipulation"
+            onClick={finish}
+            disabled={finishing}
+            aria-busy={finishing}
+            data-testid="finish-recording"
+          >
             <Icon name="check" size={16} />
-            {t("stopRecording")}
+            {finishing ? t("finishingTake") : t("stopRecording")}
           </Button>
           <button
             onClick={() => setConfirmingDiscard(true)}

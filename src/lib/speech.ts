@@ -268,7 +268,43 @@ export class SpeechSession {
     }
   }
 
-  stop(): RecorderResult {
+  /**
+   * Stop like stop(), but first let the engine deliver what it is still
+   * holding. Recognition finalises a phrase 1–3 s after it is spoken (iOS
+   * Safari only at the end of an utterance), so a Finish tapped right after
+   * the last word used to count too few words: the take was judged "too
+   * short", recording silently resumed, and the button seemed to need a
+   * second tap. stop() asks the engine to flush; we wait for that (or
+   * `graceMs`, whichever comes first), then tear down as usual. The recording
+   * is timed at the moment Finish was pressed, not after the wait.
+   */
+  async finalize(graceMs = 1200): Promise<RecorderResult> {
+    const endedAt = performance.now();
+    const rec = this.recognition;
+    if (rec && this.running) {
+      this.running = false; // no auto-restart from onend
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve();
+        };
+        const timer = window.setTimeout(done, graceMs);
+        rec.onend = done;
+        rec.onerror = done;
+        try {
+          rec.stop();
+        } catch {
+          done();
+        }
+      });
+    }
+    return this.stop(endedAt);
+  }
+
+  stop(endedAt = performance.now()): RecorderResult {
     this.running = false;
 
     // Keep the sentence still in flight. Recognition finalizes a phrase 1–3s
@@ -317,7 +353,7 @@ export class SpeechSession {
     return {
       segments: this.segments,
       pauses: this.pauses,
-      durationSec: (performance.now() - this.startedAt) / 1000,
+      durationSec: (endedAt - this.startedAt) / 1000,
       volume,
     };
   }
