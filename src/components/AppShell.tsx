@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { Icon } from "./Icon";
@@ -152,17 +152,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate(TAB_ORDER[next]);
   }
 
-  /**
-   * The rail and the tab bar render the same four links, so each surface gets
-   * its own layoutId namespace — one shared id would make Motion animate the
-   * marker between the two copies instead of between tabs.
-   */
-  const navItems = (surface: "rail" | "tabs") =>
+  const navItems = () =>
     NAV.map((item) => (
       <NavLink
         key={item.to}
         to={item.to}
         end={item.to === "/"}
+        data-nav={item.to}
         className={({ isActive }) =>
           `relative flex items-center gap-3 rounded-(--radius-control) px-3 py-2 transition-colors duration-150 ` +
           `max-lg:min-w-0 max-lg:flex-1 max-lg:flex-col max-lg:gap-1 max-lg:px-2 max-lg:py-1.5 max-lg:text-xs lg:text-base ` +
@@ -171,28 +167,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         {({ isActive }) => (
           <>
-            {/* Which page you're on: a gold marker that slides between tabs.
-                It lives in a flex box rather than carrying its own transform,
-                because Motion cannot layout-animate a transformed element. */}
-            <span
-              aria-hidden="true"
-              className={
-                surface === "tabs"
-                  ? "pointer-events-none absolute inset-x-0 top-0 flex justify-center"
-                  : "pointer-events-none absolute inset-y-1 left-0 flex items-center"
-              }
-            >
-              {isActive && (
-                <motion.span
-                  layoutId={`${surface}-active`}
-                  className={
-                    (surface === "tabs" ? "block h-[2px] w-8 rounded-full " : "block h-5 w-[3px] rounded-full ") +
-                    (item.to === "/progress" ? "bg-patina" : "bg-accent")
-                  }
-                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                />
-              )}
-            </span>
             <span
               className="transition-transform duration-150"
               style={{ transform: isActive ? "scale(1.06)" : "scale(1)" }}
@@ -208,12 +182,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[220px_1fr]" onClickCapture={guardLinks}>
       {/* Desktop rail */}
-      <aside className="hidden lg:flex flex-col gap-1 border-r hairline px-4 py-6 sticky top-0 h-dvh">
+      <aside onPointerDown={(e) => glideMarkerOnPress(e, "rail")} className="hidden lg:flex flex-col gap-1 border-r hairline px-4 py-6 sticky top-0 h-dvh">
         <div className="mb-8 flex flex-col items-center gap-3 px-3">
           <Logo size={52} />
           <HeaderStats />
         </div>
-        {navItems("rail")}
+        {navItems()}
+        <NavMarker pathname={pathname} surface="rail" />
         <div className="mt-auto flex flex-col gap-3">
           <NavLink
             to="/settings"
@@ -292,10 +267,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile tab bar — hidden while a take is being recorded */}
         {!recording && (
           <nav
+            onPointerDown={(e) => glideMarkerOnPress(e, "tabs")}
             className="lg:hidden fixed inset-x-0 bottom-0 flex justify-around border-t hairline bg-bg/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)] pt-1"
             style={{ zIndex: "var(--z-nav)" }}
           >
-            {navItems("tabs")}
+            {navItems()}
+            <NavMarker pathname={pathname} surface="tabs" />
           </nav>
         )}
       </div>
@@ -317,6 +294,104 @@ export function AppShell({ children }: { children: ReactNode }) {
       </ConfirmDialog>
     </div>
   );
+}
+
+/**
+ * "Where you are": one gold marker per navigation surface that slides to the
+ * active tab.
+ *
+ * It used to be a Motion shared-layout animation (layoutId). That measures
+ * positions in page coordinates, scroll included — but the tab bar is fixed
+ * and the rail sticky, so after scrolling a screen the marker flew in from
+ * far off-screen, and with the page transition running alongside it could
+ * stall and then jump. Here the position is the active link's offset inside
+ * its own bar, which scrolling never changes, animated with a plain CSS
+ * transform (the global reduced-motion rule turns it into a jump).
+ */
+function NavMarker({ pathname, surface }: { pathname: string; surface: "rail" | "tabs" }) {
+  // The bar is read through the marker's own parent rather than a ref passed
+  // down: a child's layout effect runs before its parent's ref is attached, so
+  // on first paint a passed-in ref was still null and the marker never showed.
+  const ref = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number; on: boolean; glide: boolean }>({
+    x: 0,
+    y: 0,
+    on: false,
+    glide: false,
+  });
+
+  useLayoutEffect(() => {
+    const container = ref.current?.parentElement;
+    if (!container) return;
+    const place = (glide: boolean) => {
+      const link = container.querySelector<HTMLElement>(`[data-nav="${CSS.escape(pathname)}"]`);
+      if (!link) {
+        setPos((p) => ({ ...p, on: false, glide: false }));
+        return;
+      }
+      const { x, y } = markerOffset(link, surface);
+      // Glide only from one tab to another: appearing (first paint, coming
+      // back from Settings or a recording) snaps into place instead. An
+      // unchanged position is left alone — ResizeObserver reports once as soon
+      // as it starts observing, and replacing the state there switched the
+      // transition off mid-glide, which made the marker jump.
+      setPos((p) => (p.on && p.x === x && p.y === y ? p : { x, y, on: true, glide: glide && p.on }));
+    };
+    place(true);
+    const ro = new ResizeObserver(() => place(false));
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [pathname, surface]);
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      data-tab-marker=""
+      className={
+        "pointer-events-none absolute left-0 top-0 rounded-full " +
+        (surface === "tabs" ? "h-[2px] " : "w-[3px] ") +
+        (pathname === "/progress" ? "bg-patina" : "bg-accent")
+      }
+      style={{
+        width: surface === "tabs" ? TAB_MARKER_W : undefined,
+        height: surface === "rail" ? RAIL_MARKER_H : undefined,
+        transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+        // Own compositor layer: the glide keeps running while the main thread
+        // is busy rendering the incoming screen (Scenarios builds 248 cards),
+        // instead of freezing and then jumping to the end.
+        willChange: "transform",
+        opacity: pos.on ? 1 : 0,
+        transition: pos.glide ? MARKER_GLIDE : "opacity 180ms ease-out",
+      }}
+    />
+  );
+}
+
+const TAB_MARKER_W = 32;
+const RAIL_MARKER_H = 20;
+const MARKER_GLIDE = "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), background-color 320ms ease-out, opacity 180ms ease-out";
+
+/** Where the marker sits for `link`, in its bar's own coordinates (scroll-proof). */
+function markerOffset(link: HTMLElement, surface: "rail" | "tabs") {
+  return surface === "tabs"
+    ? { x: link.offsetLeft + link.offsetWidth / 2 - TAB_MARKER_W / 2, y: link.offsetTop }
+    : { x: link.offsetLeft, y: link.offsetTop + (link.offsetHeight - RAIL_MARKER_H) / 2 };
+}
+
+/**
+ * Start the glide the moment a finger lands on a tab. Left to React, it began
+ * only once the next screen had rendered, which on a heavy screen (Scenarios)
+ * meant a visible pause before the marker moved. The render that follows
+ * computes the same transform, so it doesn't restart the glide.
+ */
+function glideMarkerOnPress(e: PointerEvent<HTMLElement>, surface: "rail" | "tabs") {
+  const link = (e.target as HTMLElement).closest<HTMLElement>("[data-nav]");
+  const marker = e.currentTarget.querySelector<HTMLElement>("[data-tab-marker]");
+  if (!link || !marker || marker.style.opacity === "0") return;
+  const { x, y } = markerOffset(link, surface);
+  marker.style.transition = MARKER_GLIDE;
+  marker.style.transform = `translate3d(${x}px, ${y}px, 0)`;
 }
 
 /**
