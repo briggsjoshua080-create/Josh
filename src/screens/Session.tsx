@@ -138,6 +138,17 @@ export function Session() {
     setHoldsUnsavedWork(phase === "recording" || phase === "paused" || phase === "analyzing");
   }, [phase]);
 
+  // Closing or reloading the tab mid-take would lose it just the same.
+  useEffect(() => {
+    if (phase !== "recording" && phase !== "paused") return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [phase]);
+
   // Released on unmount only. As a cleanup on the effect above it would run on
   // every phase change — so tapping Pause would flip the hold off for an
   // instant, and an update waiting behind it would reload and take the
@@ -478,6 +489,7 @@ export function Session() {
                 onChange={(e) => setTyped(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && injectTyped()}
                 placeholder={t("typeFallbackLabel")}
+                aria-label={t("typeFallbackLabel")}
                 data-testid="typed-fallback"
                 className="box-control h-11 flex-1 px-4 text-base"
               />
@@ -490,25 +502,27 @@ export function Session() {
           {error !== "unsupported" && (
             <button
               onClick={() => setShowType((v) => !v)}
-              className="mt-3 flex items-center gap-1.5 self-center text-xs text-muted transition-colors hover:text-ink"
+              className="mt-1 flex min-h-11 items-center gap-1.5 self-center px-3 text-xs text-muted transition-colors hover:text-ink"
             >
               <Icon name="keyboard" size={14} />
               {t("typeInstead")}
             </button>
           )}
 
-          <div className="mt-6 flex flex-col items-center gap-3">
-            <div className="flex items-center gap-6">
+          {/* Pinned to the bottom of the screen: on a phone the controls used to
+              sit below the fold while you were speaking. */}
+          <div className="sticky bottom-0 -mx-5 mt-4 flex flex-col items-center gap-1 bg-bg/95 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2 backdrop-blur-sm lg:mx-0 lg:px-0">
+            <div className="flex items-center gap-2">
               <button
                 onClick={pause}
-                className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
+                className="flex min-h-11 items-center gap-1.5 px-3 text-sm text-muted transition-colors hover:text-ink"
               >
                 <Icon name="pause" size={14} />
                 {t("pauseRecording")}
               </button>
               <button
                 onClick={() => setConfirmingDiscard(true)}
-                className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
+                className="flex min-h-11 items-center gap-1.5 px-3 text-sm text-muted transition-colors hover:text-ink"
               >
                 <Icon name="x" size={14} />
                 {t("discard")}
@@ -534,23 +548,17 @@ export function Session() {
             <Icon name="mic" size={18} />
             {t("resumeRecording")}
           </Button>
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setConfirmingDiscard(true)}
-              className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
-            >
-              <Icon name="x" size={14} />
-              {t("discard")}
-            </button>
-            <button
-              onClick={finish}
-              data-testid="finish-recording"
-              className="flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
-            >
-              <Icon name="check" size={14} />
-              {t("stopRecording")}
-            </button>
-          </div>
+          <Button variant="ghost" className="w-full" onClick={finish} data-testid="finish-recording">
+            <Icon name="check" size={16} />
+            {t("stopRecording")}
+          </Button>
+          <button
+            onClick={() => setConfirmingDiscard(true)}
+            className="flex min-h-11 items-center gap-1.5 px-3 text-sm text-muted transition-colors hover:text-ink"
+          >
+            <Icon name="x" size={14} />
+            {t("discard")}
+          </button>
         </div>
       )}
 
@@ -578,6 +586,7 @@ export function Session() {
 function Notice({ tone, children }: { tone: "bad" | "warn"; children: string }) {
   return (
     <p
+      role="alert"
       className={`mt-4 rounded-(--radius-control) px-4 py-3 text-sm ${
         tone === "bad" ? "bg-bad/10 text-bad" : "bg-warn/10 text-warn"
       }`}

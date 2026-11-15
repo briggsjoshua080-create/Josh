@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { Icon } from "./Icon";
 import { HeaderStats } from "./HeaderStats";
 import { useI18n } from "@/lib/i18n";
+import { getHoldsUnsavedWork, subscribeUnsavedWork } from "@/lib/appUpdate";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const NAV = [
   { to: "/", icon: "stage", key: "navToday" as const },
@@ -75,6 +77,22 @@ export function AppShell({ children }: { children: ReactNode }) {
     histRef.current = { path: pathname, dir: from !== -1 && to !== -1 ? Math.sign(to - from) : 0 };
   }
   const slideDir = histRef.current.dir;
+
+  // While a take exists only in memory, every in-app link is a way to lose it
+  // with one stray tap. The tab bar is hidden (it also frees room for the
+  // recording controls) and any other link asks first.
+  const recording = useSyncExternalStore(subscribeUnsavedWork, getHoldsUnsavedWork, () => false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  function guardLinks(e: MouseEvent<HTMLDivElement>) {
+    if (!getHoldsUnsavedWork()) return;
+    const link = (e.target as HTMLElement).closest("a[href]");
+    if (!link || link.getAttribute("target") === "_blank") return;
+    const href = link.getAttribute("href");
+    if (!href || href.startsWith("http")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPendingHref(href);
+  }
 
   useEffect(() => {
     const root = document.documentElement;
@@ -184,7 +202,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     ));
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[220px_1fr]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[220px_1fr]" onClickCapture={guardLinks}>
       {/* Desktop rail */}
       <aside className="hidden lg:flex flex-col gap-1 border-r hairline px-4 py-6 sticky top-0 h-dvh">
         <div className="mb-8 flex flex-col items-center gap-3 px-3">
@@ -265,14 +283,32 @@ export function AppShell({ children }: { children: ReactNode }) {
           </motion.div>
         </main>
 
-        {/* Mobile tab bar */}
-        <nav
-          className="lg:hidden fixed inset-x-0 bottom-0 flex justify-around border-t hairline bg-bg/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)] pt-1"
-          style={{ zIndex: "var(--z-nav)" }}
-        >
-          {navItems("tabs")}
-        </nav>
+        {/* Mobile tab bar — hidden while a take is being recorded */}
+        {!recording && (
+          <nav
+            className="lg:hidden fixed inset-x-0 bottom-0 flex justify-around border-t hairline bg-bg/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)] pt-1"
+            style={{ zIndex: "var(--z-nav)" }}
+          >
+            {navItems("tabs")}
+          </nav>
+        )}
       </div>
+
+      <ConfirmDialog
+        open={pendingHref !== null}
+        title={t("discardConfirmTitle")}
+        confirmLabel={t("discardConfirmYes")}
+        cancelLabel={t("discardConfirmCancel")}
+        onCancel={() => setPendingHref(null)}
+        onConfirm={() => {
+          const to = pendingHref;
+          setPendingHref(null);
+          // Leaving unmounts the recorder, whose cleanup stops the microphone.
+          if (to) navigate(to);
+        }}
+      >
+        {t("discardConfirmBody")}
+      </ConfirmDialog>
     </div>
   );
 }

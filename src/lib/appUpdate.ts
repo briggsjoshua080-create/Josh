@@ -28,8 +28,25 @@ let reloadPending = false;
  * unsaved take.
  */
 export function setHoldsUnsavedWork(holds: boolean): void {
-  holdsUnsavedWork = holds;
+  if (holdsUnsavedWork !== holds) {
+    holdsUnsavedWork = holds;
+    unsavedListeners.forEach((fn) => fn());
+  }
   if (!holds && reloadPending) reload();
+}
+
+/**
+ * The same flag, readable from React (useSyncExternalStore): the app shell
+ * hides the tab bar and guards its links while a take exists only in memory,
+ * because a stray tap there used to discard the recording without a word.
+ */
+const unsavedListeners = new Set<() => void>();
+export function subscribeUnsavedWork(fn: () => void): () => void {
+  unsavedListeners.add(fn);
+  return () => unsavedListeners.delete(fn);
+}
+export function getHoldsUnsavedWork(): boolean {
+  return holdsUnsavedWork;
 }
 
 function reload(): void {
