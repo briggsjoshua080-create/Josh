@@ -560,6 +560,10 @@ html[data-snap] {
   scroll-padding-top: calc(env(safe-area-inset-top) + var(--header-h) + 10px);
 }
 
+html[data-snap="soft"] {
+  scroll-snap-type: y proximity;
+}
+
 @media (min-width: 1024px) {
   html[data-snap] {
     scroll-snap-type: y proximity;

@@ -8,7 +8,7 @@ import { type EightScores, type Session } from "@/lib/types";
 import { computeEight, overallFromEight, unscorableMetrics, xpForScore, levelForXp, WORD_OF_DAY_BONUS, type LevelState } from "@/lib/progression";
 import { CONFIDENCE_LABEL_KEY } from "@/lib/metricMeta";
 import { PACE_BAND, wpmSeries } from "@/lib/metrics";
-import { Button } from "@/components/Button";
+import { Button, buttonClass } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { CountUp } from "@/components/CountUp";
 import { Meter } from "@/components/Meter";
@@ -518,16 +518,12 @@ export function Feedback() {
       </details>
 
       <div className="snap-end mt-10 flex flex-col gap-3 pb-6">
-        <Link to="/progress">
-          <Button variant="patina" className="w-full">
-            {t("viewStats")}
-            <Icon name="arrowRight" size={16} />
-          </Button>
+        <Link to="/progress" className={`w-full ${buttonClass("patina")}`}>
+          {t("viewStats")}
+          <Icon name="arrowRight" size={16} />
         </Link>
-        <Link to="/">
-          <Button variant="ghost" className="w-full">
-            {t("backToToday")}
-          </Button>
+        <Link to="/" className={`w-full ${buttonClass("ghost")}`}>
+          {t("backToToday")}
         </Link>
         {session.kind === "scenario" && (
           <Link to="/scenarios" className="text-center text-sm text-muted hover:text-ink underline underline-offset-4">

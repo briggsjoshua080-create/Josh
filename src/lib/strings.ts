@@ -53,6 +53,10 @@ export const strings = {
   newChallenge: { en: "New challenge", de: "Neue Challenge" },
   difficulty: { en: "Difficulty", de: "Schwierigkeit" },
   targetLength: { en: "Aim for {a}–{b}", de: "Ziel: {a}–{b}" },
+  rerollFailed: {
+    en: "Couldn't draw a new challenge. Try again in a moment.",
+    de: "Keine neue Aufgabe gezogen. Versuch es gleich noch einmal.",
+  },
   dailyTipsTitle: { en: "Today's communication insights", de: "Kommunikations-Impulse des Tages" },
 
   // Library (speaking & communication techniques)

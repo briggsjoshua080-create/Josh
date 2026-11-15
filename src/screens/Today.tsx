@@ -73,7 +73,11 @@ export function Today() {
 
   const { scenario: challenge } = state;
   const word = wordAtIndex(state.wordIndex, lang);
-  const mins = (s: number) => (s >= 60 ? `${Math.round(s / 60)} ${t("minutes")}` : `${s} ${t("seconds")}`);
+  // m:ss, the same format the recording screen uses. Rounding to whole
+  // minutes turned 90-140s into "2 min–2 min" on 34 scenarios.
+  const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const mins = (s: number, withUnit = true) =>
+    s < 60 ? `${s} ${t("seconds")}` : withUnit ? `${clock(s)} ${t("minutes")}` : clock(s);
 
   return (
     <div className="pt-2 lg:pt-0">
@@ -158,21 +162,28 @@ function ChallengeCard({
   onRerolled,
 }: {
   scenario: Scenario;
-  mins: (s: number) => string;
+  mins: (s: number, withUnit?: boolean) => string;
   onBegin: () => void;
   onRerolled: (scenario: Scenario) => void;
 }) {
   const { t, lang } = useI18n();
   const [busy, setBusy] = useState(false);
 
+  const [rerollFailed, setRerollFailed] = useState(false);
+
   async function reroll() {
     if (busy) return;
     setBusy(true);
+    setRerollFailed(false);
     try {
       const { day: accountDay } = await dailyPathState();
       const newScenarioId = await rerollDailyScenario(accountDay);
       const newScenario = SCENARIOS.find((s) => s.id === newScenarioId);
       if (newScenario) onRerolled(newScenario);
+    } catch (err) {
+      // Used to fail silently: the tap did nothing and said nothing.
+      console.error("Today: reroll failed", err);
+      setRerollFailed(true);
     } finally {
       setBusy(false);
     }
@@ -187,7 +198,11 @@ function ChallengeCard({
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
         <span className="flex items-center gap-1.5">
           <Icon name="clock" size={15} />
-          {t("targetLength", { a: mins(scenario.targetSec[0]), b: mins(scenario.targetSec[1]) })}
+          {t("targetLength", {
+            // "1:30–2:00 min", not "1:30 min–2:00 min"
+            a: mins(scenario.targetSec[0], scenario.targetSec[0] < 60),
+            b: mins(scenario.targetSec[1]),
+          })}
         </span>
         <span className="rounded-full border border-line px-2 py-0.5 text-xs font-medium">
           {t(DIFFICULTY_LABEL[scenario.difficulty])}
@@ -202,6 +217,11 @@ function ChallengeCard({
           {t("newChallenge")}
         </button>
       </div>
+      {rerollFailed && (
+        <p role="alert" className="mt-3 text-sm text-bad">
+          {t("rerollFailed")}
+        </p>
+      )}
       <Button variant="patina" size="lg" className="mt-6 w-full" onClick={onBegin}>
         <Icon name="mic" size={20} />
         {t("beginSession")}

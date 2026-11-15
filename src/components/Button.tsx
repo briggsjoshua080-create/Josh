@@ -34,9 +34,18 @@ const SIZES: Record<string, string> = {
   lg: "min-h-13 py-3 px-7 text-lg",
 };
 
+/**
+ * The button look as a class string, for a router <Link> that navigates.
+ * Wrapping <Button> in <Link> nested a button inside a link: invalid HTML,
+ * two tab stops and a doubled screen-reader announcement for one control.
+ */
+export function buttonClass(variant: NonNullable<ButtonProps["variant"]> = "primary", size: NonNullable<ButtonProps["size"]> = "md"): string {
+  return `${BASE} ${VARIANTS[variant]} ${SIZES[size]}`;
+}
+
 export function Button({ variant = "primary", size = "md", className = "", children, ...rest }: ButtonProps) {
   return (
-    <button className={`${BASE} ${VARIANTS[variant]} ${SIZES[size]} ${className}`} {...rest}>
+    <button className={`${buttonClass(variant, size)} ${className}`} {...rest}>
       {children}
     </button>
   );

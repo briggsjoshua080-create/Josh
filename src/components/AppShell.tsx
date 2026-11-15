@@ -96,7 +96,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (isSnapRoute(pathname)) root.setAttribute("data-snap", "");
+    // Library cards and the Feedback report (with its details open) run taller
+    // than the screen; mandatory snapping there can yank the page back or skip
+    // past content, notably in iOS Safari. Those get the gentle flavour.
+    const soft = pathname === "/library" || pathname.startsWith("/feedback");
+    if (isSnapRoute(pathname)) root.setAttribute("data-snap", soft ? "soft" : "");
     else root.removeAttribute("data-snap");
     return () => root.removeAttribute("data-snap");
   }, [pathname]);

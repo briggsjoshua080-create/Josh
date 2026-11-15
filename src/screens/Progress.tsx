@@ -6,7 +6,7 @@ import { allSessions, currentStreak, recomputeProgress } from "@/lib/db";
 import type { Session } from "@/lib/types";
 import { averageEight, levelForXp, type ProgressState } from "@/lib/progression";
 import { scoreColorVar } from "@/lib/scoreColor";
-import { Button } from "@/components/Button";
+import { buttonClass } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { LoadError } from "@/components/LoadError";
 import { TrendChart } from "@/components/TrendChart";
@@ -61,8 +61,8 @@ export function Progress() {
       <div className="flex min-h-[60vh] flex-col items-center justify-center pt-2 text-center">
         <Icon name="chart" size={40} className="text-faint" />
         <p className="mt-4 max-w-xs text-base text-muted">{t("emptyProgress")}</p>
-        <Link to="/" className="mt-6">
-          <Button variant="patina">{t("emptyProgressCta")}</Button>
+        <Link to="/" className={`mt-6 ${buttonClass("patina")}`}>
+          {t("emptyProgressCta")}
         </Link>
       </div>
     );
